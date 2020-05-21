@@ -1,6 +1,7 @@
 import cv2
 
 from .video_views import *
+from traffic_monitor.models.model_class import Class
 
 from django.shortcuts import render
 
@@ -11,8 +12,10 @@ def index_view(request):
     :param request:
     :return:
     """
-    if not request.user.is_authenticated:
-        return render(request, 'monitor/index.html')
+    # if not request.user.is_authenticated:
+    context = {'detector_id': 'detector_cvlib__yolov3'}
+
+    return render(request, 'traffic_monitor/index.html', context)
 
 
 def table_view(request):
@@ -21,7 +24,7 @@ def table_view(request):
     :param request:
     :return:
     """
-    return render(request, 'monitor/table.html')
+    return render(request, 'traffic_monitor/table.html')
 
 
 def profile_view(request):
@@ -30,4 +33,4 @@ def profile_view(request):
     :param request:
     :return:
     """
-    return render(request, 'monitor/profile.html')
+    return render(request, 'traffic_monitor/profile.html')

@@ -15,7 +15,6 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
@@ -26,7 +25,6 @@ SECRET_KEY = '=bb+h=u9v)z-&3rqlzfet8$7&ybq46$t1=33-$_xm0)u1b+(in'
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -70,7 +68,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'monitor.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
@@ -80,7 +77,6 @@ DATABASES = {
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
@@ -100,7 +96,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
 
@@ -114,7 +109,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
@@ -123,13 +117,42 @@ STATIC_URL = '/static/'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
+    'formatters': {'verbose': {
+                                'format': '{levelname} {asctime} ({module}): {message}',
+                                'datefmt': '%Y-%m-%d %H:%M:%S',
+                                'style': '{', },
+                   'simple':  {
+                                'format': '{levelname} {message}',
+                                'style': '{', },
+                   },
+
+    'handlers': {'console': {'level': 'INFO',
+                             'class': 'logging.StreamHandler',
+                             'formatter': 'verbose'},
+                 },
+
+    'loggers': {'django':   {'handlers': ['console'],
+                             'level': 'INFO', },
+                'view':     {'handlers': ['console'],
+                             'level': 'INFO', },
+                'model':    {'handlers': ['console'],
+                             'level': 'INFO', },
+                'detector': {'handlers': ['console'],
+                             'level': 'INFO', },
+                'command':  {'handlers': ['console'],
+                             'level': 'INFO', },
+                },
 }
+
+# logging_levels = {0: logging.ERROR,
+#                   1: logging.INFO,
+#                   2: logging.DEBUG}
+# log_level = os.getenv('VERBOSITY', logging.ERROR)
+# logger = logging.getLogger('video_views')
+# logger.setLevel(level=logging.DEBUG)
+# formatter = logging.Formatter('%(asctime)-19s - %(module)-15s - %(levelname)s - %(message)s')
+# ch = logging.StreamHandler()
+# ch.setLevel(logging.DEBUG)
+# ch.setFormatter(formatter)
+# logger.addHandler(ch)
+# logging.info(f"Logging set to: {logging.getLevelName(log_level)}")

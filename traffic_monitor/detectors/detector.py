@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 
-class Detector(ABC):
+class Detector_Abstract(ABC):
     """
     Abstract class for a detector.
     required methods:
@@ -12,21 +12,16 @@ class Detector(ABC):
     """
 
     def __init__(self, name: str, model: str = None, verbosity: int = 0):
-        self.name = name
+        self.name = name.replace(' ', '_')
         self.model = model
-        self.logger = logging.Logger(name)
-
-        # set logger level
-        log_levels = {0: logging.ERROR, 1: logging.INFO, 2: logging.DEBUG}
-        if verbosity not in log_levels.keys():
-            verbosity = 0
-        self.logger.setLevel(log_levels.get(verbosity))
+        self.id = f"{name}__{model}"
+        self.logger = logging.Logger('detector')
 
     def __str__(self):
         return "Detector: {} // {}".format(self.name, self.model)
 
     @abstractmethod
-    def detect(self, frame: np.array, det_objs: set = None) -> (int, np.array, list):
+    def detect(self, frame: np.array) -> (int, np.array, list):
         """
         Each supported detector must override this method.
         :frame: np.array) - frame from which to detect objects
