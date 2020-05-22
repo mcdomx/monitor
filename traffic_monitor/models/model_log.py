@@ -5,21 +5,19 @@ from traffic_monitor.models.model_feed import Feed
 
 
 class Log(models.Model):
-    key = models.CharField(max_length=128, primary_key=True)
+    key = models.BigAutoField(primary_key=True)
     time_stamp = models.DateTimeField()
-    detector = models.ForeignKey(Detector, on_delete=models.SET_NULL, related_name='detector_log', null=True)
-    feed = models.ForeignKey(Feed, on_delete=models.SET_NULL, related_name='feed_log', null=True)
+    detector = models.ForeignKey(Detector, on_delete=models.CASCADE, related_name='detector_log', null=True)
+    feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name='feed_log', null=True)
     class_id = models.CharField(max_length=32)
     count = models.IntegerField(default=0)
 
     @staticmethod
-    def add(time_stamp: datetime, detector_name: str, count_dict: dict):
-        t = f"{time_stamp.year}_{time_stamp.month}_{time_stamp.day}_{time_stamp.hour}_{time_stamp.minute}_{time_stamp.second}"
-        add_list = []
+    def add(time_stamp: datetime, detector_id: str, feed_id: str, count_dict: dict):
         for class_id, count in count_dict.items():
-            add_list.append(Log.objects.create(key=f"{t}_{detector_name}",
-                                               time_stamp=t,
-                                               detector_name=detector_name,
-                                               class_id=class_id,
-                                               count=count))
-        Log.objects.bulk_create(add_list)
+            obj = Log.objects.create(time_stamp=time_stamp,
+                               detector=Detector.objects.get(pk=detector_id),
+                               feed=Feed.objects.get(id=feed_id),
+                               class_id=class_id,
+                               count=count)
+            obj.save()

@@ -45,23 +45,24 @@ class DetectorCVlib(Detector_Abstract):
     def update_logged_objects(self):
         self.logged_objects = Class.get_logged_objects(self.id)
 
-    def detect(self, frame: np.array) -> (int, np.array, list):
+    def detect(self, frame: np.array) -> (int, np.array, list, list):
         bbox, labels, conf = cv.detect_common_objects(frame, confidence=.5, model=self.model)
 
         # only log detections that are being logged
         log_idxs = [i for i, l in enumerate(labels) if l in self.logged_objects]
-        self.logger.info(list(np.array(labels)[log_idxs]))
-        print(list(np.array(labels)[log_idxs]))
+        log_labels = list(np.array(labels)[log_idxs])
+        # self.logger.info(list(np.array(labels)[log_idxs]))
+        # print(list(np.array(labels)[log_idxs]))
 
         # only keep detections that are being monitored
         mon_idxs = [i for i, l in enumerate(labels) if l in self.monitored_objects]
-        labels = list(np.array(labels)[mon_idxs])
+        mon_labels = list(np.array(labels)[mon_idxs])
         bbox = list(np.array(bbox)[mon_idxs])
         conf = list(np.array(conf)[mon_idxs])
 
-        frame = draw_bbox(img=frame, bbox=bbox, labels=labels, confidence=conf, write_conf=False, )
+        frame = draw_bbox(img=frame, bbox=bbox, labels=mon_labels, confidence=conf, write_conf=False, )
 
-        return 0, frame, labels
+        return 0, frame, log_labels, mon_labels
 
     def get_trained_objects(self) -> set:
         return set(populate_class_labels())

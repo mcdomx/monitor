@@ -13,7 +13,7 @@ def index_view(request):
     :return:
     """
     # if not request.user.is_authenticated:
-    context = {'detector_id': 'detector_cvlib__yolov3'}
+    context = {'detector_id': 'detector_cvlib__yolov3-tiny'}
 
     return render(request, 'traffic_monitor/index.html', context)
 

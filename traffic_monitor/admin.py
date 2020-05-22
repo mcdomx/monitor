@@ -11,11 +11,11 @@ class ClassAdmin(admin.ModelAdmin):
 admin.site.register(Class, ClassAdmin)
 
 
-class ClassFeed(admin.ModelAdmin):
-    list_display = ('stream', 'description')
+class FeedAdmin(admin.ModelAdmin):
+    list_display = ('id', 'description')
 
 
-admin.site.register(Feed, ClassFeed)
+admin.site.register(Feed, FeedAdmin)
 
 
 class DetectorAdmin(admin.ModelAdmin):
@@ -27,7 +27,7 @@ admin.site.register(Detector, DetectorAdmin)
 
 
 class LogAdmin(admin.ModelAdmin):
-    list_display = ('key', 'time_stamp', 'detector', 'feed', 'class_id')
+    list_display = ('time_stamp', 'detector', 'feed', 'class_id')
     list_filter = ('detector', 'feed', 'time_stamp', 'class_id')
 
 
