@@ -14,8 +14,8 @@ class DetectorFactory:
             cls.singelton = cls._Singleton()
         return cls.singelton
 
-    def get(self, detector_name: str, model: str = None):
-        return self.singelton.get(detector_name, model)
+    # def get(self, detector_name: str, model: str = None):
+    #     return self.singelton.get(detector_name, model)
 
     class _Singleton:
         def __init__(self):
@@ -35,14 +35,14 @@ class DetectorFactory:
                 if detector_name == 'detector_cvlib':
                     # DetectorCVlib will create db entry, if needed
                     d = DetectorCVlib(name=detector_name, model=detector_model)
-                    self.detectors.update({detector_id: {'id': d.id,
-                                                         'name': d.name,
-                                                         'model': d.model,
-                                                         'detector': d}})
-
                 else:
                     self.logger.info("Model not supported: {}".format(detector_name))
-                    return {'success': False, 'message': "Model not supported: {}".format(detector_name)}
+                    return {'success': False, 'message': "Detector not supported: {}".format(detector_name)}
 
-            # if we were able to build the detector, add it to the db
+                self.detectors.update({detector_id: {'id': d.id,
+                                                     'name': d.name,
+                                                     'model': d.model,
+                                                     'detector': d}})
+
+            # if we were able to build the detector or it was already loaded, return it
             return {'success': True, 'detector': self.detectors.get(detector_id)}

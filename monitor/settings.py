@@ -35,7 +35,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'traffic_monitor.apps.TrafficMonitorConfig'
+    'traffic_monitor.apps.TrafficMonitorConfig',
+    'channels'
 ]
 
 MIDDLEWARE = [
@@ -67,6 +68,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'monitor.wsgi.application'
+
+ASGI_APPLICATION = 'monitor.routing.application'
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [('127.0.0.1', 6379)],
+#         },
+#     },
+# }
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
@@ -141,18 +152,7 @@ LOGGING = {
                              'level': 'INFO', },
                 'command':  {'handlers': ['console'],
                              'level': 'INFO', },
+                'channel':  {'handlers': ['console'],
+                             'level': 'INFO', },
                 },
 }
-
-# logging_levels = {0: logging.ERROR,
-#                   1: logging.INFO,
-#                   2: logging.DEBUG}
-# log_level = os.getenv('VERBOSITY', logging.ERROR)
-# logger = logging.getLogger('video_views')
-# logger.setLevel(level=logging.DEBUG)
-# formatter = logging.Formatter('%(asctime)-19s - %(module)-15s - %(levelname)s - %(message)s')
-# ch = logging.StreamHandler()
-# ch.setLevel(logging.DEBUG)
-# ch.setFormatter(formatter)
-# logger.addHandler(ch)
-# logging.info(f"Logging set to: {logging.getLevelName(log_level)}")

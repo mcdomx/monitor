@@ -4,10 +4,75 @@
 {% block jscript %}
     {% csrf_token %}
         <script type="text/javascript">
+
         document.addEventListener('DOMContentLoaded', () => {
             console.log("{{ detector_id }}")
             setup_video();
             setup_table();
+
+            const logSocket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/log/')
+            const urlSocket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/url/')
+
+            urlSocket.onmessage = function(e) {
+                document.querySelector('#current-url').innerHTML = JSON.parse(e.data).url;
+            }
+
+            urlSocket.onclose = function(e) {
+                console.log("urlSocket closed!")
+            }
+
+            urlSocket.onopen = function(e) {
+                console.log("urlSocket opened!")
+            }
+
+            {# Handle updates to URL from web page #}
+            document.querySelector('#btn-set-url').onclick = function(e) {
+            const url_input = document.querySelector('#video-source-url').value;
+                if (url_input !== '') {
+                    urlSocket.send(JSON.stringify({'url': url_input}));
+                }
+            }
+
+            {# Update Log #}
+            logSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data).counts;
+                const time_stamp = JSON.parse(e.data).timestamp;
+                console.log(time_stamp);
+                let logtable = document.getElementById("logtable");
+                let i = 0;
+                for (const [k, v] of Object.entries(data)){
+                    console.log(k + ': ' + v);
+                    let logentry = document.createElement("tr");
+
+                    let c1 = document.createElement("td");
+                    c1.className = 'py-2'
+                    if (i === 0) {
+                        c1.innerHTML = time_stamp;
+                    } else {
+                        c1.innerHTML = ''
+                    }
+                    logentry.appendChild(c1);
+
+                    let c2 = document.createElement("td");
+                    c2.className = 'py-2'
+                    c2.innerHTML = k + ': ' + v;
+                    logentry.appendChild(c2);
+
+                    logtable.appendChild(logentry);
+
+                    i++;
+
+                }
+            }
+
+            logSocket.onclose = function(e) {
+                console.log("logSocket closed!")
+            }
+
+            logSocket.onopen = function(e) {
+                console.log("logSocket opened!")
+            }
+
         })
 
         function setup_video() {
@@ -91,6 +156,7 @@
             {# Create class name column #}
             let c1 = document.createElement("td");
             c1.innerHTML = `${class_name}`;
+            c1.className = 'py-2';
 
             {# Create monitoring checkbox column #}
             let mon_check_box = document.createElement("input");
@@ -102,7 +168,7 @@
 
             let c2 = document.createElement("td");
             c2.appendChild(mon_check_box);
-            c2.className = "text-center";
+            c2.className = "text-center py-2";
 
             {# Create logging checkbox column #}
             let log_check_box = document.createElement("input");
@@ -114,7 +180,8 @@
 
             let c3 = document.createElement("td");
             c3.appendChild(log_check_box);
-            c3.className = "text-center";
+            c3.className = "text-center py-2";
+
 
             let table_row = document.createElement('tr');
             table_row.appendChild(c1);
@@ -172,14 +239,30 @@
                                 <div class="col">
                                     <div><a class="btn btn-primary" data-toggle="collapse" aria-expanded="true" aria-controls="collapse-1" href="#collapse-1" role="button">Video Stream</a>
                                         <div class="collapse show" id="collapse-1">
-                                            <p style="margin: 10px 0px 0px 0px;">URL of Video Stream:</p><input type="url" id="video-source-url" style="min-width: 50;max-width: 300;width: 300;"></div>
+
+                                            <div class="input-group my-2 col-6">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text" id="">Feed URL</span>
+                                                </div>
+                                                <input type="text" class="form-control" id="video-source-url"
+                                                          placeholder="URL of feed"
+                                                          aria-label="URL of feed"
+                                                          aria-describedby="basic-addon2">
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-outline-secondary" type="button" id="btn-set-url">Add</button>
+                                                </div>
+                                            </div>
+{#                                            <p style="margin: 10px 0px 0px 0px;">URL of Video Stream:</p><input type="url"  style="min-width: 50;max-width: 300;width: 300;">#}
+                                            <p id="current-url"></p>
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-lg-7 col-xl-6">
+                        <div class="col-lg-7 col-xl-6"">
                             <div class="card shadow mb-4">
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h6 class="text-primary font-weight-bold m-0">Video Stream</h6>
@@ -190,7 +273,11 @@
                                             <div class="dropdown-divider"></div><a class="dropdown-item" role="presentation" href="#">&nbsp;Something else here</a></div>
                                     </div>
                                 </div>
-                                <div class="card-body" id="video-stream" style="background-color: #858796;height: 360px;"><img id ='video_feed' src=""></div>
+                                <div class="card-body p-0" id="video-stream" style="background-color: black; height: 360px;">
+                                    <img id='video_feed' style="width: 100%; max-height: 100%" src="">
+                                </div>
+
+
                             </div>
                         </div>
                         <div class="col-lg-7 col-xl-6">
@@ -225,7 +312,7 @@
                                             <div class="dropdown-divider"></div><a class="dropdown-item" role="presentation" href="#">&nbsp;Something else here</a></div>
                                     </div>
                                 </div>
-                                <div class="card-body" style="height: 360px;">
+                                <div class="card-body" style="height: 360px; overflow-y: auto">
                                     <div class="table-responsive">
                                         <table class="table">
                                             <thead>
@@ -234,16 +321,10 @@
                                                     <th>Obj: Detections/Minute</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td>Cell 1</td>
-                                                    <td>Cell 2</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Cell 3</td>
-                                                    <td>Cell 4</td>
-                                                </tr>
+
+                                            <tbody id="logtable">
                                             </tbody>
+
                                         </table>
                                     </div>
                                 </div>
@@ -263,16 +344,16 @@
                                 </div>
                                 <div class="card-body" style="height: 360px; overflow-y: auto">
                                     <div class="table-responsive">
-                                        <table class="table">
-                                            <thead>
+                                        <table class="table table-striped">
+                                            <thead style="position: sticky">
                                                 <tr>
-                                                    <th>Object</th>
-                                                    <th class="text-center"><button class="btn btn-primary" type="button" onclick="toggle_all('mon')">Monitor</button></th>
-                                                    <th class="text-center"><button class="btn btn-primary" type="button" onclick="toggle_all('log')">Log</button></th>
+                                                    <th style="position: sticky;">Object</th>
+                                                    <th style="position: sticky;" class="text-center"><button class="btn btn-primary" type="button" onclick="toggle_all('mon')">Monitor</button></th>
+                                                    <th style="position: sticky;" class="text-center"><button class="btn btn-primary" type="button" onclick="toggle_all('log')">Log</button></th>
                                                 </tr>
                                             </thead>
 
-                                            <tbody id="monlogtable">
+                                            <tbody id="monlogtable" style="height: 200px; overflow-y: scroll;">
                                             </tbody>
 
                                         </table>

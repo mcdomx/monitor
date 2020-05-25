@@ -7,12 +7,14 @@ import numpy as np
 import datetime
 import pytz
 
-
 from django.http import StreamingHttpResponse
 
 from traffic_monitor.detectors.detector_factory import DetectorFactory
 from traffic_monitor.models.model_feed import Feed
 from traffic_monitor.models.model_log import Log
+from traffic_monitor.consumers import ConsumerFactory
+
+from .elapsed_time import ElapsedTime
 
 logger = logging.getLogger('view')
 
@@ -35,48 +37,82 @@ def gen_stream(detector_id):
     detector = rv.get('detector').get('detector')
     logger.info(f"Using detector: {detector.name}  model: {detector.model}")
 
-    interval = 1
-    capture_interval = 6
-    count = 0
-    minute_counter = datetime.datetime.now()
-    start_time = datetime.datetime.now() - datetime.timedelta(seconds=6)
+    # get the channel to publish data on
+    log_channel =None
+    while log_channel is None:
+        log_channel = ConsumerFactory.get('/ws/traffic_monitor/log/')
+
+    log_interval = 60     # frequency in seconds which avg detections per minute are calculated
+    capture_interval = 5  # freq in seconds which objects are counted
+    display_interval = 1  # freq in seconds which objects are displayed (<= capture_interval)
+    capture_count = 0
+    log_interval_detections = []
+    capture_interval_timer = ElapsedTime()
+    log_interval_timer = ElapsedTime()
+    display_interval_timer = ElapsedTime(adj=-1*display_interval)
+
     while True:
 
-        if (datetime.datetime.now() - start_time).seconds < capture_interval:
-            print(f"Sleeping: {capture_interval-(datetime.datetime.now() - start_time).seconds} s")
-            time.sleep(capture_interval-(datetime.datetime.now() - start_time).seconds)
+        # sleep_time = max(0, capture_interval - (datetime.datetime.now() - start_time).seconds)
+        # time.sleep(sleep_time)
+        # print(f"start loop: {log_interval_timer}")
+        #
+        # print(f"MSEC {cap.get(cv2.CAP_PROP_POS_MSEC)}")
+        # print(f"FRMES {cap.get(cv2.CAP_PROP_POS_FRAMES)}")
+        # print(f"RATIO {cap.get(cv2.CAP_PROP_POS_AVI_RATIO)}")
+        # print(f"BUF SIZE {cap.get(cv2.CAP_PROP_BUFFERSIZE)}")
 
-        start_time = datetime.datetime.now()
 
-        cap.open(url)
-        success, frame = cap.read()
+        frame = None
+        while display_interval_timer.get() < display_interval:
+            # cap.open(url)
+            _ = cap.grab()
+            # logger.info(f"grabbed frame: {log_interval_timer} {display_interval - display_interval_timer.get()}")
 
-        if not success:
-            continue
 
-        count += 1
+        success = False
+        while not success:
+            success, frame = cap.read()
+        display_interval_timer.reset()
+        # print(f"read frame: {log_interval_timer}")
 
-        minute_detections = []
-        if count % interval == 0:
-            _, frame, log_detections, mon_detections = detector.detect(frame)
-            minute_detections += log_detections
-            print(f"{(datetime.datetime.now() - minute_counter).seconds}: {log_detections}", end='\r')
-            count = 0
-            if (datetime.datetime.now() - minute_counter).seconds >= 60:
-                # tally list
-                objs_unique = set(minute_detections)
-                minute_counts_dict = {obj: minute_detections.count(obj) for obj in objs_unique}
-                Log.add(time_stamp=datetime.datetime.now(tz=pytz.timezone(cam_stream_timezone)),
-                        detector_id=detector_id,
-                        feed_id=feed_id,
-                        count_dict=minute_counts_dict)
-                logger.info(minute_counts_dict)
+        # if time elapsed dictates capturing objects, perform capture
+        if capture_interval_timer.get() >= capture_interval:
+            # print(f"capture start: {log_interval_timer}")
+            _, frame, frame_detections, mon_detections = detector.detect(frame)
+            log_interval_detections += frame_detections
+            capture_count += 1
+            capture_interval_timer.reset()
 
-                minute_counter = datetime.datetime.now()
-                minute_detections.clear()
+            log_text = f"{log_interval_timer}/{capture_count}: {frame_detections}"
+            print(f"{' ':50}", end='\r')
+            print(log_text, end='\r')
 
+        # if log interval reached, record average items per minute
+        if log_interval_timer.get() >= log_interval:
+            # print(f"start logging: {log_interval_timer}")
+            # tally list
+            objs_unique = set(log_interval_detections)
+            # Counts the mean observation count at any moment over the log interval period.
+            minute_counts_dict = {obj: round(log_interval_detections.count(obj)/capture_count, 3) for obj in objs_unique}
+            timestamp = datetime.datetime.now(tz=pytz.timezone(cam_stream_timezone))
+            Log.add(time_stamp=timestamp,
+                    detector_id=detector_id,
+                    feed_id=feed_id,
+                    count_dict=minute_counts_dict)
+
+            logger.info(minute_counts_dict)
+            log_channel.update({'timestamp':  timestamp, 'counts': minute_counts_dict})
+
+            # restart the log interval counter, clear the detections and restart the capture count
+            log_interval_timer.reset()
+            log_interval_detections.clear()
+            capture_count = 0
+            # print(f"end logging: {log_interval_timer}")
+
+        # return the frame whether if is directly from feed or with bounding boxes
         frame = cv2.imencode('.jpg', frame)[1].tobytes()
-
+        # print(f"yielding frame: {log_interval_timer}")
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
 
