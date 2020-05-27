@@ -11,7 +11,7 @@ from django.http import StreamingHttpResponse
 
 from traffic_monitor.detectors.detector_factory import DetectorFactory
 from traffic_monitor.models.model_feed import Feed
-from traffic_monitor.models.model_log import Log
+from traffic_monitor.models.model_logentry import LogEntry
 from traffic_monitor.consumers import ConsumerFactory
 
 from .elapsed_time import ElapsedTime
@@ -38,18 +38,18 @@ def gen_stream(detector_id):
     logger.info(f"Using detector: {detector.name}  model: {detector.model}")
 
     # get the channel to publish data on
-    log_channel =None
+    log_channel = None
     while log_channel is None:
         log_channel = ConsumerFactory.get('/ws/traffic_monitor/log/')
 
-    log_interval = 60     # frequency in seconds which avg detections per minute are calculated
+    log_interval = 60  # frequency in seconds which avg detections per minute are calculated
     capture_interval = 5  # freq in seconds which objects are counted
     display_interval = 1  # freq in seconds which objects are displayed (<= capture_interval)
     capture_count = 0
     log_interval_detections = []
     capture_interval_timer = ElapsedTime()
     log_interval_timer = ElapsedTime()
-    display_interval_timer = ElapsedTime(adj=-1*display_interval)
+    display_interval_timer = ElapsedTime(adj=-1 * display_interval)
 
     while True:
 
@@ -62,13 +62,11 @@ def gen_stream(detector_id):
         # print(f"RATIO {cap.get(cv2.CAP_PROP_POS_AVI_RATIO)}")
         # print(f"BUF SIZE {cap.get(cv2.CAP_PROP_BUFFERSIZE)}")
 
-
         frame = None
         while display_interval_timer.get() < display_interval:
             # cap.open(url)
             _ = cap.grab()
             # logger.info(f"grabbed frame: {log_interval_timer} {display_interval - display_interval_timer.get()}")
-
 
         success = False
         while not success:
@@ -94,15 +92,16 @@ def gen_stream(detector_id):
             # tally list
             objs_unique = set(log_interval_detections)
             # Counts the mean observation count at any moment over the log interval period.
-            minute_counts_dict = {obj: round(log_interval_detections.count(obj)/capture_count, 3) for obj in objs_unique}
+            minute_counts_dict = {obj: round(log_interval_detections.count(obj) / capture_count, 3) for obj in
+                                  objs_unique}
             timestamp = datetime.datetime.now(tz=pytz.timezone(cam_stream_timezone))
-            Log.add(time_stamp=timestamp,
-                    detector_id=detector_id,
-                    feed_id=feed_id,
-                    count_dict=minute_counts_dict)
+            LogEntry.add(time_stamp=timestamp,
+                         detector_id=detector_id,
+                         feed_id=feed_id,
+                         count_dict=minute_counts_dict)
 
             logger.info(minute_counts_dict)
-            log_channel.update({'timestamp':  timestamp, 'counts': minute_counts_dict})
+            log_channel.update({'timestamp': timestamp, 'counts': minute_counts_dict})
 
             # restart the log interval counter, clear the detections and restart the capture count
             log_interval_timer.reset()

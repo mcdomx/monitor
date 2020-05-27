@@ -70,14 +70,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'monitor.wsgi.application'
 
 ASGI_APPLICATION = 'monitor.routing.application'
-# CHANNEL_LAYERS = {
-#     'default': {
-#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-#         'CONFIG': {
-#             "hosts": [('127.0.0.1', 6379)],
-#         },
-#     },
-# }
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
@@ -129,30 +121,42 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {'verbose': {
-                                'format': '{levelname} {asctime} ({module}): {message}',
-                                'datefmt': '%Y-%m-%d %H:%M:%S',
-                                'style': '{', },
-                   'simple':  {
-                                'format': '{levelname} {message}',
-                                'style': '{', },
-                   },
+        'format': '{levelname} {asctime} ({module}): {message}',
+        'datefmt': '%Y-%m-%d %H:%M:%S',
+        'style': '{', },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{', },
+    },
 
-    'handlers': {'console': {'level': 'INFO',
-                             'class': 'logging.StreamHandler',
-                             'formatter': 'verbose'},
+    'handlers': {'console':      {'level': 'INFO',
+                                  'class': 'logging.StreamHandler',
+                                  'formatter': 'verbose'},
                  },
 
-    'loggers': {'django':   {'handlers': ['console'],
-                             'level': 'INFO', },
-                'view':     {'handlers': ['console'],
-                             'level': 'INFO', },
-                'model':    {'handlers': ['console'],
-                             'level': 'INFO', },
+    'loggers': {'django': {'handlers': ['console'],
+                           'level': 'INFO', },
+                'view':   {'handlers': ['console'],
+                           'level': 'INFO', },
+                'model':  {'handlers': ['console'],
+                           'level': 'INFO', },
                 'detector': {'handlers': ['console'],
                              'level': 'INFO', },
-                'command':  {'handlers': ['console'],
-                             'level': 'INFO', },
-                'channel':  {'handlers': ['console'],
-                             'level': 'INFO', },
+                'command': {'handlers': ['console'],
+                            'level': 'INFO', },
+                'channel': {'handlers': ['console'],
+                            'level': 'INFO', },
+                'monitor_service': {'handlers': ['console'],
+                                    'level': 'INFO', },
+                'monitor_factory': {'handlers': ['console'],
+                                    'level': 'INFO', },
+                'feed_factory': {'handlers': ['console'],
+                                 'level': 'INFO', },
+                'logging_service': {'handlers': ['console'],
+                                    'level': 'INFO', },
+                'chart_service': {'handlers': ['console'],
+                                  'level': 'INFO', },
+                'test': {'handlers': ['console'],
+                         'level': 'INFO', },
                 },
 }
