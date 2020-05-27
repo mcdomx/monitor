@@ -101,9 +101,9 @@ class Feed(models.Model):
         #     logger.info(f"ERR: URL: {url}")
 
     @staticmethod
-    def test_cam(cam: str) -> bool:
+    def test_cam(url: str) -> bool:
         try:
-            cap = cv.VideoCapture(cam)
+            cap = cv.VideoCapture(url)
             read_pass = cap.grab()
             cap.release()
             if read_pass:
@@ -145,25 +145,33 @@ class FeedFactory:
             self.logger = logging.getLogger('feed_factory')
             self.monitors = {}
 
-        def get(self, cam: str, time_zone: str = 'US/Eastern') -> dict:
+        def get(self, cam: str, time_zone: str = None) -> dict:
+            """
+            Returns a dict with 'success' and 'payload'.  If 'success' is False,
+            payload is 'message'; if 'success is True, payload is 'feed' which
+            contains a db Feed instance with (feed.cam, .timezone, .url, & .description)
+            If a new feed is created, time_zone is required.
 
-            # see if cam already exists
-            obj = Feed.objects.get(pk=cam)
-
+            """
             try:
-                if obj is not None:  # cam exists but the url may have changed
-                    url = Feed.get_url(cam)
-                    setattr(obj, 'url', url)
-                    obj.save()
-                    logger.info(f"Updated feed with new url for: {cam}")
+                # see if cam already exists
+                obj = Feed.objects.get(pk=cam)
+                # cam exists but the url may have changed
+                url = Feed.get_url(cam)
+                setattr(obj, 'url', url)
+                obj.save()
+                logger.info(f"Updated feed with new url for: {cam}")
+                return {'success': True, 'feed': obj}
 
-                else:  # cam doesn't exist, create a new db entry
+            except Feed.DoesNotExist as e:  # cam doesn't exist, create a new db entry
+                if time_zone is None:
+                    return {'success': False, 'message': 'New feed requires time_zone parameter.'}
+                try:
                     url = Feed.get_url(cam=cam)
                     obj = Feed.objects.create(cam=cam, url=url, description=cam, time_zone=time_zone)
                     obj.save()
                     logger.info(f"Created new feed entry for: {cam}")
-
-                return {'success': True, 'feed': obj}
-
-            except Exception as e:
-                return {'success': False, 'message': e}
+                    return {'success': True, 'feed': obj}
+                except Exception as e:
+                    logger.error(e)
+                    return {'success': False, 'message': e}

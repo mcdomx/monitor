@@ -1,11 +1,14 @@
 import logging
 from abc import ABC, abstractmethod
 import numpy as np
+import threading
+import queue
 
 from traffic_monitor.models.model_class import Class
 
+logger = logging.Logger('detector')
 
-class Detector_Abstract(ABC):
+class Detector_Abstract(ABC, threading.Thread):
     """
     Abstract class for a detector.
     required methods:
@@ -13,12 +16,16 @@ class Detector_Abstract(ABC):
         - returns the frame number and frame with detections
     """
 
-    def __init__(self, detector_id: str, verbosity: int = 0):
+    def __init__(self, detector_id: str, queue_detready: queue.Queue, queue_detframe: queue.Queue):
+        threading.Thread.__init__(self)
         name, model = detector_id.split('__')
         self.name = name.replace(' ', '_')
         self.model = model
         self.detector_id = detector_id
-        self.logger = logging.Logger('detector')
+        self.is_ready = True
+        self.running = False
+        self.queue_detready = queue_detready
+        self.queue_detframe = queue_detframe
 
         self.monitored_objects = None
         self.logged_objects = None
@@ -26,13 +33,47 @@ class Detector_Abstract(ABC):
     def __str__(self):
         return "Detector: {} // {}".format(self.name, self.model)
 
+    def start(self):
+        logger.info("Starting detector ... ")
+        self.running = True
+        self.is_ready = True
+        threading.Thread.start(self)
+
+    def stop(self):
+        logger.info("Stopping detector ... ")
+        self.running = False
+
+    def run(self):
+        logger.info(f"Started {self.name} .. ")
+        while self.running:
+
+            try:
+                logger.info("trying...")
+                frame = self.queue_detready.get(block=True, timeout=1)
+
+            except Exception as e:
+                logger.info("timed out...")
+                continue
+
+            self.is_ready = False
+            f_num, frame, log_detections, mon_detections = self.detect(frame)
+
+            # put detected frame and detections list on queue
+            self.queue_detframe.put({'frame': frame,
+                                     'log_detections': log_detections,
+                                     'mon_detections': mon_detections})
+
+            self.is_ready = True
+
+        logger.info(f"'{self.name}' thread stopped!")
+
     @abstractmethod
-    def detect(self, frame: np.array) -> (int, np.array, list):
+    def detect(self, frame: np.array) -> (int, np.array, list, list):
         """
         Each supported detector must override this method.
         :frame: np.array) - frame from which to detect objects
         :det_objs: set - set of object names which should be detected
-        Returns frame number, frame and detections
+        Returns: frame number, frame, log_detections list and mon_detections list
         """
         ...
 

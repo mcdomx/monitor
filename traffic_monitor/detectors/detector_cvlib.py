@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+import queue
 
 import cvlib as cv
 from cvlib.object_detection import populate_class_labels, draw_bbox
@@ -19,8 +20,8 @@ class DetectorCVlib(Detector_Abstract):
     Requires that .cfg file and .weights files are in ~/.cvlib/object_detection/yolo/yolov3
     """
 
-    def __init__(self, detector_id):
-        Detector_Abstract.__init__(self, detector_id=detector_id)
+    def __init__(self, detector_id: str, queue_detready: queue.Queue, queue_detframe: queue.Queue):
+        Detector_Abstract.__init__(self, detector_id, queue_detready, queue_detframe)
         self.load_classes()
         self.update_monitored_objects()
         self.update_logged_objects()

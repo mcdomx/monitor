@@ -11,10 +11,12 @@ import cv2 as cv
 
 from traffic_monitor.detectors.detector_factory import DetectorFactory
 from traffic_monitor.models.model_monitor import MonitorFactory
-from traffic_monitor.models.model_feed import Feed
+from traffic_monitor.models.model_feed import FeedFactory
 from traffic_monitor.consumers import ConsumerFactory
 
 BUFFER_SIZE = 256
+
+logger = logging.getLogger('monitor_service')
 
 
 class MonitorService(threading.Thread):
@@ -35,40 +37,66 @@ class MonitorService(threading.Thread):
     get the images to display from the queue of images.
     """
 
-    def __init__(self, detector_id: str, feed_url: str = '1EiC9bvVGnk', feed_timezone: str = 'US/Mountain'):
+    def __init__(self, detector_id: str, feed_cam: str):
+        """ Requires existing detector and feed """
         threading.Thread.__init__(self)
-        self.logger = logging.getLogger('feed_service')
+        self.name = "Monitor_Service_Thread"
         self.running = False
 
         self.log_service = None
 
-        # Monitor parameters
-        self.detector_id = detector_id
-        self.feed_url = feed_url
-        self.feed_timezone = feed_timezone
-        self.monitor = None
-
         # QUEUES
-        self.rawframe_queue = queue.Queue(BUFFER_SIZE)
-        self.detframe_queue = queue.Queue(BUFFER_SIZE)
-        self.refframe_queue = queue.Queue(BUFFER_SIZE)
+        self.queue_rawframe = queue.Queue(BUFFER_SIZE)
+        self.queue_detframe = queue.Queue(BUFFER_SIZE)
+        self.queue_detready = queue.Queue(5)
+        self.queue_refframe = queue.Queue(BUFFER_SIZE)
+
+        # Monitor parameters
+        self.detector, self.detector_class = self.get_detector(detector_id, self.queue_detready, self.queue_detframe)
+        self.feed = self.get_feed(feed_cam)
+        self.monitor = self.get_monitor(detector_id, feed_cam)
+
+    @staticmethod
+    def get_detector(d_id, queue_detready, queue_detframe):
+        rv = DetectorFactory().get(d_id, queue_detready, queue_detframe)
+        if rv.get('success'):
+            return rv.get('detector'), rv.get('class')
+        else:
+            raise Exception(rv.get('message'))
+
+    @staticmethod
+    def get_feed(feed_cam):
+        rv = FeedFactory().get(feed_cam)
+        if rv.get('success'):
+            return rv.get('feed')
+        else:
+            raise Exception(rv.get('message'))
+
+    @staticmethod
+    def get_monitor(d_id, feed_cam):
+        rv = MonitorFactory().get(d_id, feed_cam)
+        if rv.get('success'):
+            return rv.get('monitor')
+        else:
+            raise Exception(rv.get('message'))
 
     def __str__(self):
         return "Feed_Service: {} | {} | {}".format(self.detector.name,
                                                    self.detector.model,
-                                                   self.feed_url.split('/')[-1])
+                                                   self.feed.cam.split('/')[-1])
 
-    def set_monitor(self):
-        rv = MonitorFactory().get(detector_id=self.detector_id, feed_id=self.feed)
+    def get_next_frame(self):
+        q = self.queue_refframe.get()
+        return q.get()
 
-    def set_detector(self):
-        rv = DetectorFactory().get(self.detector_id)
-        if not rv['success']:
-            raise Exception(rv['message'])
+    def start(self):
+        self.running = True
+        threading.Thread.start(self)
 
-        self.detector = DetectorFactory().get(self.detector_id).get('detector').get('detector')
-
-        self.logger.info(f"Using detector: {self.detector.name}  model: {self.detector.model}")
+    def stop(self):
+        logger.info("Stopping monitor service .. ")
+        self.detector_class.stop()
+        self.running = False
 
     def run(self):
         """
@@ -76,25 +104,54 @@ class MonitorService(threading.Thread):
         Frames will be placed in respective queues.
         """
         # set source of video stream
-        url, feed_id = Feed.get_stream_url(self.feed_url, self.feed_timezone)
-        cap = cv.VideoCapture(url)
+        cap = cv.VideoCapture(self.feed.url)
 
-        # set the detector
-        self.set_detector()
+        # create detector instance
+        det = self.detector_class
+        det.start()
 
         # get the channel to publish data on
-        log_channel = None
-        while log_channel is None:
-            log_channel = ConsumerFactory.get('/ws/traffic_monitor/log/')
+        # log_channel = None
+        # while log_channel is None:
+        #     log_channel = ConsumerFactory.get('/ws/traffic_monitor/log/')
 
-        while cap.isOpened():
+        logger.info("Starting monitoring service ... ")
+        while self.running and cap.isOpened():
 
-            success = False
-            while not success:
-                success, frame = cap.read()
+            success, frame = cap.read()
 
-                # return the frame whether if is directly from feed or with bounding boxes
-                frame = cv.imencode('.jpg', frame)[1].tobytes()
-                # print(f"yielding frame: {log_interval_timer}")
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+            # if detector is ready, place frame in queue
+            # for detector to pick up, else put in raw frame queue.
+            if success:
+                if det.is_ready:
+                    try:
+                        self.queue_detready.put(frame, block=False)
+                        target_queue = self.queue_detframe
+                    except queue.Full:
+                        # if queue is full skip
+                        continue
+
+                else:
+                    # put in raw frame queue
+                    try:
+                        self.queue_rawframe.put(frame, block=False)
+                        target_queue = self.queue_rawframe
+                    except queue.Full:
+                        # if queue is full skip
+                        continue
+
+                # update the reference queue
+                try:
+                    self.queue_refframe.put(target_queue, block=False)
+                except queue.Full:
+                    # if q is full, remove next item to make room and then put
+                    _ = self.get_next_frame()
+                    self.queue_refframe.put(target_queue, block=False)
+
+                # # return the frame whether if is directly from feed or with bounding boxes
+                # frame = cv.imencode('.jpg', frame)[1].tobytes()
+                # yield (b'--frame\r\n'
+                #        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+
+        logger.info("Stopping detector .. ")
+        det.stop()

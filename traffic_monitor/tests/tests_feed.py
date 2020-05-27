@@ -54,11 +54,10 @@ class FeedTestCase(TestCase):
 
     def test_get_image_from_feed(self):
         logger.info("TESTING RETRIEVE FEED FROM DB")
-        logger.info("TESTING RETRIEVE FEED FROM DB")
         cam_stream = '1EiC9bvVGnk'
         cam_stream_timezone = 'US/Mountain'
         rv = FeedFactory().get(cam=cam_stream, time_zone=cam_stream_timezone)
         feed = rv.get('feed')
-        test_result = Feed.test_cam(feed.cam)
+        test_result = Feed.test_cam(feed.url)
         self.assertTrue(test_result)
 

@@ -1,4 +1,5 @@
 import logging
+import queue
 from traffic_monitor.detectors.detector_cvlib import DetectorCVlib
 from traffic_monitor.models.model_detector import Detector
 
@@ -15,7 +16,7 @@ class DetectorFactory:
         def __init__(self):
             self.logger = logging.getLogger('detector')
 
-        def get(self, detector_id) -> dict:
+        def get(self, detector_id: str, queue_detready: queue.Queue, queue_detframe: queue.Queue) -> dict:
             """
             Returns Detector object.
             Update this function to add new detection models.
@@ -24,7 +25,9 @@ class DetectorFactory:
             # get supported detector from db
             try:
                 obj = Detector.objects.get(pk=detector_id)
-                return {'success': True, 'detector': DetectorCVlib(detector_id=obj.detector_id)}
+                if obj.name == 'cvlib':
+                    detector = DetectorCVlib(detector_id, queue_detready, queue_detframe)
+                    return {'success': True, 'detector': obj, 'class': detector}
             except Detector.DoesNotExist as e:
                 return {'success': False, 'message': "Detector not setup: {}".format(detector_id)}
 
