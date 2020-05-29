@@ -146,6 +146,8 @@ LOGGING = {
                             'level': 'INFO', },
                 'channel': {'handlers': ['console'],
                             'level': 'INFO', },
+                'api': {'handlers': ['console'],
+                                            'level': 'INFO', },
                 'monitor_service': {'handlers': ['console'],
                                     'level': 'INFO', },
                 'monitor_factory': {'handlers': ['console'],

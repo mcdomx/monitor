@@ -20,15 +20,25 @@ class DetectorTestCase(TestCase):
         obj.save()
 
     def test_get_existing_detector(self):
-        rv = DetectorFactory().get('cvlib__yolov3', queue.Queue(1), queue.Queue(1))
+        rv = DetectorFactory().get('cvlib__yolov3',
+                                   queue_detframe=queue.Queue(1),
+                                   queue_detready=queue.Queue(1),
+                                   mon_objs=list, log_objs=list)
         self.assertTrue(rv.get('success'))
 
     def test_get_nonexisting_detector(self):
-        rv = DetectorFactory().get('non-existent_id', queue.Queue(1), queue.Queue(1))
+        rv = DetectorFactory().get('non-existent_id',
+                                   queue_detframe=queue.Queue(1),
+                                   queue_detready=queue.Queue(1),
+                                   mon_objs=list, log_objs=list
+                                   )
         self.assertFalse(rv.get('success'))
 
-    def test_create_classes(self):
-        rv = DetectorFactory().get('cvlib__yolov3', queue.Queue(1), queue.Queue(1))
+    def test_get_classes(self):
+        rv = DetectorFactory().get('cvlib__yolov3',
+                                   queue_detframe=queue.Queue(1),
+                                   queue_detready=queue.Queue(1),
+                                   mon_objs=list, log_objs=list)
         d = rv.get('class')
         d_obj = rv.get('detector')
 
@@ -44,7 +54,10 @@ class DetectorTestCase(TestCase):
         logger.info("TESTING QUEUES AND THREADING")
         to_process_q = queue.Queue(1)
         processed_q = queue.Queue(1)
-        rv = DetectorFactory().get('cvlib__yolov3', to_process_q, processed_q)
+        rv = DetectorFactory().get('cvlib__yolov3',
+                                   queue_detframe=processed_q,
+                                   queue_detready=to_process_q,
+                                   mon_objs=[], log_objs=[])
         d = rv.get('class')
         d_obj = rv.get('detector')
 
@@ -75,13 +88,9 @@ class DetectorTestCase(TestCase):
         logger.info("Stopped detector thread ...")
 
         rv_frame = rv.get('frame')
-        rv_log = rv.get('log_detections')
-        rv_mon = rv.get('mon_detections')
+        rv_log = rv.get('detections').get('log')
+        rv_mon = rv.get('detections').get('mon')
 
         self.assertTrue(rv_frame is not None)
         self.assertTrue(type(rv_log) == list)
         self.assertTrue(type(rv_mon) == list)
-
-
-
-

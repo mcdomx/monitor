@@ -16,7 +16,11 @@ class DetectorFactory:
         def __init__(self):
             self.logger = logging.getLogger('detector')
 
-        def get(self, detector_id: str, queue_detready: queue.Queue, queue_detframe: queue.Queue) -> dict:
+        def get(self, detector_id: str,
+                queue_detready: queue.Queue,
+                queue_detframe: queue.Queue,
+                mon_objs: list,
+                log_objs: list) -> dict:
             """
             Returns Detector object.
             Update this function to add new detection models.
@@ -24,12 +28,17 @@ class DetectorFactory:
             """
             # get supported detector from db
             try:
-                obj = Detector.objects.get(pk=detector_id)
+                obj = Detector.objects.get(detector_id=detector_id)
                 if obj.name == 'cvlib':
-                    detector = DetectorCVlib(detector_id, queue_detready, queue_detframe)
+                    detector = DetectorCVlib(detector_id=detector_id,
+                                             queue_detready=queue_detready,
+                                             queue_detframe=queue_detframe,
+                                             log_objs=mon_objs,
+                                             mon_objs=log_objs)
+
                     return {'success': True, 'detector': obj, 'class': detector}
             except Detector.DoesNotExist as e:
-                return {'success': False, 'message': "Detector not setup: {}".format(detector_id)}
+                return {'success': False, 'message': f"Detector not setup: {detector_id} \n Available Detectors: \n {[x.detector_id for x in Detector.objects.all()]}"}
 
 
 

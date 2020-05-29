@@ -3,9 +3,17 @@ from django.contrib import admin
 from traffic_monitor.models.models import *
 
 
+class MonitorAdmin(admin.ModelAdmin):
+    list_display = ('id', 'detector', 'feed')
+    list_filter = ('detector', 'feed')
+
+
+admin.site.register(Monitor, MonitorAdmin)
+
+
 class ClassAdmin(admin.ModelAdmin):
-    list_display = ('key', 'class_id', 'detector_id', 'monitor', 'log')
-    list_filter = ('detector_id', 'monitor', 'log')
+    list_display = ('id', 'class_id', 'monitor', 'is_monitoring', 'is_logging')
+    list_filter = ('monitor', 'is_monitoring', 'is_logging')
 
 
 admin.site.register(Class, ClassAdmin)

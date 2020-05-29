@@ -13,8 +13,8 @@ class FeedTestCase(TestCase):
         cam = '1EiC9bvVGnk'
         time_zone = 'US/Mountain'
         url = Feed.get_url(cam)
-        obj = Feed.objects.create(cam=cam, url=url, description=cam, time_zone=time_zone)
-        obj.save()
+        f_obj = Feed.objects.create(cam=cam, url=url, description=cam, time_zone=time_zone)
+        f_obj.save()
 
     def test_create_youtube_url(self):
         """ Test that a URL can be created"""

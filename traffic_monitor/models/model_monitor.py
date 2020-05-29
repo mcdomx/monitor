@@ -23,7 +23,6 @@ class MonitorFactory:
     class _Singleton:
         def __init__(self):
             self.logger = logging.getLogger('monitor_factory')
-            self.monitors = {}
 
         def get(self, detector_id, cam) -> dict:
             """
@@ -32,13 +31,12 @@ class MonitorFactory:
             New models will require new class that inherits from Detector class.
             """
 
-            # See if an existing monitor exists
             mon_obj = None
             try:
                 mon_obj = Monitor.objects.get(detector__detector_id=detector_id, feed__cam=cam)
                 return {'success': True, 'monitor': mon_obj}
             except Monitor.DoesNotExist as e:
-                # get the Detector
+                # get the Detector and Feed
                 try:
                     detector = Detector.objects.get(pk=detector_id)
                     feed = Feed.objects.get(pk=cam)

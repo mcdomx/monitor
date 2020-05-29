@@ -11,7 +11,7 @@ class LogEntry(models.Model):
     count = models.IntegerField(default=0)
 
     @staticmethod
-    def add(time_stamp: datetime, monitor_id: str, feed_id: str, count_dict: dict):
+    def add(time_stamp: datetime, monitor_id: int, count_dict: dict):
         for class_id, count in count_dict.items():
             obj = LogEntry.objects.create(time_stamp=time_stamp,
                                           monitor=Monitor.objects.get(pk=monitor_id),

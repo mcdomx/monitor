@@ -9,9 +9,11 @@ import queue
 import logging
 import cv2 as cv
 
-from traffic_monitor.detectors.detector_factory import DetectorFactory
-from traffic_monitor.models.model_monitor import MonitorFactory
-from traffic_monitor.models.model_feed import FeedFactory
+from traffic_monitor.detectors.detector_factory import *
+from traffic_monitor.detectors.detector_abstract import Detector_Abstract
+from traffic_monitor.models.model_monitor import *
+from traffic_monitor.models.model_feed import *
+from traffic_monitor.models.model_class import Class
 from traffic_monitor.consumers import ConsumerFactory
 
 BUFFER_SIZE = 256
@@ -52,13 +54,31 @@ class MonitorService(threading.Thread):
         self.queue_refframe = queue.Queue(BUFFER_SIZE)
 
         # Monitor parameters
-        self.detector, self.detector_class = self.get_detector(detector_id, self.queue_detready, self.queue_detframe)
-        self.feed = self.get_feed(feed_cam)
-        self.monitor = self.get_monitor(detector_id, feed_cam)
+        self.monitored_objects = None
+        self.logged_objects = None
 
-    @staticmethod
-    def get_detector(d_id, queue_detready, queue_detframe):
-        rv = DetectorFactory().get(d_id, queue_detready, queue_detframe)
+        detector, detector_class = self.get_detector(detector_id)
+        self.detector: Detector = detector
+        self.detector_class: Detector_Abstract = detector_class
+        self.feed: Feed = self.get_feed(feed_cam)
+        self.monitor: Monitor = self.get_monitor(detector_id, feed_cam)
+
+        # Setup supported classes in the DB
+        self.load_classes()
+        self.update_monitored_objects()
+        self.update_logged_objects()
+
+    def __str__(self):
+        return "Feed_Service: {} | {} | {}".format(self.detector.name,
+                                                   self.detector.model,
+                                                   self.feed.cam.split('/')[-1])
+
+    def get_detector(self, d_id):
+        rv = DetectorFactory().get(detector_id=d_id,
+                                   queue_detready=self.queue_detready,
+                                   queue_detframe=self.queue_detframe,
+                                   mon_objs=self.monitored_objects,
+                                   log_objs=self.logged_objects)
         if rv.get('success'):
             return rv.get('detector'), rv.get('class')
         else:
@@ -80,10 +100,46 @@ class MonitorService(threading.Thread):
         else:
             raise Exception(rv.get('message'))
 
-    def __str__(self):
-        return "Feed_Service: {} | {} | {}".format(self.detector.name,
-                                                   self.detector.model,
-                                                   self.feed.cam.split('/')[-1])
+    def load_classes(self):
+        """ Load supported classes into the DB """
+        # get the classes that are supported by the detector
+        classes = self.detector_class.get_trained_objects()
+
+        # create or update the classes
+        for class_name in classes:
+            Class.create(class_name=class_name, monitor=self.monitor)
+
+    def update_monitored_objects(self):
+        self.monitored_objects = Class.get_monitored_objects(self.monitor)
+        self.detector_class.set_monitored_objects(self.monitored_objects)
+
+    def update_logged_objects(self):
+        self.logged_objects = Class.get_logged_objects(self.monitor)
+        self.detector_class.set_logged_objects(self.logged_objects)
+
+    def get_class_data(self):
+        """ Retrieves classes supported by detector """
+        return self.detector_class.get_class_data(self.monitor.id)
+
+    def toggle_monitor(self, class_id):
+        rv = Class.toggle_mon(class_id=class_id, monitor=self.monitor)
+        self.update_monitored_objects()
+        return rv
+
+    def toggle_log(self, class_id):
+        rv = Class.toggle_log(class_id=class_id, monitor=self.monitor)
+        self.update_logged_objects()
+        return rv
+
+    def toggle_all_mon(self):
+        rv = Class.toggle_all_mon(self.monitor)
+        self.update_monitored_objects()
+        return rv
+
+    def toggle_all_log(self):
+        rv = Class.toggle_all_log(self.monitor)
+        self.update_logged_objects()
+        return rv
 
     def get_next_frame(self):
         q = self.queue_refframe.get()
@@ -92,11 +148,12 @@ class MonitorService(threading.Thread):
     def start(self):
         self.running = True
         threading.Thread.start(self)
+        ActiveMonitors().add(self)
 
     def stop(self):
         logger.info("Stopping monitor service .. ")
-        self.detector_class.stop()
         self.running = False
+        ActiveMonitors().remove(self)
 
     def run(self):
         """
@@ -106,7 +163,7 @@ class MonitorService(threading.Thread):
         # set source of video stream
         cap = cv.VideoCapture(self.feed.url)
 
-        # create detector instance
+        # start detector instance
         det = self.detector_class
         det.start()
 
@@ -134,7 +191,7 @@ class MonitorService(threading.Thread):
                 else:
                     # put in raw frame queue
                     try:
-                        self.queue_rawframe.put(frame, block=False)
+                        self.queue_rawframe.put({'frame': frame}, block=False)
                         target_queue = self.queue_rawframe
                     except queue.Full:
                         # if queue is full skip
@@ -148,10 +205,38 @@ class MonitorService(threading.Thread):
                     _ = self.get_next_frame()
                     self.queue_refframe.put(target_queue, block=False)
 
-                # # return the frame whether if is directly from feed or with bounding boxes
-                # frame = cv.imencode('.jpg', frame)[1].tobytes()
-                # yield (b'--frame\r\n'
-                #        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
-
-        logger.info("Stopping detector .. ")
+        # stop the detector
         det.stop()
+        det.join()
+        logger.info(f"Monitor Service and Detector are stopped!")
+
+
+class ActiveMonitors:
+    singelton = None
+
+    def __new__(cls):
+        if cls.singelton is None:
+            cls.singelton = cls._Singleton()
+        return cls.singelton
+
+    class _Singleton:
+        def __init__(self):
+            self.logger = logging.getLogger('detector')
+            self.active_monitors = {}
+
+        def add(self, monitor_service: MonitorService):
+            self.active_monitors.update({monitor_service.monitor.id: monitor_service})
+
+        def remove(self, monitor_service: MonitorService):
+            self.active_monitors.pop(monitor_service.monitor.id)
+
+        def get(self, monitor_id: int):
+            ms = self.active_monitors.get(monitor_id)
+
+            if ms is None:
+                return {'success': False, 'message': f"MonitorService with is '{monitor_id}' is not active."}
+
+            return {'success': True, 'monitor_service': ms}
+
+        def getall(self):
+            return self.active_monitors

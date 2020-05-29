@@ -13,7 +13,12 @@ def index_view(request):
     :return:
     """
     # if not request.user.is_authenticated:
-    context = {'detector_id': 'detector_cvlib__yolov3-tiny'}
+    # create an active monitor
+
+    ms = MonitorService(detector_id='cvlib__yolov3-tiny', feed_cam='1EiC9bvVGnk')
+    ms.start()
+
+    context = {'monitor_id': ms.monitor.id}
 
     return render(request, 'traffic_monitor/index.html', context)
 

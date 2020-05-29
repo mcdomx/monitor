@@ -7,9 +7,6 @@ from cvlib.object_detection import populate_class_labels, draw_bbox
 
 from traffic_monitor.detectors.detector_abstract import Detector_Abstract
 
-from traffic_monitor.models.model_class import Class
-from traffic_monitor.models.model_detector import Detector
-
 
 class DetectorCVlib(Detector_Abstract):
     """
@@ -20,11 +17,12 @@ class DetectorCVlib(Detector_Abstract):
     Requires that .cfg file and .weights files are in ~/.cvlib/object_detection/yolo/yolov3
     """
 
-    def __init__(self, detector_id: str, queue_detready: queue.Queue, queue_detframe: queue.Queue):
-        Detector_Abstract.__init__(self, detector_id, queue_detready, queue_detframe)
-        self.load_classes()
-        self.update_monitored_objects()
-        self.update_logged_objects()
+    def __init__(self, detector_id: str,
+                 queue_detready: queue.Queue, queue_detframe: queue.Queue,
+                 mon_objs: list, log_objs: list):
+        Detector_Abstract.__init__(self, detector_id=detector_id,
+                                   queue_detready=queue_detready, queue_detframe=queue_detframe,
+                                   mon_objs=mon_objs, log_objs=log_objs)
 
     def detect(self, frame: np.array) -> (int, np.array, list, list):
         bbox, labels, conf = cv.detect_common_objects(frame, confidence=.5, model=self.model)

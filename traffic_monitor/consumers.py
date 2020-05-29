@@ -28,12 +28,11 @@ class LogConsumer(WebsocketConsumer):
         self.logger.info("Log Channel Closed!")
 
     def update(self, text_data=None, bytes_data=None, close=False):
-        self.logger.info("Sending log data ... ")
         t = text_data.get('timestamp')
         tz = t.tzinfo
         timsstamp = t.strftime(f"%D %T {tz.tzname(t)}")
         self.send(text_data=json.dumps({'timestamp': str(timsstamp),
-                                              'counts': text_data.get('counts')}))
+                                        'counts': text_data.get('counts')}))
 
 
 class URLConsumer(WebsocketConsumer):

@@ -6,7 +6,7 @@
         <script type="text/javascript">
 
         document.addEventListener('DOMContentLoaded', () => {
-            console.log("{{ detector_id }}")
+            console.log("{{ monitor_id }}")
             setup_video();
             setup_table();
 
@@ -77,11 +77,11 @@
 
         function setup_video() {
             let vid = document.getElementById("video_feed")
-            vid.setAttribute('src', 'video_feed/{{ detector_id }}')
+            vid.setAttribute('src', 'video_feed/{{ monitor_id }}')
         }
 
         function toggle_all(action) {
-            const url = 'toggle_all/{{ detector_id }}/' + action;
+            const url = 'toggle_all/{{ monitor_id }}/' + action;
             console.log("Toggle_all() : " + url)
             fetch(url)
                 .then(rv => update_table());
@@ -89,26 +89,26 @@
         }
 
         function get_class_data() {
-            const url = 'get_class_data/{{ detector_id }}'
+            const url = 'get_class_data/{{ monitor_id }}'
             fetch(url)
                 .then(response => console.log(response))
         }
 
         function update_table() {
-            const url = 'get_class_data/{{ detector_id }}'
+            const url = 'get_class_data/{{ monitor_id }}'
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
                                 let mon_check_boxes = document.getElementsByClassName('mon_checkbox');
                                 for (const box of mon_check_boxes) {
                                     let class_id = box.id.split('__')[1]
-                                    box.checked = data[class_id]['monitor']
+                                    box.checked = data[class_id]['is_monitoring']
                                     }
 
                                 let log_check_boxes = document.getElementsByClassName('log_checkbox');
                                 for (const box of log_check_boxes) {
                                     let class_id = box.id.split('__')[1]
-                                    box.checked = data[class_id]['log']
+                                    box.checked = data[class_id]['is_logging']
                                     }
                                })
                 .catch(function(error) {
@@ -127,12 +127,12 @@
                                   "X-CSRFToken": "{{ csrf_token }}"},
                         body: JSON.stringify({  'action': action,
                                                 'class_id': class_id,
-                                                'detector_id': "{{ detector_id|safe }}"}) });
+                                                'monitor_id': "{{ monitor_id|safe }}"}) });
         }
 
         function setup_table() {
         {#    Get data to put in table #}
-            const url = 'get_class_data/{{ detector_id }}'
+            const url = 'get_class_data/{{ monitor_id }}'
             fetch(url)
                 .then(response => response.json())
                 .then(data => { make_table(data); })
@@ -145,8 +145,8 @@
             for (var key in data) {
                 var row = make_class_row(   data[key]['class_name'],
                                             data[key]['class_id'],
-                                            data[key]['monitor'],
-                                            data[key]['log']);
+                                            data[key]['is_monitoring'],
+                                            data[key]['is_logging']);
                 add_table_row(row);
             }
         }
