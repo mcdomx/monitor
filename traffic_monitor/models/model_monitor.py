@@ -11,6 +11,14 @@ class Monitor(models.Model):
     detector = models.ForeignKey(Detector, on_delete=models.CASCADE, related_name='detector_log', null=True)
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name='feed_log', null=True)
 
+    @staticmethod
+    def get(monitor_id: int):
+        try:
+            rv = Monitor.objects.get(pk=monitor_id)
+            return {'success': True, 'monitor': rv}
+        except Monitor.DoesNotExist:
+            return {'success': False, 'message': f"Monitor with id {monitor_id} does not exist."}
+
 
 class MonitorFactory:
     singelton = None
@@ -23,6 +31,13 @@ class MonitorFactory:
     class _Singleton:
         def __init__(self):
             self.logger = logging.getLogger('monitor_factory')
+
+        def getall(self) -> dict:
+            try:
+                mon_objs = Monitor.objects.all()
+                return {'success': True, 'monitors': mon_objs}
+            except Exception as e:
+                return {'success': False, 'message': f"Failed to retrieve detectors"}
 
         def get(self, detector_id, cam) -> dict:
             """

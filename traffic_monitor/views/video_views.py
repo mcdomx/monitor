@@ -15,7 +15,7 @@ from traffic_monitor.models.model_feed import Feed, FeedFactory
 from traffic_monitor.models.model_class import Class
 from traffic_monitor.models.model_logentry import LogEntry
 from traffic_monitor.consumers import ConsumerFactory
-from traffic_monitor.models.model_monitor import Monitor
+from traffic_monitor.models.model_monitor import MonitorFactory
 
 from .elapsed_time import ElapsedTime
 
@@ -121,5 +121,14 @@ def toggle_all(monitor_id: int, action: str):
         return {'success': False, 'message': f"ERROR: can only toggle mon or log, not {action}"}
 
     return rv
+
+
+def get_active_monitors():
+    return ActiveMonitors().getall()
+
+
+def get_all_monitors():
+    return MonitorFactory().getall()
+
 
 # END VIDEO STEAMING FUNCTIONS ##########################

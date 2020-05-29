@@ -15,6 +15,7 @@ def index_view(request):
     # if not request.user.is_authenticated:
     # create an active monitor
 
+    _ = MonitorService(detector_id='cvlib__yolov3', feed_cam='1EiC9bvVGnk')
     ms = MonitorService(detector_id='cvlib__yolov3-tiny', feed_cam='1EiC9bvVGnk')
     ms.start()
 

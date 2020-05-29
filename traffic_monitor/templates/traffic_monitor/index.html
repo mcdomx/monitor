@@ -7,6 +7,8 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             console.log("{{ monitor_id }}")
+            update_all_monitors();
+            update_active_monitors();
             setup_video();
             setup_table();
 
@@ -92,6 +94,54 @@
             const url = 'get_class_data/{{ monitor_id }}'
             fetch(url)
                 .then(response => console.log(response))
+        }
+
+        function update_all_monitors() {
+            const url = 'get_all_monitors';
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                                let list_monitors = document.getElementById('lst-all-monitors');
+
+                                {#clear current listing#}
+                                list_monitors.innerHTML = ''
+
+                                for (let m_id in data) {
+                                    if (data.hasOwnProperty(m_id)) {
+                                        let sel_item = document.createElement('option');
+                                        sel_item.value=m_id;
+                                        let text = m_id + ": " + data[m_id]['detector'] + " / " + data[m_id]['feed'];
+                                        if (data[m_id]['is_active'] === true) {
+                                            text += " -> Active"
+                                        }
+                                        sel_item.innerHTML = text;
+
+                                        list_monitors.appendChild((sel_item))
+                                        }
+                                    }
+                                })
+        }
+
+        function update_active_monitors() {
+            const url = 'get_active_monitors';
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                                let list_monitors = document.getElementById('lst-active-monitors');
+
+                                {#clear current listing#}
+                                list_monitors.innerHTML = ''
+
+                                for (let m_id in data) {
+                                    if (data.hasOwnProperty(m_id)) {
+                                        let sel_item = document.createElement('option');
+                                        sel_item.value=m_id;
+                                        sel_item.innerHTML = m_id + ": " + data[m_id]['detector'] + " / " + data[m_id]['feed'];
+                                        list_monitors.appendChild((sel_item))
+                                        }
+                                    }
+                                })
+
         }
 
         function update_table() {
@@ -240,18 +290,37 @@
                                     <div><a class="btn btn-primary" data-toggle="collapse" aria-expanded="true" aria-controls="collapse-1" href="#collapse-1" role="button">Video Stream</a>
                                         <div class="collapse show" id="collapse-1">
 
+{#                                            ALL MONTORS#}
                                             <div class="input-group my-2 col-6">
                                                 <div class="input-group-prepend">
-                                                    <span class="input-group-text" id="">Feed URL</span>
+                                                    <label class="input-group-text" for="lst-all-monitors">Monitors</label>
                                                 </div>
-                                                <input type="text" class="form-control" id="video-source-url"
-                                                          placeholder="URL of feed"
-                                                          aria-label="URL of feed"
-                                                          aria-describedby="basic-addon2">
+                                                <select class="custom-select" id="lst-all-monitors">
+                                                    <option selected>Choose...</option>
+                                                    <option value="1">One</option>
+                                                    <option value="2">Two</option>
+                                                    <option value="3">Three</option>
+                                                </select>
                                                 <div class="input-group-append">
-                                                    <button class="btn btn-outline-secondary" type="button" id="btn-set-url">Add</button>
+                                                    <button class="btn btn-outline-secondary" type="button" id="btn-start-monitor">Start</button>
+                                                    <button class="btn btn-outline-secondary" type="button" id="btn-stop-monitor">Stop</button>
                                                 </div>
                                             </div>
+
+
+{#                                            VIEW MONITOR SELECTION#}
+                                            <div class="input-group my-2 col-6">
+                                                <div class="input-group-prepend">
+                                                    <label class="input-group-text" for="lst-active-monitors">View</label>
+                                                </div>
+                                                    <select class="custom-select" id="lst-active-monitors">
+                                                        <option selected>Choose...</option>
+                                                        <option value="1">One</option>
+                                                        <option value="2">Two</option>
+                                                        <option value="3">Three</option>
+                                                    </select>
+                                            </div>
+
 {#                                            <p style="margin: 10px 0px 0px 0px;">URL of Video Stream:</p><input type="url"  style="min-width: 50;max-width: 300;width: 300;">#}
                                             <p id="current-url"></p>
                                         </div>

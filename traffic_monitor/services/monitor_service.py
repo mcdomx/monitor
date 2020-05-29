@@ -69,9 +69,9 @@ class MonitorService(threading.Thread):
         self.update_logged_objects()
 
     def __str__(self):
-        return "Feed_Service: {} | {} | {}".format(self.detector.name,
-                                                   self.detector.model,
-                                                   self.feed.cam.split('/')[-1])
+        return "Monitor_Service: {} | {} | {}".format(self.detector.name,
+                                                      self.detector.model,
+                                                      self.feed.cam.split('/')[-1])
 
     def get_detector(self, d_id):
         rv = DetectorFactory().get(detector_id=d_id,
