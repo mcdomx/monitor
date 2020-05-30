@@ -42,7 +42,8 @@ class Command(BaseCommand):
         for f in feeds:
             f.delete()
 
-        feeds = {'Jackson_Hole': {'cam': '1EiC9bvVGnk', 'time_zone': 'US/Mountain'}}
+        feeds = {'Jackson_Hole': {'cam': '1EiC9bvVGnk', 'time_zone': 'US/Mountain'},
+                 'JH_Roadhouse': {'cam': '6aJXND_Lfk8', 'time_zone': 'US/Mountain'}}
 
         for desc, settings in feeds.items():
             rv = FeedFactory().get(cam=settings.get('cam'), time_zone=settings.get('time_zone'))

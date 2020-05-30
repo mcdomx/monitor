@@ -20,6 +20,8 @@ urlpatterns = [
     path("toggle_all/<int:monitor_id>/<action>", api.toggle_all, name="toggle_all"),
     path("get_active_monitors", api.get_active_monitors, name="get_active_monitors"),
     path("get_all_monitors", api.get_all_monitors, name="get_all_monitors"),
-    path("start_monitor/<int:monitor_id>", api.start_monitor, name="get_all_monitors"),
+    path("monitor/start/<int:monitor_id>", api.start_monitor, name="start_monitor"),
+    path("monitor/stop/<int:monitor_id>", api.stop_monitor, name="stop_monitor"),
+
 
 ]

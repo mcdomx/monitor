@@ -5,7 +5,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 
 from traffic_monitor.views import video_views
 from traffic_monitor.models.model_monitor import Monitor
-from traffic_monitor.services.monitor_service import MonitorService
+from traffic_monitor.services.monitor_service import MonitorService, ActiveMonitors
 
 
 logger = logging.getLogger('api')
@@ -80,6 +80,11 @@ def get_all_monitors(request):
 
 def start_monitor(request, monitor_id: int):
 
+    print(f"starting: {monitor_id}")
+    rv = ActiveMonitors().get(monitor_id)
+    if rv['success']:
+        return JsonResponse({'success': False, 'message': f"Monitor {monitor_id} is already started."})
+
     # get db details
     rv = Monitor.get(monitor_id)
     if not rv['success']:
@@ -88,5 +93,17 @@ def start_monitor(request, monitor_id: int):
     monitor = rv.get('monitor')
     ms = MonitorService(detector_id=monitor.detector.detector_id, feed_cam=monitor.feed.cam)
     ms.start()
+
+    return JsonResponse({'success': True, 'monitor_id': ms.monitor.id}, safe=False)
+
+
+def stop_monitor(request, monitor_id: int):
+    print(f"stopping: {monitor_id}")
+    rv = ActiveMonitors().get(monitor_id)
+    if not rv['success']:
+        return JsonResponse({'success': False, 'message': rv['message']}, safe=False)
+
+    ms = rv.get('monitor_service')
+    ms.stop()
 
     return JsonResponse({'success': True, 'monitor_id': ms.monitor.id}, safe=False)

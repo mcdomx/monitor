@@ -13,9 +13,9 @@ def index_view(request):
     :return:
     """
     # if not request.user.is_authenticated:
-    # create an active monitor
+    # create monitor services
 
-    _ = MonitorService(detector_id='cvlib__yolov3', feed_cam='1EiC9bvVGnk')
+    _ = MonitorService(detector_id='cvlib__yolov3', feed_cam='6aJXND_Lfk8')
     ms = MonitorService(detector_id='cvlib__yolov3-tiny', feed_cam='1EiC9bvVGnk')
     ms.start()
 
