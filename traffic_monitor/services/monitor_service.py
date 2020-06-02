@@ -46,7 +46,8 @@ class MonitorService(threading.Thread, Observer, Subject):
 
         # DETECTOR STATES
         self.running = False
-        self.viewing = False
+        self.show_full_stream = False
+        self.display = False
 
         # QUEUES
         self.queue_rawframe = queue.Queue(BUFFER_SIZE)
@@ -207,7 +208,7 @@ class MonitorService(threading.Thread, Observer, Subject):
                     except queue.Full:
                         continue  # if queue is full skip
 
-                elif self.viewing:  # just use the raw frame from feed without detection
+                elif self.show_full_stream:  # just use the raw frame from feed without detection
                     try:
                         self.queue_rawframe.put({'frame': frame}, block=False)
                         target_queue = self.queue_rawframe
@@ -217,13 +218,14 @@ class MonitorService(threading.Thread, Observer, Subject):
                     continue
 
                 # Now, update the reference queue with the type of frame
-                try:
-                    self.queue_refframe.put(target_queue, block=False)
-                except queue.Full:
-                    # if q is full, remove next item to make room
-                    logger.info("Ref Queue Full!  Making room.")
-                    _ = self.get_next_frame()
-                    self.queue_refframe.put(target_queue, block=False)
+                if self.display:
+                    try:
+                        self.queue_refframe.put(target_queue, block=False)
+                    except queue.Full:
+                        # if q is full, remove next item to make room
+                        logger.info("Ref Queue Full!  Making room.")
+                        _ = self.get_next_frame()
+                        self.queue_refframe.put(target_queue, block=False)
 
         logger.info("Stopped monitor service")
 
@@ -261,11 +263,11 @@ class ActiveMonitors:
 
             # if any monitor is currently being viewed, turn it off
             if self.viewing_monitor:
-                self.viewing_monitor.viewing = False
+                self.viewing_monitor.display = False
 
             # set the viewing monitor and set viewing to true
             self.viewing_monitor: MonitorService = ms
-            self.viewing_monitor.viewing = True
+            self.viewing_monitor.display = True
 
             return {'success': True, 'monitor_service': ms}
 
@@ -273,7 +275,7 @@ class ActiveMonitors:
             # if removing a monitor that is being viewed stop it
             if self.viewing_monitor:
                 if self.viewing_monitor is monitor_service:
-                    self.viewing_monitor.viewing = False
+                    self.viewing_monitor.display = False
                     self.viewing_monitor = None
 
             self.active_monitors.pop(monitor_service.monitor.id)

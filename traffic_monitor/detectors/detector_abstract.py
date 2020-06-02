@@ -81,8 +81,8 @@ class Detector_Abstract(ABC, threading.Thread):
 
             # put detected frame and detections list on queue
             self.queue_detframe.put({'frame': frame,
-                                     'detections': {'log': log_detections,
-                                                    'mon': mon_detections}})
+                                     'detectionsX': {'log': log_detections,
+                                                     'mon': mon_detections}})
             self.queue_dets_log.put(log_detections)
             self.queue_dets_mon.put(mon_detections)
 

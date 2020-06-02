@@ -54,7 +54,7 @@ def gen_stream(monitor_id: int):
     # messages with 'logservice' are updated in the page's detection log
     ms.register(LogPublisher(monitor_id, '/ws/traffic_monitor/log/'))
 
-    while ms.viewing:
+    while ms.display:
 
         rv = ms.get_next_frame()
         frame = rv.get('frame')

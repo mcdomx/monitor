@@ -41,42 +41,37 @@ class LogService(threading.Thread, Subject):
     def run(self):
         capture_count = 0
         log_interval_detections = []
-        log_interval_timer = ElapsedTime()
 
         logger.info("Starting log service .. ")
         while self.running:
 
+            # sleep for log interval time
+            time.sleep(self.log_interval)
+
+            # collect the detections from the queue
             try:
-                log_interval_detections += self.queue_dets_log.get(block=False)
-                capture_count += 1
-            except Exception as e:
-                continue
+                while True:
+                    log_interval_detections += self.queue_dets_log.get(block=False)
+                    capture_count += 1
 
-            # logger.info(f"picked up detections: {log_interval_detections}")
-
-            # if log interval reached, record average items per minute
-            if log_interval_timer.get() >= self.log_interval:
-
+            # once all the queued items are collected, summarize and record them
+            except queue.Empty:
                 # Counts the mean observation count at any moment over the log interval period.
                 objs_unique = set(log_interval_detections)
                 minute_counts_dict = {obj: round(log_interval_detections.count(obj) / capture_count, 3) for obj in
                                       objs_unique}
                 timestamp = datetime.datetime.now(tz=pytz.timezone(self.time_zone))
 
+                # add observations to database
                 LogEntry.add(time_stamp=timestamp,
                              monitor_id=self.monitor_id,
                              count_dict=minute_counts_dict)
-
                 logger.info(f"Monitor: {self.monitor_id} Detections: {minute_counts_dict}")
 
                 # update observers
                 self.publish({'monitor_id': self.monitor_id, 'timestamp': timestamp, 'counts': minute_counts_dict})
 
-                # publish entry to channel
-                # self.log_channel.update({'timestamp': timestamp, 'counts': minute_counts_dict})
-
-                # restart the log interval counter, clear the detections and restart the capture count
-                log_interval_timer.reset()
+                # reset variables for next observation
                 log_interval_detections.clear()
                 capture_count = 0
 
