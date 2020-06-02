@@ -15,11 +15,12 @@ def index_view(request):
     # if not request.user.is_authenticated:
     # create monitor services
 
-    _ = MonitorService(detector_id='cvlib__yolov3', feed_cam='6aJXND_Lfk8')
-    ms = MonitorService(detector_id='cvlib__yolov3-tiny', feed_cam='1EiC9bvVGnk')
-    ms.start()
+    # _ = MonitorService(detector_id='cvlib__yolov3', feed_cam='6aJXND_Lfk8')
+    # ms = MonitorService(detector_id='cvlib__yolov3-tiny', feed_cam='1EiC9bvVGnk')
+    # ms.start()
 
-    context = {'monitor_id': ms.monitor.id}
+    # context = {'monitor_id': ms.monitor.id}
+    context = {}
 
     return render(request, 'traffic_monitor/index.html', context)
 

@@ -15,6 +15,7 @@ cvlib = "*"
 tensorflow = "*"
 channels = "*"
 channels-redis = "*"
+psycopg2-binary = "*"
 
 [requires]
 python_version = "3.7"

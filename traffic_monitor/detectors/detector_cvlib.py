@@ -18,11 +18,16 @@ class DetectorCVlib(Detector_Abstract):
     """
 
     def __init__(self, detector_id: str,
-                 queue_detready: queue.Queue, queue_detframe: queue.Queue,
-                 mon_objs: list, log_objs: list):
+                 queue_detready: queue.Queue,
+                 queue_detframe: queue.Queue,
+                 queue_dets_log: queue.Queue,
+                 queue_dets_mon: queue.Queue,
+                 mon_objs: list, log_objs: list,
+                 detection_interval: int):
         Detector_Abstract.__init__(self, detector_id=detector_id,
                                    queue_detready=queue_detready, queue_detframe=queue_detframe,
-                                   mon_objs=mon_objs, log_objs=log_objs)
+                                   queue_dets_log=queue_dets_log, queue_dets_mon=queue_dets_mon,
+                                   mon_objs=mon_objs, log_objs=log_objs, detection_interval=detection_interval)
 
     def detect(self, frame: np.array) -> (int, np.array, list, list):
         bbox, labels, conf = cv.detect_common_objects(frame, confidence=.5, model=self.model)

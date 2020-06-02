@@ -19,6 +19,14 @@ class Monitor(models.Model):
         except Monitor.DoesNotExist:
             return {'success': False, 'message': f"Monitor with id {monitor_id} does not exist."}
 
+    @staticmethod
+    def get_timezone(monitor_id: int):
+        try:
+            obj = Monitor.objects.get(pk=monitor_id)
+            return obj.feed.time_zone
+        except Monitor.DoesNotExist:
+            return 'US/Eastern'
+
 
 class MonitorFactory:
     singelton = None

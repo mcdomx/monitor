@@ -1,77 +1,63 @@
 import logging
-import time
 
-import pafy
 import cv2
-import numpy as np
-import datetime
-import pytz
+import time
 
 from django.http import StreamingHttpResponse
 
 from traffic_monitor.services.monitor_service import MonitorService, ActiveMonitors
-from traffic_monitor.detectors.detector_factory import DetectorFactory
-from traffic_monitor.models.model_feed import Feed, FeedFactory
 from traffic_monitor.models.model_class import Class
-from traffic_monitor.models.model_logentry import LogEntry
 from traffic_monitor.consumers import ConsumerFactory
 from traffic_monitor.models.model_monitor import MonitorFactory
 
-from .elapsed_time import ElapsedTime
+from traffic_monitor.services.observer import Observer
 
 logger = logging.getLogger('view')
+
+
+class LogPublisher(Observer):
+
+    def __init__(self, monitor_id: int, channel_url: str):
+        Observer.__init__(self)
+        self.monitor_id = monitor_id
+        self.channel_url = channel_url
+
+    def update(self, subject_info: tuple):
+        subject_name, context = subject_info
+
+        while type(context) is tuple:
+            subject_name, context = context
+
+        subject_name, monitor_id = subject_name.split('__')
+
+        if subject_name == 'logservice':
+            # get the channel to publish log data on
+            log_channel = None
+            while log_channel is None:
+                log_channel = ConsumerFactory.get('/ws/traffic_monitor/log/')
+            log_channel.update(context)
 
 
 # VIDEO STREAM FUNCTIONS
 def gen_stream(monitor_id: int):
     """Video streaming generator function."""
 
-    rv = ActiveMonitors().get(monitor_id)
+    # rv = ActiveMonitors().get(monitor_id)
+    rv = ActiveMonitors().view(monitor_id)  # gets monitor and turn on viewing mode
     ms: MonitorService = rv.get('monitor_service')
+
     if ms is None:
-        logger.error(f"Monitor ID: '{monitor_id}' does not exist")
+        logger.error(f"Monitor ID: '{monitor_id}' is not active.")
         return
 
-    # get the channel to publish data on
-    log_channel = None
-    while log_channel is None:
-        log_channel = ConsumerFactory.get('/ws/traffic_monitor/log/')
+    # Register a log publisher with the monitor service so that
+    # messages with 'logservice' are updated in the page's detection log
+    ms.register(LogPublisher(monitor_id, '/ws/traffic_monitor/log/'))
 
-    log_interval = 10  # frequency in seconds which avg detections per minute are calculated
-    capture_count = 0
-    log_interval_detections = []
-    log_interval_timer = ElapsedTime()
-
-    while ms.running:
+    while ms.viewing:
 
         rv = ms.get_next_frame()
         frame = rv.get('frame')
-
-        # if frame has detections, accumulate them
-        detections = rv.get('detections')
-        if detections is not None:
-            log_interval_detections += detections.get('log')
-            capture_count += 1
-
-        # if log interval reached, record average items per minute
-        if log_interval_timer.get() >= log_interval:
-            # count detections over interval period
-            objs_unique = set(log_interval_detections)
-            # Counts the mean observation count at any moment over the log interval period.
-            minute_counts_dict = {obj: round(log_interval_detections.count(obj) / capture_count, 3) for obj in
-                                  objs_unique}
-            timestamp = datetime.datetime.now(tz=pytz.timezone(ms.feed.time_zone))
-            LogEntry.add(time_stamp=timestamp,
-                         monitor_id=ms.monitor.id,
-                         count_dict=minute_counts_dict)
-
-            logger.info(f"Internal Detections: {minute_counts_dict}")
-            log_channel.update({'timestamp': timestamp, 'counts': minute_counts_dict})
-
-            # restart the log interval counter, clear the detections and restart the capture count
-            log_interval_timer.reset()
-            log_interval_detections.clear()
-            capture_count = 0
 
         # return the frame whether if is directly from feed or with bounding boxes
         frame = cv2.imencode('.jpg', frame)[1].tobytes()

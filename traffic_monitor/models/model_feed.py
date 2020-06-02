@@ -11,7 +11,7 @@ logger = logging.getLogger('model')
 class Feed(models.Model):
     cam = models.CharField(max_length=256, primary_key=True)
     time_zone = models.CharField(max_length=32)
-    url = models.URLField()
+    url = models.URLField(max_length=1024)
     description = models.CharField(max_length=64)
 
     @staticmethod

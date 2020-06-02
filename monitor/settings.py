@@ -76,8 +76,19 @@ ASGI_APPLICATION = 'monitor.routing.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        # 'ENGINE': 'django.db.backends.sqlite3',
+        # 'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': os.environ.get('DB_NAME', 'monitor_db'),
+        'PORT': 5432,
+
+        # Local Docker Settings:
+        'USER': os.environ.get('DB_USER', 'monuser'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'password'),
+        # Change HOST IP based on your local docker machine IP
+        'HOST': os.environ.get('DB_HOST', '0.0.0.0'),  # Docker
+
     }
 }
 
@@ -149,6 +160,8 @@ LOGGING = {
                 'api': {'handlers': ['console'],
                                             'level': 'INFO', },
                 'monitor_service': {'handlers': ['console'],
+                                    'level': 'INFO', },
+                'log_service': {'handlers': ['console'],
                                     'level': 'INFO', },
                 'monitor_factory': {'handlers': ['console'],
                                     'level': 'INFO', },

@@ -5,23 +5,21 @@ a feed, display the feed and log its data.
 """
 
 import threading
-import queue
-import logging
-import cv2 as cv
 
 from traffic_monitor.detectors.detector_factory import *
 from traffic_monitor.detectors.detector_abstract import Detector_Abstract
 from traffic_monitor.models.model_monitor import *
 from traffic_monitor.models.model_feed import *
 from traffic_monitor.models.model_class import Class
-from traffic_monitor.consumers import ConsumerFactory
+from traffic_monitor.services.log_service import LogService
+from traffic_monitor.services.observer import Observer, Subject
 
-BUFFER_SIZE = 256
+BUFFER_SIZE = 512
 
 logger = logging.getLogger('monitor_service')
 
 
-class MonitorService(threading.Thread):
+class MonitorService(threading.Thread, Observer, Subject):
     """
     A Monitor is defined as a Detector and a URL video feed.
     The class is a thread that will continually run and log
@@ -39,29 +37,39 @@ class MonitorService(threading.Thread):
     get the images to display from the queue of images.
     """
 
-    def __init__(self, detector_id: str, feed_cam: str):
+    def __init__(self, detector_id: str, feed_cam: str, log_interval: int = 10, detection_interval: int = 5):
         """ Requires existing detector and feed """
         threading.Thread.__init__(self)
+        Observer.__init__(self)
+        Subject.__init__(self)
         self.name = "Monitor_Service_Thread"
-        self.running = False
 
-        self.log_service = None
+        # DETECTOR STATES
+        self.running = False
+        self.viewing = False
 
         # QUEUES
         self.queue_rawframe = queue.Queue(BUFFER_SIZE)
         self.queue_detframe = queue.Queue(BUFFER_SIZE)
-        self.queue_detready = queue.Queue(5)
+        self.queue_detready = queue.Queue(BUFFER_SIZE)
         self.queue_refframe = queue.Queue(BUFFER_SIZE)
+        self.queue_dets_mon = queue.Queue(BUFFER_SIZE)
+        self.queue_dets_log = queue.Queue(BUFFER_SIZE)
 
         # Monitor parameters
         self.monitored_objects = None
         self.logged_objects = None
+        self.log_interval = log_interval
+        self.log_channel_url = '/ws/traffic_monitor/log/'
+        self.detection_interval = detection_interval
 
+        # Set monitor objects and classes used
         detector, detector_class = self.get_detector(detector_id)
         self.detector: Detector = detector
         self.detector_class: Detector_Abstract = detector_class
         self.feed: Feed = self.get_feed(feed_cam)
         self.monitor: Monitor = self.get_monitor(detector_id, feed_cam)
+        self.subject_name = f"monitor_service__{self.monitor.id}"
 
         # Setup supported classes in the DB
         self.load_classes()
@@ -73,12 +81,19 @@ class MonitorService(threading.Thread):
                                                       self.detector.model,
                                                       self.feed.cam.split('/')[-1])
 
+    def update(self, subject_info: tuple):
+        """ Handle updates from Subjects. Republish info received from subject. """
+        self.publish(subject_info)
+
     def get_detector(self, d_id):
         rv = DetectorFactory().get(detector_id=d_id,
                                    queue_detready=self.queue_detready,
                                    queue_detframe=self.queue_detframe,
+                                   queue_dets_log=self.queue_dets_log,
+                                   queue_dets_mon=self.queue_dets_mon,
                                    mon_objs=self.monitored_objects,
-                                   log_objs=self.logged_objects)
+                                   log_objs=self.logged_objects,
+                                   detection_interval=self.detection_interval)
         if rv.get('success'):
             return rv.get('detector'), rv.get('class')
         else:
@@ -151,7 +166,6 @@ class MonitorService(threading.Thread):
         ActiveMonitors().add(self)
 
     def stop(self):
-        logger.info("Stopping monitor service .. ")
         self.running = False
         ActiveMonitors().remove(self)
 
@@ -167,48 +181,60 @@ class MonitorService(threading.Thread):
         det = self.detector_class
         det.start()
 
-        # get the channel to publish data on
-        # log_channel = None
-        # while log_channel is None:
-        #     log_channel = ConsumerFactory.get('/ws/traffic_monitor/log/')
+        # start the logging service and register as observer
+        log = LogService(monitor_id=self.monitor.id,
+                         queue_dets_log=self.queue_dets_log,
+                         log_interval=self.log_interval)
+        log.register(self)  # register with the log service to get log updates
+        log.start()
 
-        logger.info("Starting monitoring service ... ")
+        logger.info(f"Starting monitoring service for id: {self.monitor.id}")
         while self.running and cap.isOpened():
 
+            cap.grab()  # only read every other frame
             success, frame = cap.read()
 
-            # if detector is ready, place frame in queue
-            # for detector to pick up, else put in raw frame queue.
+            # if detector is ready, place frame in queue for the
+            # detector to pick up, else put in raw frame queue.
             if success:
+
+                # if detector is ready, perform frame detection
+
                 if det.is_ready:
                     try:
                         self.queue_detready.put(frame, block=False)
                         target_queue = self.queue_detframe
                     except queue.Full:
-                        # if queue is full skip
-                        continue
+                        continue  # if queue is full skip
 
-                else:
-                    # put in raw frame queue
+                elif self.viewing:  # just use the raw frame from feed without detection
                     try:
                         self.queue_rawframe.put({'frame': frame}, block=False)
                         target_queue = self.queue_rawframe
                     except queue.Full:
-                        # if queue is full skip
-                        continue
+                        continue  # if queue is full skip
+                else:
+                    continue
 
-                # update the reference queue
+                # Now, update the reference queue with the type of frame
                 try:
                     self.queue_refframe.put(target_queue, block=False)
                 except queue.Full:
-                    # if q is full, remove next item to make room and then put
+                    # if q is full, remove next item to make room
+                    logger.info("Ref Queue Full!  Making room.")
                     _ = self.get_next_frame()
                     self.queue_refframe.put(target_queue, block=False)
 
-        # stop the detector
+        logger.info("Stopped monitor service")
+
+        # stop the services
         det.stop()
+        log.stop()
+
         det.join()
-        logger.info(f"Monitor Service and Detector are stopped!")
+        log.join()
+
+        logger.info(f"Monitor Service, Detector and Log are stopped!")
 
 
 class ActiveMonitors:
@@ -223,11 +249,33 @@ class ActiveMonitors:
         def __init__(self):
             self.logger = logging.getLogger('detector')
             self.active_monitors = {}
+            self.viewing_monitor: MonitorService = None
 
         def add(self, monitor_service: MonitorService):
             self.active_monitors.update({monitor_service.monitor.id: monitor_service})
 
+        def view(self, monitor_id: int):
+            ms = self.active_monitors.get(monitor_id)
+            if ms is None:
+                return {'success': False, 'message': f"MonitorService with is '{monitor_id}' is not active."}
+
+            # if any monitor is currently being viewed, turn it off
+            if self.viewing_monitor:
+                self.viewing_monitor.viewing = False
+
+            # set the viewing monitor and set viewing to true
+            self.viewing_monitor: MonitorService = ms
+            self.viewing_monitor.viewing = True
+
+            return {'success': True, 'monitor_service': ms}
+
         def remove(self, monitor_service: MonitorService):
+            # if removing a monitor that is being viewed stop it
+            if self.viewing_monitor:
+                if self.viewing_monitor is monitor_service:
+                    self.viewing_monitor.viewing = False
+                    self.viewing_monitor = None
+
             self.active_monitors.pop(monitor_service.monitor.id)
 
         def get(self, monitor_id: int):

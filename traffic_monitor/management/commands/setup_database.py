@@ -6,7 +6,7 @@ from django.db import models
 
 from traffic_monitor.models.model_detector import *
 from traffic_monitor.models.model_feed import Feed, FeedFactory
-
+from traffic_monitor.services.monitor_service import MonitorService
 
 logger = logging.getLogger('command')
 
@@ -42,7 +42,7 @@ class Command(BaseCommand):
         for f in feeds:
             f.delete()
 
-        feeds = {'Jackson_Hole': {'cam': '1EiC9bvVGnk', 'time_zone': 'US/Mountain'},
+        feeds = {'JH_MainStreet': {'cam': '1EiC9bvVGnk', 'time_zone': 'US/Mountain'},
                  'JH_Roadhouse': {'cam': '6aJXND_Lfk8', 'time_zone': 'US/Mountain'}}
 
         for desc, settings in feeds.items():
@@ -52,3 +52,8 @@ class Command(BaseCommand):
                 obj.description = desc
                 obj.save()
 
+        ### MONITOR SERVICES
+        # Create default monitor services
+        for d in Detector.objects.all().values('detector_id'):
+            for f in Feed.objects.all().values('cam'):
+                _ = MonitorService(detector_id=d.get('detector_id'), feed_cam=f.get('cam'))

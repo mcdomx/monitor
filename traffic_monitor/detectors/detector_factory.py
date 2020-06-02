@@ -19,8 +19,11 @@ class DetectorFactory:
         def get(self, detector_id: str,
                 queue_detready: queue.Queue,
                 queue_detframe: queue.Queue,
+                queue_dets_log: queue.Queue,
+                queue_dets_mon: queue.Queue,
                 mon_objs: list,
-                log_objs: list) -> dict:
+                log_objs: list,
+                detection_interval: int) -> dict:
             """
             Returns Detector object.
             Update this function to add new detection models.
@@ -33,8 +36,11 @@ class DetectorFactory:
                     detector = DetectorCVlib(detector_id=detector_id,
                                              queue_detready=queue_detready,
                                              queue_detframe=queue_detframe,
+                                             queue_dets_log=queue_dets_log,
+                                             queue_dets_mon=queue_dets_mon,
                                              log_objs=mon_objs,
-                                             mon_objs=log_objs)
+                                             mon_objs=log_objs,
+                                             detection_interval=detection_interval)
 
                     return {'success': True, 'detector': obj, 'class': detector}
             except Detector.DoesNotExist as e:
