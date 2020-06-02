@@ -11,11 +11,9 @@ import datetime
 import pytz
 import time
 
-from .elapsed_time import ElapsedTime
 from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.models.model_logentry import LogEntry
-from traffic_monitor.consumers import ConsumerFactory
-from traffic_monitor.services.observer import Observer, Subject
+from traffic_monitor.services.observer import Subject
 
 logger = logging.getLogger('log_service')
 

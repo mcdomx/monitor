@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 
 
 class Observer(ABC):
@@ -13,7 +13,7 @@ class Observer(ABC):
 class Subject(ABC):
     def __init__(self):
         self.observers: list = []
-        self.subject_name: str = None
+        self.subject_name: str = ''
 
     def register(self, observer: Observer):
         self.observers.append(observer)

@@ -37,7 +37,7 @@ class MonitorService(threading.Thread, Observer, Subject):
     get the images to display from the queue of images.
     """
 
-    def __init__(self, detector_id: str, feed_cam: str, log_interval: int = 10, detection_interval: int = 5):
+    def __init__(self, detector_id: str, feed_cam: str, log_interval: int = 60, detection_interval: int = 5):
         """ Requires existing detector and feed """
         threading.Thread.__init__(self)
         Observer.__init__(self)
@@ -182,7 +182,7 @@ class MonitorService(threading.Thread, Observer, Subject):
         det = self.detector_class
         det.start()
 
-        # start the logging service and register as observer
+        # start a logging service and register as observer
         log = LogService(monitor_id=self.monitor.id,
                          queue_dets_log=self.queue_dets_log,
                          log_interval=self.log_interval)
