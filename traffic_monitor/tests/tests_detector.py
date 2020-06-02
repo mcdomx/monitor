@@ -2,6 +2,7 @@ import logging
 from django.test import TestCase
 import queue
 import cv2 as cv
+import time
 
 from traffic_monitor.models.model_detector import Detector
 from traffic_monitor.detectors.detector_factory import DetectorFactory
@@ -23,14 +24,20 @@ class DetectorTestCase(TestCase):
         rv = DetectorFactory().get('cvlib__yolov3',
                                    queue_detframe=queue.Queue(1),
                                    queue_detready=queue.Queue(1),
-                                   mon_objs=list, log_objs=list)
+                                   mon_objs=list, log_objs=list,
+                                   queue_dets_log=queue.Queue(1),
+                                   queue_dets_mon=queue.Queue(1),
+                                   detection_interval=10)
         self.assertTrue(rv.get('success'))
 
     def test_get_nonexisting_detector(self):
         rv = DetectorFactory().get('non-existent_id',
                                    queue_detframe=queue.Queue(1),
                                    queue_detready=queue.Queue(1),
-                                   mon_objs=list, log_objs=list
+                                   mon_objs=list, log_objs=list,
+                                   queue_dets_log=queue.Queue(1),
+                                   queue_dets_mon=queue.Queue(1),
+                                   detection_interval=10
                                    )
         self.assertFalse(rv.get('success'))
 
@@ -38,7 +45,10 @@ class DetectorTestCase(TestCase):
         rv = DetectorFactory().get('cvlib__yolov3',
                                    queue_detframe=queue.Queue(1),
                                    queue_detready=queue.Queue(1),
-                                   mon_objs=list, log_objs=list)
+                                   mon_objs=list, log_objs=list,
+                                   queue_dets_log=queue.Queue(1),
+                                   queue_dets_mon=queue.Queue(1),
+                                   detection_interval=10)
         d = rv.get('class')
         d_obj = rv.get('detector')
 
@@ -54,12 +64,17 @@ class DetectorTestCase(TestCase):
         logger.info("TESTING QUEUES AND THREADING")
         to_process_q = queue.Queue(1)
         processed_q = queue.Queue(1)
+        queue_dets_log = queue.Queue(1)
+        queue_dets_mon = queue.Queue(1)
+
         rv = DetectorFactory().get('cvlib__yolov3',
                                    queue_detframe=processed_q,
                                    queue_detready=to_process_q,
-                                   mon_objs=[], log_objs=[])
+                                   mon_objs=list, log_objs=list,
+                                   queue_dets_log=queue_dets_log,
+                                   queue_dets_mon=queue_dets_mon,
+                                   detection_interval=10)
         d = rv.get('class')
-        d_obj = rv.get('detector')
 
         # get an image
         cam_stream = '1EiC9bvVGnk'
@@ -73,13 +88,13 @@ class DetectorTestCase(TestCase):
         while not success:
             success, frame = cap.read()
 
+        # put image in the q
+        to_process_q.put(frame)
+        logger.info("Put frame in queue ...")
+
         # start the detector thread
         d.start()
 
-        # put image in the q
-        to_process_q.put(frame)
-
-        logger.info("Put frame in queue ...")
         # get the processed image - wait 10 seconds max
         rv = processed_q.get(block=True, timeout=10)
         logger.info("Got processed frame ...")
