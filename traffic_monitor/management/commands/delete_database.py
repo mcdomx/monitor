@@ -34,7 +34,7 @@ class Command(BaseCommand):
 
         del_table(Class, "Class")
         del_table(Feed, "Feed")
-        del_table(LogEntry, "Feed")
+        del_table(LogEntry, "LogEntry")
         del_table(Detector, "Detector")
         del_table(Monitor, "Monitor")
 

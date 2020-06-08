@@ -13,6 +13,7 @@ from traffic_monitor.models.model_feed import *
 from traffic_monitor.models.model_class import Class
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.observer import Observer, Subject
+from traffic_monitor.services.chart_service import ChartService
 
 BUFFER_SIZE = 512
 
@@ -188,6 +189,11 @@ class MonitorService(threading.Thread, Observer, Subject):
                          log_interval=self.log_interval)
         log.register(self)  # register with the log service to get log updates
         log.start()
+
+        # start a charting service and register as observer
+        chart = ChartService(monitor_id=self.monitor.id, charting_interval=self.log_interval)
+        chart.register(self)
+        chart.start()
 
         logger.info(f"Starting monitoring service for id: {self.monitor.id}")
         while self.running and cap.isOpened():

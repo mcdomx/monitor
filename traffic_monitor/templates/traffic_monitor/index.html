@@ -16,9 +16,45 @@
 
             const chartSocket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/chart/')
 
-            {# Update Log #}
+            {# Setup Chart #}
+            let url = 'get_chart/' + monitor_id ;
+            let target_div = document.getElementById('plot-area')
+            fetch(url)
+                .then(response => response.json())
+                .then(item => {
+                                {#console.log(JSON.parse(item.data))#}
+
+                                target_div.innerHTML = ''
+                                target_div.setAttribute('data-url', url);
+                                Bokeh.embed.embed_item(item, 'plot-area');
+
+                                console.log(item.Doc)
+
+                              })
+                .catch((error) => {
+                                    console.log(error)
+                                    target_div.innerHTML = error
+                                })
+
+            {# Update Chart #}
             chartSocket.onmessage = function(e) {
-                console.log("chartSocket got a message!" + e)
+                if (parseInt(JSON.parse(e.data).monitor_id) === parseInt(monitor_id)) {
+                    console.log("updating chart ...")
+                    fetch(url)
+                        .then(response => response.json())
+                        .then(item => {
+                            {#console.log(JSON.parse(item.data))#}
+
+                            target_div.innerHTML = ''
+                            target_div.setAttribute('data-url', url);
+                            Bokeh.embed.embed_item(item, 'plot-area');
+                        })
+                        .catch((error) => {
+                            console.log(error)
+                            target_div.innerHTML = error
+                        })
+                }
+
             }
 
             chartSocket.onclose = function(e) {
@@ -35,6 +71,7 @@
 
             const logSocket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/log/')
 
+            {# Clear anything already in the detections log #}
             let logtable = document.getElementById("logtable");
             logtable.innerHTML = ''
 
@@ -43,7 +80,7 @@
                 const data = JSON.parse(e.data).counts;
                 const time_stamp = JSON.parse(e.data).timestamp;
                 const m_id = JSON.parse(e.data).monitor_id;
-                console.log("Monitor: " + m_id + " Log Time:" + time_stamp);
+                {#console.log("Monitor: " + m_id + " Log Time:" + time_stamp);#}
 
                 {# Only show the logged detections for currently viewed montitor#}
                 if (parseInt(m_id) !== parseInt(monitor_id)) {
@@ -74,6 +111,13 @@
                     logtable.insertBefore(logentry, logtable.childNodes[0]);
 
                     i++;
+
+                {#If list is longer than 100, remove oldest item from the bottom of list#}
+                var num_elems = document.getElementById("logtable").childElementCount;
+
+                if (num_elems > 10) {
+                    logtable.removeChild(logtable.childNodes[10]);
+                }
 
                 }
             }
@@ -134,6 +178,10 @@
 
         {# Starts or stops a monitor #}
         function monitor(action){
+
+            let lst = document.getElementById('lst-all-monitors');
+            let sel_item = lst.options[lst.selectedIndex];
+
             let btn = null
             if (action === 'start') {
                 btn = document.getElementById('btn-start-monitor')
@@ -159,7 +207,7 @@
                               })
                 .then( rv => btn.innerHTML = init_text)
 
-            {#btn.innerHTML = init_text#}
+            sel_item.selected = true;
         }
 
 
@@ -183,8 +231,7 @@
             update_logsocket(monitor_id)
 
             {#Update the chart#}
-
-
+            update_chartsocket(monitor_id)
 
         }
 
@@ -377,6 +424,8 @@
     <link rel="stylesheet" href="../../static/assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i">
     <link rel="stylesheet" href="../../static/assets/fonts/fontawesome-all.min.css">
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-1.0.4.min.css" rel="stylesheet" type="text/css">
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-1.0.4.min.css" rel="stylesheet" type="text/css">
 </head>
 
 <body id="page-top">
@@ -409,8 +458,8 @@
                                     <div><a class="btn btn-primary" data-toggle="collapse" aria-expanded="true" aria-controls="collapse-1" href="#collapse-1" role="button">Video Stream</a>
                                         <div class="collapse show" id="collapse-1">
 
-{#                                            ALL MONTORS#}
-                                            <div class="input-group my-2 col-6">
+                                            {# ALL MONTORS #}
+                                            <div class="input-group my-2 col-12 col-xl-6">
                                                 <div class="input-group-prepend">
                                                     <label class="input-group-text" for="lst-all-monitors">Monitors</label>
                                                 </div>
@@ -426,9 +475,8 @@
                                                 </div>
                                             </div>
 
-
-{#                                            VIEW MONITOR SELECTION#}
-                                            <div class="input-group my-2 col-6">
+                                            {# VIEW MONITOR SELECTION#}
+                                            <div class="input-group my-2 col-12 col-xl-6">
                                                 <div class="input-group-prepend">
                                                     <label class="input-group-text" for="lst-active-monitors">View</label>
                                                 </div>
@@ -451,7 +499,7 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-lg-7 col-xl-6"">
+                        <div class="col-lg-7 col-xl-6">
                             <div class="card shadow mb-4">
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h6 class="text-primary font-weight-bold m-0">Video Stream</h6>
@@ -469,6 +517,8 @@
 
                             </div>
                         </div>
+
+                        {# CHART #}
                         <div class="col-lg-7 col-xl-6">
                             <div class="card shadow mb-4">
                                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -481,13 +531,13 @@
                                     </div>
                                 </div>
                                 <div class="card-body" style="height: 360px;">
-                                    <div id="plot-area" class="chart-area"><canvas data-bs-chart="{&quot;type&quot;:&quot;line&quot;,
-                                                                                                    &quot;data&quot;:{&quot;labels&quot;:[&quot;Jan&quot;,&quot;Feb&quot;,&quot;Mar&quot;,&quot;Apr&quot;,&quot;May&quot;,&quot;Jun&quot;,&quot;Jul&quot;,&quot;Aug&quot;],
-                                                                                                                        &quot;datasets&quot;:[{&quot;label&quot;:&quot;Earnings&quot;,&quot;fill&quot;:true,&quot;data&quot;:[&quot;0&quot;,&quot;10000&quot;,&quot;5000&quot;,&quot;15000&quot;,&quot;10000&quot;,&quot;20000&quot;,&quot;15000&quot;,&quot;25000&quot;],&quot;backgroundColor&quot;:&quot;rgba(78, 115, 223, 0.05)&quot;,&quot;borderColor&quot;:&quot;rgba(78, 115, 223, 1)&quot;}]},
-                                                                                                                        &quot;options&quot;:{&quot;maintainAspectRatio&quot;:false,&quot;legend&quot;:{&quot;display&quot;:false},&quot;title&quot;:{},&quot;scales&quot;:{&quot;xAxes&quot;:[{&quot;gridLines&quot;:{&quot;color&quot;:&quot;rgb(234, 236, 244)&quot;,&quot;zeroLineColor&quot;:&quot;rgb(234, 236, 244)&quot;,&quot;drawBorder&quot;:false,&quot;drawTicks&quot;:false,&quot;borderDash&quot;:[&quot;2&quot;],&quot;zeroLineBorderDash&quot;:[&quot;2&quot;],&quot;drawOnChartArea&quot;:false},&quot;ticks&quot;:{&quot;fontColor&quot;:&quot;#858796&quot;,&quot;padding&quot;:20}}],&quot;yAxes&quot;:[{&quot;gridLines&quot;:{&quot;color&quot;:&quot;rgb(234, 236, 244)&quot;,&quot;zeroLineColor&quot;:&quot;rgb(234, 236, 244)&quot;,&quot;drawBorder&quot;:false,&quot;drawTicks&quot;:false,&quot;borderDash&quot;:[&quot;2&quot;],&quot;zeroLineBorderDash&quot;:[&quot;2&quot;]},&quot;ticks&quot;:{&quot;fontColor&quot;:&quot;#858796&quot;,&quot;padding&quot;:20}}]}}}"></canvas></div>
+                                    <div id="plot-area" data-label="Traffic Trends" style="height: 360px;">
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+
                     </div>
                     <div class="row">
                         <div class="col-lg-7 col-xl-6">
@@ -565,6 +615,12 @@
     <script src="../../static/assets/js/bs-init.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.js"></script>
     <script src="../../static/assets/js/theme.js"></script>
+
+    <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-2.0.2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-widgets-2.0.2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-tables-2.0.2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-gl-2.0.2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-api-2.0.2.min.js"></script>
 
 </body>
 

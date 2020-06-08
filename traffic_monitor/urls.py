@@ -22,6 +22,7 @@ urlpatterns = [
     path("get_all_monitors", api.get_all_monitors, name="get_all_monitors"),
     path("monitor/start/<int:monitor_id>", api.start_monitor, name="start_monitor"),
     path("monitor/stop/<int:monitor_id>", api.stop_monitor, name="stop_monitor"),
+    path("get_chart/<int:monitor_id>", api.get_chart, name="get_chart"),
 
 
 ]

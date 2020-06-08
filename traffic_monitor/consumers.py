@@ -30,9 +30,9 @@ class LogConsumer(WebsocketConsumer):
     def update(self, text_data=None, bytes_data=None, close=False):
         t = text_data.get('timestamp')
         tz = t.tzinfo
-        timsstamp = t.strftime(f"%D %T {tz.tzname(t)}")
+        timestamp = t.strftime(f"%D %T {tz.tzname(t)}")
         self.send(text_data=json.dumps({'monitor_id': text_data.get('monitor_id'),
-                                        'timestamp': str(timsstamp),
+                                        'timestamp': str(timestamp),
                                         'counts': text_data.get('counts')}))
 
 
@@ -44,10 +44,11 @@ class ChartConsumer(WebsocketConsumer):
         self.accept()
 
     def receive(self, text_data=None, bytes_data=None):
-        pass
+        self.logger.info("Chart Channel got information:")
+        self.logger.info(text_data)
 
     def update(self, text_data=None, bytes_data=None, close=False):
-        pass
+        self.send(text_data=json.dumps({'monitor_id': text_data.get('monitor_id')}))
 
     def disconnect(self, code):
-        pass
+        self.logger.info("Chart Channel Closed!")
