@@ -22,6 +22,7 @@ django-extensions = "*"
 ipython = "*"
 jupyter = "*"
 pygam = "*"
+sphinx = "*"
 
 [requires]
 python_version = "3.7"
