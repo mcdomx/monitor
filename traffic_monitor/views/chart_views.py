@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from pygam import LinearGAM, s
 
 
-def get_chart(monitor_id: int, interval:int):
+def get_chart(monitor_id: int, interval: int):
     tools = [HoverTool(
         tooltips=[
             ("Time", "$x{%m/%d/%y %T}"),
