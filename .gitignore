@@ -1,3 +1,7 @@
+.idea/
+Pipfile.lock
+migrations/*.py
+
 # weight files
 *.weights
 
