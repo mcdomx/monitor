@@ -1,7 +1,6 @@
 import logging
 
 import cv2
-import time
 
 from django.http import StreamingHttpResponse
 
@@ -15,12 +14,13 @@ from traffic_monitor.services.observer import Observer
 logger = logging.getLogger('view')
 
 
-class LogPublisher(Observer):
+class Publisher(Observer):
 
-    def __init__(self, monitor_id: int, channel_url: str):
+    def __init__(self, subject_name: str, monitor_id: int, channel_url: str):
         Observer.__init__(self)
         self.monitor_id = monitor_id
         self.channel_url = channel_url
+        self.subject_name = subject_name
 
     def update(self, subject_info: tuple):
         subject_name, context = subject_info
@@ -30,12 +30,12 @@ class LogPublisher(Observer):
 
         subject_name, monitor_id = subject_name.split('__')
 
-        if subject_name == 'logservice':
+        if subject_name == self.subject_name:
             # get the channel to publish log data on
-            log_channel = None
-            while log_channel is None:
-                log_channel = ConsumerFactory.get('/ws/traffic_monitor/log/')
-            log_channel.update(context)
+            channel = None
+            while channel is None:
+                channel = ConsumerFactory.get(self.channel_url)
+            channel.update(context)
 
 
 # VIDEO STREAM FUNCTIONS
@@ -52,7 +52,8 @@ def gen_stream(monitor_id: int):
 
     # Register a log publisher with the monitor service so that
     # messages with 'logservice' are updated in the page's detection log
-    ms.register(LogPublisher(monitor_id, '/ws/traffic_monitor/log/'))
+    ms.register(Publisher('logservice', monitor_id, '/ws/traffic_monitor/log/'))
+    ms.register(Publisher('chartservice', monitor_id, '/ws/traffic_monitor/chart/'))
 
     while ms.display:
 

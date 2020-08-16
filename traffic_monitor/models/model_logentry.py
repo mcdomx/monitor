@@ -8,7 +8,7 @@ class LogEntry(models.Model):
     time_stamp = models.DateTimeField()
     monitor = models.ForeignKey(Monitor, on_delete=models.CASCADE, related_name='monitor_log', null=True)
     class_id = models.CharField(max_length=32)
-    count = models.IntegerField(default=0)
+    count = models.FloatField(default=0)
 
     @staticmethod
     def add(time_stamp: datetime, monitor_id: int, count_dict: dict):

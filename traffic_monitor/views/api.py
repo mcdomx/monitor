@@ -3,9 +3,10 @@ import logging
 from django.http import StreamingHttpResponse, JsonResponse, HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from traffic_monitor.views import video_views
+from traffic_monitor.views import video_views, chart_views
 from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.services.monitor_service import MonitorService, ActiveMonitors
+
 
 
 logger = logging.getLogger('api')
@@ -98,7 +99,6 @@ def start_monitor(request, monitor_id: int):
 
 
 def stop_monitor(request, monitor_id: int):
-    print(f"stopping: {monitor_id}")
     rv = ActiveMonitors().get(monitor_id)
     if not rv['success']:
         return JsonResponse({'success': False, 'message': rv['message']}, safe=False)
@@ -107,3 +107,8 @@ def stop_monitor(request, monitor_id: int):
     ms.stop()
 
     return JsonResponse({'success': True, 'monitor_id': ms.monitor.id}, safe=False)
+
+
+def get_chart(request, monitor_id: int, interval: int = 0):
+    rv = chart_views.get_chart(monitor_id=monitor_id, interval=interval)
+    return rv

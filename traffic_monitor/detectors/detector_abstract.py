@@ -4,9 +4,12 @@ import numpy as np
 import threading
 import queue
 import time
+import logging
 
 from traffic_monitor.models.model_class import Class
 from traffic_monitor.services.elapsed_time import ElapsedTime
+
+logger = logging.getLogger('detector')
 
 
 class Detector_Abstract(ABC, threading.Thread):
@@ -80,11 +83,26 @@ class Detector_Abstract(ABC, threading.Thread):
                 continue
 
             # put detected frame and detections list on queue
-            self.queue_detframe.put({'frame': frame,
-                                     'detectionsX': {'log': log_detections,
-                                                     'mon': mon_detections}})
-            self.queue_dets_log.put(log_detections)
-            self.queue_dets_mon.put(mon_detections)
+            try:
+                self.queue_detframe.put({'frame': frame})
+            except queue.Full:
+                logger.info("Detected Frame queue was full.  Purging oldest item to make room.")
+                _ = self.queue_detframe.get()
+                self.queue_detframe.put({'frame': frame})
+            except Exception as e:
+                logger.info(f"Unhandled Exception: {e}")
+
+            try:
+                self.queue_dets_log.put(log_detections)
+                # self.queue_dets_mon.put(mon_detections)
+            except queue.Full:
+                logger.info("Detections queue was full.  Purging oldest item to make room.")
+                _ = self.queue_dets_log.get()
+                self.queue_dets_log.put(log_detections)
+            except Exception as e:
+                logger.info(f"Unhandled Exception: {e}")
+
+
 
             # sleep to let the timer expire
             time.sleep(max(0, self.detection_interval-timer.get()))

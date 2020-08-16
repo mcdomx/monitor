@@ -16,6 +16,12 @@ tensorflow = "*"
 channels = "*"
 channels-redis = "*"
 psycopg2-binary = "*"
+bokeh = "*"
+pandas = "*"
+django-extensions = "*"
+ipython = "*"
+jupyter = "*"
+pygam = "*"
 
 [requires]
 python_version = "3.7"
