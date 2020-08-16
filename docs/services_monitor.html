@@ -1,0 +1,345 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Monitor Service &mdash; Traffic Monitor 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Log Service" href="services_log.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> Traffic Monitor
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="readme.html">Traffic Monitor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="detectors.html">Detectors</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="services.html">Services</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="services_chart.html">Chart Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="services_elapsedtime.html">Elapsed Time Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="services_log.html">Log Service</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Monitor Service</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Traffic Monitor</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="services.html">Services</a> &raquo;</li>
+        
+      <li>Monitor Service</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="monitor-service">
+<h1>Monitor Service<a class="headerlink" href="#monitor-service" title="Permalink to this headline">¶</a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Monitoring services reference.</p>
+</div>
+<span class="target" id="module-services.monitor_service"></span><p>This is the top level service for a feed.  This service contains
+all the information and supporting services that will execute
+a feed, display the feed and log its data.</p>
+<dl class="py class">
+<dt id="services.monitor_service.ActiveMonitors">
+<em class="property">class </em><code class="sig-prename descclassname">services.monitor_service.</code><code class="sig-name descname">ActiveMonitors</code><a class="headerlink" href="#services.monitor_service.ActiveMonitors" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py attribute">
+<dt id="services.monitor_service.ActiveMonitors.singelton">
+<code class="sig-name descname">singelton</code><em class="property"> = None</em><a class="headerlink" href="#services.monitor_service.ActiveMonitors.singelton" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="services.monitor_service.MonitorService">
+<em class="property">class </em><code class="sig-prename descclassname">services.monitor_service.</code><code class="sig-name descname">MonitorService</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Monitor is defined as a Detector and a URL video feed.
+The class is a thread that will continually run and log
+data whether the application is displaying the video
+feed or not.
+The Monitor will handle getting streaming images from a
+url and performing detections.  Since detections cannot be
+performed on each frame, the service will determine when
+the detector is ready to perform a new detection and only
+return detection frames when it is able to.  When running,
+The feed service will place frames in a queue.
+If the frame includes detections, it will also put the
+detections in the frame.  If the application is set to
+display the feed from the Monitor, the application can
+get the images to display from the queue of images.</p>
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.get_class_data">
+<code class="sig-name descname">get_class_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.get_class_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves classes supported by detector</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.get_detector">
+<code class="sig-name descname">get_detector</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">d_id</span></em><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.get_detector" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.get_feed">
+<em class="property">static </em><code class="sig-name descname">get_feed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">feed_cam</span></em><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.get_feed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.get_monitor">
+<em class="property">static </em><code class="sig-name descname">get_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">d_id</span></em>, <em class="sig-param"><span class="n">feed_cam</span></em><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.get_monitor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.get_next_frame">
+<code class="sig-name descname">get_next_frame</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.get_next_frame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.load_classes">
+<code class="sig-name descname">load_classes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.load_classes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load supported classes into the DB</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.run">
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>This will start the service by calling threading.Thread.start()
+Frames will be placed in respective queues.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.start">
+<code class="sig-name descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start the thread’s activity.</p>
+<p>It must be called at most once per thread object. It arranges for the
+object’s run() method to be invoked in a separate thread of control.</p>
+<p>This method will raise a RuntimeError if called more than once on the
+same thread object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.stop">
+<code class="sig-name descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.stop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.toggle_all_log">
+<code class="sig-name descname">toggle_all_log</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.toggle_all_log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.toggle_all_mon">
+<code class="sig-name descname">toggle_all_mon</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.toggle_all_mon" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.toggle_log">
+<code class="sig-name descname">toggle_log</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">class_id</span></em><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.toggle_log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.toggle_monitor">
+<code class="sig-name descname">toggle_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">class_id</span></em><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.toggle_monitor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.update">
+<code class="sig-name descname">update</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">subject_info</span><span class="p">:</span> <span class="n">tuple</span></em><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handle updates from Subjects. Republish info received from subject.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.update_logged_objects">
+<code class="sig-name descname">update_logged_objects</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.update_logged_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="services.monitor_service.MonitorService.update_monitored_objects">
+<code class="sig-name descname">update_monitored_objects</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#services.monitor_service.MonitorService.update_monitored_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="services_log.html" class="btn btn-neutral float-left" title="Log Service" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Mark McDonald
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

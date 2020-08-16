@@ -8,12 +8,17 @@ from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.services.monitor_service import MonitorService, ActiveMonitors
 
 
-
 logger = logging.getLogger('api')
 
 
 def get_class_data(request, monitor_id):
-    """ Get class data including class_name, class_id, is_mon_on and is_log_on"""
+    """
+    Get class data including class_name, class_id, is_mon_on and is_log_on
+
+    :param request:
+    :param monitor_id:
+    :return:
+    """
 
     class_data = video_views.get_class_data(request, monitor_id)
     class_data = {c['class_id']: {'class_name': c['class_name'],
@@ -25,6 +30,12 @@ def get_class_data(request, monitor_id):
 
 
 def toggle_box(request):
+    """
+
+    :param request:
+    :return:
+    """
+
     divid = request.body.decode()
     divid = dict(json.loads(divid))
 
