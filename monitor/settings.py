@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+import logging
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -23,7 +24,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # use python-dotenv library to load env variables from .env file - requires import above
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', None)
+if SECRET_KEY is None:
+    logging.error(f"MISSING ENV VARIABLE(S):")
+    logging.error(f"\tDJANGO_SECRET_KEY")
+    logging.error("\t>> Setup missing variables in '.env' file located in project's root.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -82,21 +87,28 @@ ASGI_APPLICATION = 'monitor.routing.application'
 
 DATABASES = {
     'default': {
-        # 'ENGINE': 'django.db.backends.sqlite3',
-        # 'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.environ.get('DB_NAME', 'monitor_db'),
-        'PORT': 5432,
-
-        # Local Docker Settings:
-        'USER': os.environ.get('DB_USER', 'monuser'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'password'),
-        # Change HOST IP based on your local docker machine IP
-        'HOST': os.environ.get('DB_HOST', '0.0.0.0'),  # Docker
-
+        'NAME': os.environ.get('DB_NAME', None),
+        'USER': os.environ.get('DB_USER', None),
+        'PASSWORD': os.environ.get('DB_PASSWORD', None),
+        'HOST': os.environ.get('DB_HOST', None),
+        'PORT': os.environ.get('DB_PORT', None),
     }
 }
+
+# Check that environment variables for database have been set
+missing_keys = []
+for v in DATABASES.get('default').keys():
+    if DATABASES.get('default').get(v) is None:
+        missing_keys.append(v)
+
+if len(missing_keys) > 0:
+    logging.error(f"MISSING ENV VARIABLE(S):")
+    for m in missing_keys:
+        logging.error(f"\tDB_{m}")
+    logging.error("\t>> Setup missing variables in '.env' file located in project's root.")
+    exit(1)
+
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
