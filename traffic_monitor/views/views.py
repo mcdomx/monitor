@@ -25,19 +25,19 @@ def index_view(request):
     return render(request, 'traffic_monitor/index.html', context)
 
 
-def table_view(request):
-    """
-
-    :param request:
-    :return:
-    """
-    return render(request, 'traffic_monitor/table.html')
-
-
-def profile_view(request):
-    """
-
-    :param request:
-    :return:
-    """
-    return render(request, 'traffic_monitor/profile.html')
+# def table_view(request):
+#     """
+#
+#     :param request:
+#     :return:
+#     """
+#     return render(request, 'traffic_monitor/table.html')
+#
+#
+# def profile_view(request):
+#     """
+#
+#     :param request:
+#     :return:
+#     """
+#     return render(request, 'traffic_monitor/profile.html')

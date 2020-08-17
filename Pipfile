@@ -24,6 +24,7 @@ jupyter = "*"
 pygam = "*"
 sphinx = "*"
 sphinx-rtd-theme = "*"
+python-dotenv = "*"
 
 [requires]
 python_version = "3.7"

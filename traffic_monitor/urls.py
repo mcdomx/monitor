@@ -8,8 +8,8 @@ from traffic_monitor.views import api
 urlpatterns = [
     # External Routes
     path("", views.index_view, name="index"),
-    path("table", views.table_view, name="table"),
-    path("profile", views.profile_view, name="profile"),
+    # path("table", views.table_view, name="table"),
+    # path("profile", views.profile_view, name="profile"),
 
     # Internal Routes
     path("video_feed/<int:monitor_id>", video_views.video_feed, name="video_feed"),

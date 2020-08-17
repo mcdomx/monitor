@@ -3,6 +3,30 @@ Traffic Monitor
 
 This application is designed to monitor a video stream and detect objects in it. Detections are recorded in a database so that they can be used to observe frequency of objects over time. This data can be used to train a model which can predict traffic patterns.
 
+Envrinoment Setup
+-----------------
+The application relies on a ``.env`` file in the root.  This file supports the following environment variables:
+
+*optional variables:*
+ | export VERBOSITY=DEBUG
+
+*required variables:*
+ | export DB_NAME=monitor_db  # name of database
+ | export DB_USER=monuser  # username of database
+ | export DB_PASSWORD=password  # user password of database
+ | export DB_HOST=0.0.0.0  # IP address of database (0.0.0.0 for Docker)
+
+ | export log_interval=60  # seconds between logging traffic
+
+ | export DJANGO_SECRET_KEY='<<gobblty_snobblty>>'  # Django secret key (can be anything)
+
+The variables defined in the `.env` file will be included in the environment available in Django and accessible using:
+
+::
+
+    local_variable_name = os.getenv("<env_varibale_name>", "<default_if_not_found")
+
+
 Database
 --------
 
