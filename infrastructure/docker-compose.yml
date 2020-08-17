@@ -16,7 +16,8 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - monitor_data:/var/lib/postgresql/data
+      - monitor_data:/var/lib/postgresql/data  # using this line with volumes(above) creates a docker-internal volume
+#      - ~/monitor_data:/var/lib/postgresql/data  # stored postgres data locally
 
 #  web:
 #    build: .
