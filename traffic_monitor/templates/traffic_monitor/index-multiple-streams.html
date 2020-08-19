@@ -5,10 +5,6 @@
     {% csrf_token %}
     <script type="text/javascript">
 
-        var ACTIVE_MONITOR_ID;
-        var ACTIVE_STREAM_ID;
-        var ACTIVE_DETECTOR_ID;
-
         function update_chartsocket(monitor_id) {
 
             const chartSocket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/chart/')
@@ -20,6 +16,7 @@
                 .then(response => response.json())
                 .then(item => {
                                 {#console.log(JSON.parse(item.data))#}
+
                                 target_div.innerHTML = ''
                                 target_div.setAttribute('data-url', url);
                                 Bokeh.embed.embed_item(item, 'plot-area');
@@ -128,12 +125,18 @@
 
         }
 
+        {#function setup_video() {#}
+        {#    let monitor_id = get_active_monitor()#}
+        {#    let vid = document.getElementById("video_feed")#}
+        {#    vid.setAttribute('src', 'video_feed/' + monitor_id)}#}
+
         function get_selected_monitor() {
             let e = document.getElementById('lst-active-monitors');
             return e.options[e.selectedIndex].value;
         }
 
         function toggle_all(action) {
+
             let monitor_id = get_selected_monitor()
             if (parseInt(monitor_id) === -1) { return }
 
@@ -164,44 +167,6 @@
             const url = 'get_class_data/' + monitor_id;
             fetch(url)
                 .then(response => console.log(response));
-        }
-
-        function save_and_start_monitor() {
-            {# First, stop any other monitor that was running #}
-            const stop_url = 'monitor/stop/' + ACTIVE_MONITOR_ID;
-
-            {# Save selected stream and detector #}
-            let stream_e = document.getElementById('lst-all-stream');
-            ACTIVE_STREAM_ID = stream_e.options[stream_e.selectedIndex].value;
-            let det_e = document.getElementById('lst-all-detectors');
-            ACTIVE_DETECTOR_ID = det_e.options[det_e.selectedIndex].value;
-
-            {# The combination of stream and detector is a monitor #}
-
-            let e = document.getElementById('lst-all-monitors');
-            let monitor_id = e.options[e.selectedIndex].value;
-            const start_url = 'monitor/start/' + monitor_id;
-
-            fetch(stop_url)
-                .then(response => response.json())
-                .then(data => { return data['success'] })
-                .then(success => {
-                                    if (success) {
-                                        fetch(start_url)
-                                            .then(response => response.json())
-                                            .then(data => {
-                                                if (data['success'] === true) {
-                                                    ACTIVE_MONITOR_ID = monitor_id;
-                                                    update_all_monitors();
-                                                    update_active_monitors();
-                                                }
-                                            })
-                                    } else {
-                                        console.log("Could not stop active monitor.")
-                                    }
-                                })
-
-            sel_item.selected = true;
         }
 
         {# Starts or stops a monitor #}
@@ -263,55 +228,6 @@
 
         }
 
-        {# populate the list of available streams in the settings modal #}
-        function update_all_streams() {
-            const url = '{% url 'get_all_streams' %}';
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    let list_streams = document.getElementById('lst-all-streams');
-
-                    {# clear current listing #}
-                    list_streams.innerHTML = ''
-
-                    {# add a list item for each stream #}
-                    for (let s_id in data) {
-                        if (data.hasOwnProperty(s_id)) {
-                            let sel_item = document.createElement('option');
-                            sel_item.value = s_id;
-                            sel_item.innerHTML = data[s_id]['description'] + "(" + data[s_id]['time_zone'] + ") : " + s_id ;
-
-                            list_streams.appendChild((sel_item))
-                            }
-                        }
-
-                })
-        }
-
-        function update_all_detectors() {
-            const url = '{% url 'get_all_detectors' %}';
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    let list_detectors = document.getElementById('lst-all-detectors');
-
-                    {# clear current listing #}
-                    list_detectors.innerHTML = ''
-
-                    {# add a list item for each stream #}
-                    for (let d_id in data) {
-                        if (data.hasOwnProperty(d_id)) {
-                            let sel_item = document.createElement('option');
-                            sel_item.value = d_id;
-                            sel_item.innerHTML = data[d_id]['name'] + "(" + data[d_id]['model'] + ")" ;
-
-                            list_detectors.appendChild((sel_item))
-                            }
-                        }
-
-                })
-        }
-
         {# update the visible list of all available monitors #}
         function update_all_monitors() {
             const url = 'get_all_monitors';
@@ -329,7 +245,6 @@
                             sel_item.value=m_id;
                             let text = m_id + ": " + data[m_id]['detector'] + " / " + data[m_id]['feed'];
                             if (data[m_id]['is_active'] === true) {
-                                sel_item.selected = true;
                                 text += " -> Active"
                             }
                             sel_item.innerHTML = text;
@@ -498,8 +413,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             update_all_monitors();
             update_active_monitors();
-            update_all_streams();
-            update_all_detectors();
         })
 
     </script>
@@ -539,61 +452,6 @@
                 <nav class="navbar navbar-light navbar-expand bg-white shadow mb-4 topbar static-top">
                     <div class="container-fluid"><button class="btn btn-link d-md-none rounded-circle mr-3" id="sidebarToggleTop" type="button"><i class="fas fa-bars"></i></button></div>
                 </nav>
-                {# MODAL SETTINGS SECTION #}
-                <!-- Gear icon button to trigger modal -->
-                <button type="button" class="btn btn-primary float-right mr-3" data-toggle="modal" data-target="#settingsModal">
-                    <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-gear" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                      <path fill-rule="evenodd" d="M8.837 1.626c-.246-.835-1.428-.835-1.674 0l-.094.319A1.873 1.873 0 0 1 4.377 3.06l-.292-.16c-.764-.415-1.6.42-1.184 1.185l.159.292a1.873 1.873 0 0 1-1.115 2.692l-.319.094c-.835.246-.835 1.428 0 1.674l.319.094a1.873 1.873 0 0 1 1.115 2.693l-.16.291c-.415.764.42 1.6 1.185 1.184l.292-.159a1.873 1.873 0 0 1 2.692 1.116l.094.318c.246.835 1.428.835 1.674 0l.094-.319a1.873 1.873 0 0 1 2.693-1.115l.291.16c.764.415 1.6-.42 1.184-1.185l-.159-.291a1.873 1.873 0 0 1 1.116-2.693l.318-.094c.835-.246.835-1.428 0-1.674l-.319-.094a1.873 1.873 0 0 1-1.115-2.692l.16-.292c.415-.764-.42-1.6-1.185-1.184l-.291.159A1.873 1.873 0 0 1 8.93 1.945l-.094-.319zm-2.633-.283c.527-1.79 3.065-1.79 3.592 0l.094.319a.873.873 0 0 0 1.255.52l.292-.16c1.64-.892 3.434.901 2.54 2.541l-.159.292a.873.873 0 0 0 .52 1.255l.319.094c1.79.527 1.79 3.065 0 3.592l-.319.094a.873.873 0 0 0-.52 1.255l.16.292c.893 1.64-.902 3.434-2.541 2.54l-.292-.159a.873.873 0 0 0-1.255.52l-.094.319c-.527 1.79-3.065 1.79-3.592 0l-.094-.319a.873.873 0 0 0-1.255-.52l-.292.16c-1.64.893-3.433-.902-2.54-2.541l.159-.292a.873.873 0 0 0-.52-1.255l-.319-.094c-1.79-.527-1.79-3.065 0-3.592l.319-.094a.873.873 0 0 0 .52-1.255l-.16-.292c-.892-1.64.902-3.433 2.541-2.54l.292.159a.873.873 0 0 0 1.255-.52l.094-.319z"/>
-                      <path fill-rule="evenodd" d="M8 5.754a2.246 2.246 0 1 0 0 4.492 2.246 2.246 0 0 0 0-4.492zM4.754 8a3.246 3.246 0 1 1 6.492 0 3.246 3.246 0 0 1-6.492 0z"/>
-                    </svg>
-                </button>
-
-                <div class="modal fade" id="settingsModal" tabindex="-1" role="dialog" aria-labelledby="settingsModal" aria-hidden="true">
-                  <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                      <div class="modal-header">
-                        <h5 class="modal-title" id="exampleModalLabel">Monitor Settings</h5>
-                        <button type="button" class="close" data-dismiss="modal" onclick="revert_settings()" aria-label="Close">
-                          <span aria-hidden="true">&times;</span>
-                        </button>
-                      </div>
-                      <div class="modal-body">
-
-                        {# ALL MONTORS #}
-                        <div class="row">
-                            <div class="input-group my-2 col-12">
-                                <div class="input-group-prepend">
-                                    <label class="input-group-text" for="lst-all-streams">Stream</label>
-                                </div>
-                                <select class="custom-select" id="lst-all-streams">
-                                    ...
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="input-group my-2 col-12">
-                                <div class="input-group-prepend">
-                                    <label class="input-group-text" for="lst-all-detectors">Detector</label>
-                                </div>
-                                <select class="custom-select" id="lst-all-detectors">
-                                    ...
-                                </select>
-                            </div>
-                        </div>
-
-                      </div>
-                      <div class="modal-footer">
-{#                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Don't Save</button>#}
-                        <button type="button" class="btn btn-primary" onclick="start_monitor()" >Save</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-
-
-                {# SETTINGS SECTION #}
                 <div class="container-fluid">
                     <div class="d-sm-flex justify-content-between align-items-center mb-4">
                         <div class="col">
@@ -602,6 +460,22 @@
                                     <div><a class="btn btn-primary" data-toggle="collapse" aria-expanded="true" aria-controls="collapse-1" href="#collapse-1" role="button">Video Stream</a>
                                         <div class="collapse show" id="collapse-1">
 
+                                            {# ALL MONTORS #}
+                                            <div class="input-group my-2 col-12 col-xl-6">
+                                                <div class="input-group-prepend">
+                                                    <label class="input-group-text" for="lst-all-monitors">Monitors</label>
+                                                </div>
+                                                <select class="custom-select" id="lst-all-monitors">
+                                                    <option selected>Choose...</option>
+                                                    <option value="1">One</option>
+                                                    <option value="2">Two</option>
+                                                    <option value="3">Three</option>
+                                                </select>
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-outline-secondary" type="button" id="btn-start-monitor" onclick="monitor('start')"><img src="../../static/assets/img/play-32.png" height='16'></button>
+                                                    <button class="btn btn-outline-secondary" type="button" id="btn-stop-monitor" onclick="monitor('stop')"><img src="../../static/assets/img/stop-32.png" height='16'></button>
+                                                </div>
+                                            </div>
 
                                             {# VIEW MONITOR SELECTION#}
                                             <div class="input-group my-2 col-12 col-xl-6">
@@ -609,7 +483,10 @@
                                                     <label class="input-group-text" for="lst-active-monitors">View</label>
                                                 </div>
                                                     <select class="custom-select" id="lst-active-monitors">
-                                                        ...
+                                                        <option selected >Choose...</option>
+                                                        <option value="1">One</option>
+                                                        <option value="2">Two</option>
+                                                        <option value="3">Three</option>
                                                     </select>
                                                     <div class="input-group-append">
                                                         <button class="btn btn-outline-secondary" type="button" id="btn-view-monitor" onclick="change_view()">Show</button>
@@ -623,7 +500,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="row">
                         <div class="col-lg-7 col-xl-6">
                             <div class="card shadow mb-4">

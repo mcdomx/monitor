@@ -1,5 +1,4 @@
 import logging
-import queue
 from traffic_monitor.detectors.detector_cvlib import DetectorCVlib
 from traffic_monitor.models.model_detector import Detector
 
@@ -16,14 +15,8 @@ class DetectorFactory:
         def __init__(self):
             self.logger = logging.getLogger('detector')
 
-        def get(self, detector_id: str,
-                queue_detready: queue.Queue,
-                queue_detframe: queue.Queue,
-                queue_dets_log: queue.Queue,
-                queue_dets_mon: queue.Queue,
-                mon_objs: list,
-                log_objs: list,
-                detection_interval: int) -> dict:
+        @staticmethod
+        def get(**kwargs) -> dict:
             """
             Returns Detector object.
             Update this function to add new detection models.
@@ -31,20 +24,13 @@ class DetectorFactory:
             """
             # get supported detector from db
             try:
-                obj = Detector.objects.get(detector_id=detector_id)
+                obj = Detector.objects.get(detector_id=kwargs.get('detector_id'))
                 if obj.name == 'cvlib':
-                    detector = DetectorCVlib(detector_id=detector_id,
-                                             queue_detready=queue_detready,
-                                             queue_detframe=queue_detframe,
-                                             queue_dets_log=queue_dets_log,
-                                             queue_dets_mon=queue_dets_mon,
-                                             log_objs=mon_objs,
-                                             mon_objs=log_objs,
-                                             detection_interval=detection_interval)
+                    detector = DetectorCVlib(**kwargs)
 
-                    return {'success': True, 'detector': obj, 'class': detector}
+                    return {'success': True, 'detector': detector}
             except Detector.DoesNotExist as e:
-                return {'success': False, 'message': f"Detector not setup: {detector_id} \n Available Detectors: \n {[x.detector_id for x in Detector.objects.all()]}"}
+                return {'success': False, 'message': f"Detector not setup: {kwargs.get('detector_id')} \n Available Detectors: \n {[x.detector_id for x in Detector.objects.all()]}"}
 
 
 

@@ -4,8 +4,9 @@ from django.core.management.base import BaseCommand
 
 from django.db import models
 
-from traffic_monitor.models.model_detector import *
+from traffic_monitor.models.model_detector import Detector
 from traffic_monitor.models.model_feed import Feed, FeedFactory
+from traffic_monitor.models.model_monitor import Monitor, MonitorFactory
 from traffic_monitor.services.monitor_service import MonitorService
 
 logger = logging.getLogger('command')
@@ -20,8 +21,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """ Setup DB with supported Detectors and models"""
 
-        ### DETECTORS
-        # erase existing detectors
+        # DETECTORS
+        # first, erase existing detectors
         dets = Detector.objects.all()
         for d in dets:
             d.delete()
@@ -36,14 +37,14 @@ class Command(BaseCommand):
                 obj, success = Detector.objects.update_or_create(detector_id=f'{name}__{m}', name=name, model=m)
                 obj.save()
 
-        ### FEEDS
-        # erase existing feeds
+        # FEEDS
+        # first, erase existing feeds
         feeds = Feed.objects.all()
         for f in feeds:
             f.delete()
 
-        feeds = {'JH_MainStreet': {'cam': '1EiC9bvVGnk', 'time_zone': 'US/Mountain'},
-                 'JH_Roadhouse': {'cam': '6aJXND_Lfk8', 'time_zone': 'US/Mountain'}}
+        feeds = {'JacksonHole_MainStreet': {'cam': '1EiC9bvVGnk', 'time_zone': 'US/Mountain'},
+                 'JacksonHole_Roadhouse': {'cam': '6aJXND_Lfk8', 'time_zone': 'US/Mountain'}}
 
         for desc, settings in feeds.items():
             rv = FeedFactory().get(cam=settings.get('cam'), time_zone=settings.get('time_zone'))
@@ -52,8 +53,14 @@ class Command(BaseCommand):
                 obj.description = desc
                 obj.save()
 
-        ### MONITOR SERVICES
-        # Create default monitor services
-        for d in Detector.objects.all().values('detector_id'):
-            for f in Feed.objects.all().values('cam'):
-                _ = MonitorService(detector_id=d.get('detector_id'), feed_cam=f.get('cam'))
+        # MONITORS
+        # Create monitors for all combinations of
+        # detectors and feeds that are created above.
+        # first, erase existing monitors
+        monitors = Monitor.objects.all()
+        for m in monitors:
+            m.delete()
+
+        for d in Detector.objects.all():
+            for f in Feed.objects.all():
+                _ = MonitorFactory().add(name=f"MON_{f.description}_{d.detector_id}", detector_id=d.detector_id, feed_cam=f.cam)

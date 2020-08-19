@@ -5,12 +5,14 @@ a feed, display the feed and log its data.
 """
 
 import threading
+import queue
+import logging
 
-from traffic_monitor.detectors.detector_factory import *
-from traffic_monitor.detectors.detector_abstract import Detector_Abstract
-from traffic_monitor.models.model_monitor import *
-from traffic_monitor.models.model_feed import *
-from traffic_monitor.models.model_class import Class
+import cv2 as cv
+
+from traffic_monitor.detectors.detector_factory import DetectorFactory
+from traffic_monitor.models.model_monitor import Monitor, MonitorFactory
+from traffic_monitor.models.model_feed import FeedFactory
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.observer import Observer, Subject
 from traffic_monitor.services.chart_service import ChartService
@@ -26,24 +28,49 @@ class MonitorService(threading.Thread, Observer, Subject):
     The class is a thread that will continually run and log
     data whether the application is displaying the video
     feed or not.
+
     The Monitor will handle getting streaming images from a
     url and performing detections.  Since detections cannot be
     performed on each frame, the service will determine when
     the detector is ready to perform a new detection and only
-    return detection frames when it is able to.  When running,
-    The feed service will place frames in a queue.
-    If the frame includes detections, it will also put the
-    detections in the frame.  If the application is set to
+    return detection frames when it is able to.
+
+    When running, the feed service will place frames in a queue.
+    If the frame includes detections, it will also show the
+    detections in the image frame.  If the application is set to
     display the feed from the Monitor, the application can
     get the images to display from the queue of images.
-    """
 
-    def __init__(self, detector_id: str, feed_cam: str, log_interval: int = 60, detection_interval: int = 5):
+    The MonitorService runs as a thread.  When the thread starts,
+    the MonitorService adds itself to the ActiveMonitors singleton.
+
+    ActiveMonitors is a class that hold information about active
+    monitors and its largest task is to provide a source for the
+    actively running monitors.  The ActiveMonitors class can
+    also turn on and off a Monitor's ability to display the visual feed.
+
+    """
+    instances = {}
+
+    @classmethod
+    def get_instances(cls):
+        return cls.instances
+
+    @classmethod
+    def get_instance(cls, monitor_id: int):
+        return cls.instances.get(monitor_id, None)
+
+    def __init__(self,
+                 monitor: Monitor,
+                 logged_objects: list = None, notified_objects: list = None,
+                 log_interval: int = 60, detection_interval: int = 5):
         """ Requires existing detector and feed """
         threading.Thread.__init__(self)
         Observer.__init__(self)
         Subject.__init__(self)
-        self.name = "Monitor_Service_Thread"
+        self.id = id(self)
+        self.name = f"MonitorServiceThread-{monitor.name}"
+        self.monitor: Monitor = monitor
 
         # DETECTOR STATES
         self.running = False
@@ -55,49 +82,74 @@ class MonitorService(threading.Thread, Observer, Subject):
         self.queue_detframe = queue.Queue(BUFFER_SIZE)
         self.queue_detready = queue.Queue(BUFFER_SIZE)
         self.queue_refframe = queue.Queue(BUFFER_SIZE)
-        self.queue_dets_mon = queue.Queue(BUFFER_SIZE)
+        self.queue_dets_not = queue.Queue(BUFFER_SIZE)
         self.queue_dets_log = queue.Queue(BUFFER_SIZE)
 
-        # Monitor parameters
-        self.monitored_objects = None
-        self.logged_objects = None
-        self.log_interval = log_interval
-        self.log_channel_url = '/ws/traffic_monitor/log/'
-        self.detection_interval = detection_interval
+        # Monitor Service Parameters
+        self.notified_objects: list = [] if notified_objects is None else notified_objects
+        self.logged_objects: list = [] if logged_objects is None else logged_objects
+        self.log_interval: int = log_interval
+        self.log_channel_url: str = '/ws/traffic_monitor/log/'
+        self.detection_interval: int = detection_interval
 
         # Set monitor objects and classes used
-        detector, detector_class = self.get_detector(detector_id)
-        self.detector: Detector = detector
-        self.detector_class: Detector_Abstract = detector_class
-        self.feed: Feed = self.get_feed(feed_cam)
-        self.monitor: Monitor = self.get_monitor(detector_id, feed_cam)
-        self.subject_name = f"monitor_service__{self.monitor.id}"
+        # detector, detector_class = self.get_detector(detector_id)
+        # self.detector: Detector = detector
+        # self.detector_class: Detector_Abstract = detector_class
+
+        self.subject_name = f"monitor_service__{self.monitor.name}"
+        self.detector = self.get_detector()
 
         # Setup supported classes in the DB
-        self.load_classes()
-        self.update_monitored_objects()
-        self.update_logged_objects()
+        # self.load_classes()
+        # self.update_monitored_objects()
+        # self.update_logged_objects()
+
+        self.__class__.instances.update({self.id: self})
 
     def __str__(self):
-        return "Monitor_Service: {} | {} | {}".format(self.detector.name,
-                                                      self.detector.model,
-                                                      self.feed.cam.split('/')[-1])
+        rv = self.__dict__
+        str_rv = {k: f"{v}" for k, v in rv.items()}
+
+        return f"{str_rv}"
+
+    def get_logged_objects(self):
+        return self.logged_objects
+
+    def get_notified_objects(self):
+        return self.notified_objects
 
     def update(self, subject_info: tuple):
-        """ Handle updates from Subjects. Republish info received from subject. """
+        """
+        Calling update() with a subject_info tuple, will send the tuple of data to
+        any observers that are registered with the Monitor.
+
+        :param subject_info:
+        :return: None
+        """
+
         self.publish(subject_info)
 
-    def get_detector(self, d_id):
-        rv = DetectorFactory().get(detector_id=d_id,
-                                   queue_detready=self.queue_detready,
-                                   queue_detframe=self.queue_detframe,
-                                   queue_dets_log=self.queue_dets_log,
-                                   queue_dets_mon=self.queue_dets_mon,
-                                   mon_objs=self.monitored_objects,
-                                   log_objs=self.logged_objects,
-                                   detection_interval=self.detection_interval)
+    def get_detector(self):
+        """
+        Returns a detector instance based on the settings of the service.
+        The service object itself cannot be used to instantiate the new class
+        as this will cause a circular dependency.
+
+        :return: An instance of Detector.
+        """
+        rv = DetectorFactory().get(
+            detector_id=self.monitor.detector.detector_id,
+            queue_detready=self.queue_detready,
+            queue_detframe=self.queue_detframe,
+            queue_dets_log=self.queue_dets_log,
+            queue_dets_not=self.queue_dets_not,
+            notified_objects=self.notified_objects,
+            logged_objects=self.logged_objects,
+            detection_interval=self.detection_interval
+        )
         if rv.get('success'):
-            return rv.get('detector'), rv.get('class')
+            return rv.get('detector')
         else:
             raise Exception(rv.get('message'))
 
@@ -117,46 +169,88 @@ class MonitorService(threading.Thread, Observer, Subject):
         else:
             raise Exception(rv.get('message'))
 
-    def load_classes(self):
-        """ Load supported classes into the DB """
-        # get the classes that are supported by the detector
-        classes = self.detector_class.get_trained_objects()
+    # def load_classes(self):
+    #     """ Load supported classes into the DB """
+    #     # get the classes that are supported by the detector
+    #     classes = self.detector.get_trained_objects()
+    #
+    #     # create or update the classes
+    #     for class_name in classes:
+    #         Class.create(class_name=class_name, monitor=self.monitor)
+    #
+    # def update_monitored_objects(self):
+    #     self.monitored_objects = Class.get_notified_objects(self.monitor)
+    #     self.detector.set_monitored_objects(self.monitored_objects)
+    #
+    # def update_logged_objects(self):
+    #     self.logged_objects = Class.get_logged_objects(self.monitor)
+    #     self.detector.set_logged_objects(self.logged_objects)
 
-        # create or update the classes
-        for class_name in classes:
-            Class.create(class_name=class_name, monitor=self.monitor)
-
-    def update_monitored_objects(self):
-        self.monitored_objects = Class.get_monitored_objects(self.monitor)
-        self.detector_class.set_monitored_objects(self.monitored_objects)
-
-    def update_logged_objects(self):
-        self.logged_objects = Class.get_logged_objects(self.monitor)
-        self.detector_class.set_logged_objects(self.logged_objects)
-
-    def get_class_data(self):
+    def get_trained_objects(self) -> set:
         """ Retrieves classes supported by detector """
-        return self.detector_class.get_class_data(self.monitor.id)
+        return self.detector.get_trained_objects()
 
-    def toggle_monitor(self, class_id):
-        rv = Class.toggle_mon(class_id=class_id, monitor=self.monitor)
-        self.update_monitored_objects()
-        return rv
+    def toggle_notified_object(self, object_name) -> dict:
+        """
+        Toggle a single object's notification status on or off by the name of the object.
 
-    def toggle_log(self, class_id):
-        rv = Class.toggle_log(class_id=class_id, monitor=self.monitor)
-        self.update_logged_objects()
-        return rv
+        :param object_name: String name of the object
+        :return: None if object is not supported and no action taken; else; the name of the object.
+        """
+        if object_name not in self.get_trained_objects():
+            return {"success": False, "message": f"'{object_name}' is not a trained object."}
 
-    def toggle_all_mon(self):
-        rv = Class.toggle_all_mon(self.monitor)
-        self.update_monitored_objects()
-        return rv
+        if object_name in self.notified_objects:
+            self.notified_objects.remove(object_name)
+            return {"success": True, "message": f"'{object_name}' removed from notified items."}
+        elif object_name in self.get_trained_objects():
+            self.notified_objects.append(object_name)
+            return {"success": True, "message": f"'{object_name}' added to notified items."}
+
+        return {"success": False, "message": f"Unable to toggle object: '{object_name}'."}
+
+    def toggle_logged_object(self, object_name) -> dict:
+        """
+        Toggle a single object's logging status on or off by the name of the object.
+
+        :param object_name: String name of the object
+        :return: None if object is not supported and no action taken; else; the name of the object.
+        """
+        if object_name not in self.get_trained_objects():
+            return {"success": False, "message": f"'{object_name}' is not a trained object."}
+
+        if object_name in self.logged_objects:
+            self.logged_objects.remove(object_name)
+            return {"success": True, "message": f"'{object_name}' removed from logged items."}
+        elif object_name in self.get_trained_objects():
+            self.logged_objects.append(object_name)
+            return {"success": True, "message": f"'{object_name}' added to logged items."}
+
+        return {"success": False, "message": f"Unable to toggle object: '{object_name}'."}
+
+    def toggle_all_notifications(self):
+        """
+        Invert the list of notified objects
+        :return: The new set of notified objects
+        """
+        self.notified_objects = self.get_trained_objects() - self.notified_objects
+        return self.notified_objects
+
+        # rv = Class.toggle_all_notifications(self.monitor)
+        # self.update_monitored_objects()
+        # return rv
 
     def toggle_all_log(self):
-        rv = Class.toggle_all_log(self.monitor)
-        self.update_logged_objects()
-        return rv
+        """
+        Invert the list of logged objects
+        :return: The new set of logged objects
+        """
+        self.logged_objects = self.get_trained_objects() - self.logged_objects
+        return self.logged_objects
+
+        # rv = Class.toggle_all_log(self.monitor)
+        # self.update_logged_objects()
+        # return rv
 
     def get_next_frame(self):
         q = self.queue_refframe.get()
@@ -165,11 +259,11 @@ class MonitorService(threading.Thread, Observer, Subject):
     def start(self):
         self.running = True
         threading.Thread.start(self)
-        ActiveMonitors().add(self)
+        ActiveMonitorServices().add(self)
 
     def stop(self):
         self.running = False
-        ActiveMonitors().remove(self)
+        ActiveMonitorServices().remove(self)
 
     def run(self):
         """
@@ -177,11 +271,10 @@ class MonitorService(threading.Thread, Observer, Subject):
         Frames will be placed in respective queues.
         """
         # set source of video stream
-        cap = cv.VideoCapture(self.feed.url)
+        cap = cv.VideoCapture(self.monitor.feed.url)
 
         # start detector instance
-        det = self.detector_class
-        det.start()
+        self.detector.start()
 
         # start a logging service and register as observer
         log = LogService(monitor_id=self.monitor.id,
@@ -207,7 +300,7 @@ class MonitorService(threading.Thread, Observer, Subject):
 
                 # if detector is ready, perform frame detection
 
-                if det.is_ready:
+                if self.detector.is_ready:
                     try:
                         self.queue_detready.put(frame, block=False)
                         target_queue = self.queue_detframe
@@ -236,16 +329,16 @@ class MonitorService(threading.Thread, Observer, Subject):
         logger.info("Stopped monitor service")
 
         # stop the services
-        det.stop()
+        self.detector.stop()
         log.stop()
 
-        det.join()
+        self.detector.join()
         log.join()
 
         logger.info(f"Monitor Service, Detector and Log are stopped!")
 
 
-class ActiveMonitors:
+class ActiveMonitorServices:
     singelton = None
 
     def __new__(cls):
@@ -260,7 +353,7 @@ class ActiveMonitors:
             self.viewing_monitor: MonitorService = None
 
         def add(self, monitor_service: MonitorService):
-            self.active_monitors.update({monitor_service.monitor.id: monitor_service})
+            self.active_monitors.update({monitor_service.id: monitor_service})
 
         def view(self, monitor_id: int):
             ms = self.active_monitors.get(monitor_id)

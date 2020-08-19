@@ -25,6 +25,7 @@ pygam = "*"
 sphinx = "*"
 sphinx-rtd-theme = "*"
 python-dotenv = "*"
+numpy = "*"
 
 [requires]
 python_version = "3.7"

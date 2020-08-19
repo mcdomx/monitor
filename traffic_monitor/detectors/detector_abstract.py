@@ -1,52 +1,63 @@
-import logging
-from abc import ABC, abstractmethod
-import numpy as np
 import threading
 import queue
 import time
 import logging
+import numpy as np
+from abc import ABC, abstractmethod
 
-from traffic_monitor.models.model_class import Class
 from traffic_monitor.services.elapsed_time import ElapsedTime
+# from traffic_monitor.services.monitor_service import MonitorService
 
 logger = logging.getLogger('detector')
 
 
-class Detector_Abstract(ABC, threading.Thread):
+class DetectorAbstract(ABC, threading.Thread):
     """
     Abstract class for a detector.
     required methods:
     > detect(frame_num:int, frame:np.array) -> int, np.array
         - returns the frame number and frame with detections
+    > get_trained_objects() -> set
+        - returns a set of strings where each item is a trained object
+
+    A Detector is only instantiated when a Monitor Service is created and
+    the Detector instance is tied to 1:1 with a MonitorService.
+
+    Each Detector must be configured and will inherit this Abstract Class.
     """
 
-    def __init__(self, detector_id: str,
-                 queue_detready: queue.Queue,
-                 queue_detframe: queue.Queue,
-                 queue_dets_log: queue.Queue,
-                 queue_dets_mon: queue.Queue,
-                 mon_objs: list, log_objs: list,
-                 detection_interval: int):
+    # def __init__(self, detector_id: str,
+    #              queue_detready: queue.Queue,
+    #              queue_detframe: queue.Queue,
+    #              queue_dets_log: queue.Queue,
+    #              queue_dets_mon: queue.Queue,
+    #              mon_objs: list, log_objs: list,
+    #              detection_interval: int):
+    def __init__(self, **kwargs):
 
         threading.Thread.__init__(self)
         self.logger = logging.Logger('detector')
-        name, model = detector_id.split('__')
+        self.detector_id = kwargs.get('detector_id')
+        name, model = self.detector_id.split('__')
         self.name = name.replace(' ', '_')
         self.model = model
-        self.detector_id = detector_id
+
+
+        # self.monitor_service: MonitorService = monitor_service
+
         self.is_ready = True
         self.running = False
-        self.queue_detready = queue_detready
-        self.queue_detframe = queue_detframe
-        self.queue_dets_log = queue_dets_log
-        self.queue_dets_mon = queue_dets_mon
+        self.queue_detready = kwargs.get('queue_detready')
+        self.queue_detframe = kwargs.get('queue_detframe')
+        self.queue_dets_log = kwargs.get('queue_dets_log')
+        self.queue_dets_mon = kwargs.get('queue_dets_mon')
 
-        self.monitored_objects = mon_objs
-        self.logged_objects = log_objs
-        self.detection_interval = detection_interval
+        self.notified_objects = kwargs.get('notified_objects')
+        self.logged_objects = kwargs.get('logged_objects')
+        self.detection_interval = kwargs.get('detection_interval')
 
     def __str__(self):
-        return "Detector: {} // {}".format(self.name, self.model)
+        return "Detector: {}".format(self.detector_id)
 
     def set_logged_objects(self, logged_objects: list):
         self.logged_objects = logged_objects
@@ -102,8 +113,6 @@ class Detector_Abstract(ABC, threading.Thread):
             except Exception as e:
                 logger.info(f"Unhandled Exception: {e}")
 
-
-
             # sleep to let the timer expire
             time.sleep(max(0, self.detection_interval-timer.get()))
             timer.reset()
@@ -130,6 +139,6 @@ class Detector_Abstract(ABC, threading.Thread):
         """
         ...
 
-    @staticmethod
-    def get_class_data(monitor_id: int):
-        return Class.objects.filter(monitor_id=monitor_id).values()
+    # @staticmethod
+    # def get_class_data(monitor_name: int):
+    #     return Class.objects.filter(monitor__name=monitor_name).values()

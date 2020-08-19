@@ -4,10 +4,11 @@ import cv2
 
 from django.http import StreamingHttpResponse
 
-from traffic_monitor.services.monitor_service import MonitorService, ActiveMonitors
-from traffic_monitor.models.model_class import Class
+from traffic_monitor.services.monitor_service import MonitorService, ActiveMonitorServices
 from traffic_monitor.consumers import ConsumerFactory
 from traffic_monitor.models.model_monitor import MonitorFactory
+from traffic_monitor.models.model_feed import FeedFactory
+from traffic_monitor.models.model_detector import Detector
 
 from traffic_monitor.services.observer import Observer
 
@@ -43,7 +44,7 @@ def gen_stream(monitor_id: int):
     """Video streaming generator function."""
 
     # rv = ActiveMonitors().get(monitor_id)
-    rv = ActiveMonitors().view(monitor_id)  # gets monitor and turn on viewing mode
+    rv = ActiveMonitorServices().view(monitor_id)  # gets monitor and turn on viewing mode
     ms: MonitorService = rv.get('monitor_service')
 
     if ms is None:
@@ -72,13 +73,13 @@ def video_feed(request, monitor_id: int):
     return StreamingHttpResponse(gen_stream(monitor_id), content_type="multipart/x-mixed-replace;boundary=frame")
 
 
-def get_class_data(request, monitor_id):
-    """ Get class data including class_name, class_id, is_mon_on and is_log_on"""
-    return Class.objects.filter(monitor_id=monitor_id).values()
+# def get_class_data(request, monitor_id):
+#     """ Get class data including class_name, class_id, is_mon_on and is_log_on"""
+#     return Class.objects.filter(monitor_id=monitor_id).values()
 
 
 def toggle_box(action: str, class_id: str, monitor_id: int):
-    rv = ActiveMonitors().get(monitor_id)
+    rv = ActiveMonitorServices().get(monitor_id)
     if not rv['success']:
         logger.error(f"No active monitor with id: {monitor_id}")
     ms = rv.get('monitor_service')
@@ -94,10 +95,10 @@ def toggle_box(action: str, class_id: str, monitor_id: int):
 
 
 def toggle_all(monitor_id: int, action: str):
-    rv = ActiveMonitors().get(monitor_id)
+    rv = ActiveMonitorServices().get(monitor_id)
     if not rv['success']:
         logger.error(f"No active monitor with id: {monitor_id}")
-        logger.error(f"Active monitors: \n {[x for x in ActiveMonitors().getall()]}")
+        logger.error(f"Active monitors: \n {[x for x in ActiveMonitorServices().getall()]}")
     ms: MonitorService = rv.get('monitor_service')
 
     if action == 'mon':
@@ -111,11 +112,6 @@ def toggle_all(monitor_id: int, action: str):
 
 
 def get_active_monitors():
-    return ActiveMonitors().getall()
-
-
-def get_all_monitors():
-    return MonitorFactory().getall()
-
+    return ActiveMonitorServices().getall()
 
 # END VIDEO STEAMING FUNCTIONS ##########################

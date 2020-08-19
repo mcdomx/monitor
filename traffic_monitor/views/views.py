@@ -1,7 +1,7 @@
 import cv2
 
 from .video_views import *
-from traffic_monitor.models.model_class import Class
+# from traffic_monitor.models.model_class import Class
 
 from django.shortcuts import render
 

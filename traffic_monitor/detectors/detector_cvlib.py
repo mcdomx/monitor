@@ -1,15 +1,15 @@
-import logging
 import numpy as np
-import queue
 
-import cvlib as cv
-from cvlib.object_detection import populate_class_labels, draw_bbox
+from cvlib.object_detection import populate_class_labels, draw_bbox, detect_common_objects
 
-from traffic_monitor.detectors.detector_abstract import Detector_Abstract
+from traffic_monitor.detectors.detector_abstract import DetectorAbstract
 
 
-class DetectorCVlib(Detector_Abstract):
+class DetectorCVlib(DetectorAbstract):
     """
+    Implementation of DetectorAbstract.  This implementation is from the OpenCV
+    implementation of object instance detection.
+
     Supports:
         yolov3-tiny
         yolov3
@@ -17,20 +17,11 @@ class DetectorCVlib(Detector_Abstract):
     Requires that .cfg file and .weights files are in ~/.cvlib/object_detection/yolo/yolov3
     """
 
-    def __init__(self, detector_id: str,
-                 queue_detready: queue.Queue,
-                 queue_detframe: queue.Queue,
-                 queue_dets_log: queue.Queue,
-                 queue_dets_mon: queue.Queue,
-                 mon_objs: list, log_objs: list,
-                 detection_interval: int):
-        Detector_Abstract.__init__(self, detector_id=detector_id,
-                                   queue_detready=queue_detready, queue_detframe=queue_detframe,
-                                   queue_dets_log=queue_dets_log, queue_dets_mon=queue_dets_mon,
-                                   mon_objs=mon_objs, log_objs=log_objs, detection_interval=detection_interval)
+    def __init__(self, **kwargs):
+        DetectorAbstract.__init__(self, **kwargs)
 
     def detect(self, frame: np.array) -> (int, np.array, list, list):
-        bbox, labels, conf = cv.detect_common_objects(frame, confidence=.5, model=self.model)
+        bbox, labels, conf = detect_common_objects(frame, confidence=.5, model=self.model)
 
         # only log detections that are being logged
         log_idxs = [i for i, l in enumerate(labels) if l in self.logged_objects]
