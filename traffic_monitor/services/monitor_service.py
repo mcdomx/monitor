@@ -11,11 +11,12 @@ import logging
 import cv2 as cv
 
 from traffic_monitor.detectors.detector_factory import DetectorFactory
-from traffic_monitor.models.model_monitor import Monitor, MonitorFactory
+# from traffic_monitor.models.model_monitor import Monitor, MonitorFactory
 from traffic_monitor.models.model_feed import FeedFactory
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.observer import Observer, Subject
 from traffic_monitor.services.chart_service import ChartService
+from traffic_monitor.services.active_monitors import ActiveMonitors
 
 BUFFER_SIZE = 512
 
@@ -50,27 +51,18 @@ class MonitorService(threading.Thread, Observer, Subject):
     also turn on and off a Monitor's ability to display the visual feed.
 
     """
-    instances = {}
-
-    @classmethod
-    def get_instances(cls):
-        return cls.instances
-
-    @classmethod
-    def get_instance(cls, monitor_id: int):
-        return cls.instances.get(monitor_id, None)
-
     def __init__(self,
-                 monitor: Monitor,
-                 logged_objects: list = None, notified_objects: list = None,
+                 # monitor: Monitor,
+                 # logged_objects: list = None, notified_objects: list = None,
                  log_interval: int = 60, detection_interval: int = 5):
-        """ Requires existing detector and feed """
+        """ Requires existing monitor.  1:1 relationship with a monitor but this is not
+        enforced when creating the Monitor Service. """
         threading.Thread.__init__(self)
         Observer.__init__(self)
         Subject.__init__(self)
         self.id = id(self)
         self.name = f"MonitorServiceThread-{monitor.name}"
-        self.monitor: Monitor = monitor
+        # self.monitor: Monitor = monitor
 
         # DETECTOR STATES
         self.running = False
@@ -86,38 +78,20 @@ class MonitorService(threading.Thread, Observer, Subject):
         self.queue_dets_log = queue.Queue(BUFFER_SIZE)
 
         # Monitor Service Parameters
-        self.notified_objects: list = [] if notified_objects is None else notified_objects
-        self.logged_objects: list = [] if logged_objects is None else logged_objects
+        # self.notified_objects = self.monitor.notification_objects
+        # self.logged_objects = self.monitor.log_objects
         self.log_interval: int = log_interval
         self.log_channel_url: str = '/ws/traffic_monitor/log/'
         self.detection_interval: int = detection_interval
 
-        # Set monitor objects and classes used
-        # detector, detector_class = self.get_detector(detector_id)
-        # self.detector: Detector = detector
-        # self.detector_class: Detector_Abstract = detector_class
-
         self.subject_name = f"monitor_service__{self.monitor.name}"
         self.detector = self.get_detector()
-
-        # Setup supported classes in the DB
-        # self.load_classes()
-        # self.update_monitored_objects()
-        # self.update_logged_objects()
-
-        self.__class__.instances.update({self.id: self})
 
     def __str__(self):
         rv = self.__dict__
         str_rv = {k: f"{v}" for k, v in rv.items()}
 
         return f"{str_rv}"
-
-    def get_logged_objects(self):
-        return self.logged_objects
-
-    def get_notified_objects(self):
-        return self.notified_objects
 
     def update(self, subject_info: tuple):
         """
@@ -144,8 +118,8 @@ class MonitorService(threading.Thread, Observer, Subject):
             queue_detframe=self.queue_detframe,
             queue_dets_log=self.queue_dets_log,
             queue_dets_not=self.queue_dets_not,
-            notified_objects=self.notified_objects,
-            logged_objects=self.logged_objects,
+            notified_objects=self.monitor.notification_objects,
+            logged_objects=self.monitor.log_objects,
             detection_interval=self.detection_interval
         )
         if rv.get('success'):
@@ -153,117 +127,43 @@ class MonitorService(threading.Thread, Observer, Subject):
         else:
             raise Exception(rv.get('message'))
 
-    @staticmethod
-    def get_feed(feed_cam):
-        rv = FeedFactory().get(feed_cam)
-        if rv.get('success'):
-            return rv.get('feed')
-        else:
-            raise Exception(rv.get('message'))
-
-    @staticmethod
-    def get_monitor(d_id, feed_cam):
-        rv = MonitorFactory().get(d_id, feed_cam)
-        if rv.get('success'):
-            return rv.get('monitor')
-        else:
-            raise Exception(rv.get('message'))
-
-    # def load_classes(self):
-    #     """ Load supported classes into the DB """
-    #     # get the classes that are supported by the detector
-    #     classes = self.detector.get_trained_objects()
+    # @staticmethod
+    # def get_feed(feed_cam):
+    #     rv = FeedFactory().get(feed_cam)
+    #     if rv.get('success'):
+    #         return rv.get('feed')
+    #     else:
+    #         raise Exception(rv.get('message'))
     #
-    #     # create or update the classes
-    #     for class_name in classes:
-    #         Class.create(class_name=class_name, monitor=self.monitor)
-    #
-    # def update_monitored_objects(self):
-    #     self.monitored_objects = Class.get_notified_objects(self.monitor)
-    #     self.detector.set_monitored_objects(self.monitored_objects)
-    #
-    # def update_logged_objects(self):
-    #     self.logged_objects = Class.get_logged_objects(self.monitor)
-    #     self.detector.set_logged_objects(self.logged_objects)
-
-    def get_trained_objects(self) -> set:
-        """ Retrieves classes supported by detector """
-        return self.detector.get_trained_objects()
-
-    def toggle_notified_object(self, object_name) -> dict:
-        """
-        Toggle a single object's notification status on or off by the name of the object.
-
-        :param object_name: String name of the object
-        :return: None if object is not supported and no action taken; else; the name of the object.
-        """
-        if object_name not in self.get_trained_objects():
-            return {"success": False, "message": f"'{object_name}' is not a trained object."}
-
-        if object_name in self.notified_objects:
-            self.notified_objects.remove(object_name)
-            return {"success": True, "message": f"'{object_name}' removed from notified items."}
-        elif object_name in self.get_trained_objects():
-            self.notified_objects.append(object_name)
-            return {"success": True, "message": f"'{object_name}' added to notified items."}
-
-        return {"success": False, "message": f"Unable to toggle object: '{object_name}'."}
-
-    def toggle_logged_object(self, object_name) -> dict:
-        """
-        Toggle a single object's logging status on or off by the name of the object.
-
-        :param object_name: String name of the object
-        :return: None if object is not supported and no action taken; else; the name of the object.
-        """
-        if object_name not in self.get_trained_objects():
-            return {"success": False, "message": f"'{object_name}' is not a trained object."}
-
-        if object_name in self.logged_objects:
-            self.logged_objects.remove(object_name)
-            return {"success": True, "message": f"'{object_name}' removed from logged items."}
-        elif object_name in self.get_trained_objects():
-            self.logged_objects.append(object_name)
-            return {"success": True, "message": f"'{object_name}' added to logged items."}
-
-        return {"success": False, "message": f"Unable to toggle object: '{object_name}'."}
-
-    def toggle_all_notifications(self):
-        """
-        Invert the list of notified objects
-        :return: The new set of notified objects
-        """
-        self.notified_objects = self.get_trained_objects() - self.notified_objects
-        return self.notified_objects
-
-        # rv = Class.toggle_all_notifications(self.monitor)
-        # self.update_monitored_objects()
-        # return rv
-
-    def toggle_all_log(self):
-        """
-        Invert the list of logged objects
-        :return: The new set of logged objects
-        """
-        self.logged_objects = self.get_trained_objects() - self.logged_objects
-        return self.logged_objects
-
-        # rv = Class.toggle_all_log(self.monitor)
-        # self.update_logged_objects()
-        # return rv
+    # @staticmethod
+    # def get_monitor(d_id, feed_cam):
+    #     rv = MonitorFactory().get(d_id, feed_cam)
+    #     if rv.get('success'):
+    #         return rv.get('monitor')
+    #     else:
+    #         raise Exception(rv.get('message'))
 
     def get_next_frame(self):
         q = self.queue_refframe.get()
         return q.get()
 
-    def start(self):
-        self.running = True
-        threading.Thread.start(self)
-        ActiveMonitorServices().add(self)
+    def start(self) -> dict:
+        """
+        Overriding Threading.start() so that we can test if a monitor service  is already active for
+        the monitor and set the 'running' variable.
+        :return: A dict with bool 'success' and string 'message' describing result.
+        """
+        rv = ActiveMonitors().add(self.monitor.name, self)
+        if rv['success']:
+            self.running = True
+            threading.Thread.start(self)
+            return{'success': True, 'message': f"Service started for {self.monitor.name}"}
+        else:
+            return rv
 
     def stop(self):
         self.running = False
-        ActiveMonitorServices().remove(self)
+        ActiveMonitors().remove(self.monitor.name)
 
     def run(self):
         """
@@ -277,16 +177,23 @@ class MonitorService(threading.Thread, Observer, Subject):
         self.detector.start()
 
         # start a logging service and register as observer
-        log = LogService(monitor_id=self.monitor.id,
-                         queue_dets_log=self.queue_dets_log,
-                         log_interval=self.log_interval)
-        log.register(self)  # register with the log service to get log updates
-        log.start()
+        if self.monitor.logging_on:
+            log = LogService(monitor_id=self.monitor.id,
+                             queue_dets_log=self.queue_dets_log,
+                             log_interval=self.log_interval)
+            log.register(self)  # register with the log service to get log updates
+            log.start()
 
         # start a charting service and register as observer
-        chart = ChartService(monitor_id=self.monitor.id, charting_interval=self.log_interval)
-        chart.register(self)
-        chart.start()
+        if self.monitor.charting_on:
+            chart = ChartService(monitor_id=self.monitor.id, charting_interval=self.log_interval)
+            chart.register(self)
+            chart.start()
+
+        # start notification service and register as observer
+        if self.monitor.notifications_on:
+            """Future release functionality"""
+            pass
 
         logger.info(f"Starting monitoring service for id: {self.monitor.id}")
         while self.running and cap.isOpened():
@@ -338,54 +245,3 @@ class MonitorService(threading.Thread, Observer, Subject):
         logger.info(f"Monitor Service, Detector and Log are stopped!")
 
 
-class ActiveMonitorServices:
-    singelton = None
-
-    def __new__(cls):
-        if cls.singelton is None:
-            cls.singelton = cls._Singleton()
-        return cls.singelton
-
-    class _Singleton:
-        def __init__(self):
-            self.logger = logging.getLogger('detector')
-            self.active_monitors = {}
-            self.viewing_monitor: MonitorService = None
-
-        def add(self, monitor_service: MonitorService):
-            self.active_monitors.update({monitor_service.id: monitor_service})
-
-        def view(self, monitor_id: int):
-            ms = self.active_monitors.get(monitor_id)
-            if ms is None:
-                return {'success': False, 'message': f"MonitorService with is '{monitor_id}' is not active."}
-
-            # if any monitor is currently being viewed, turn it off
-            if self.viewing_monitor:
-                self.viewing_monitor.display = False
-
-            # set the viewing monitor and set viewing to true
-            self.viewing_monitor: MonitorService = ms
-            self.viewing_monitor.display = True
-
-            return {'success': True, 'monitor_service': ms}
-
-        def remove(self, monitor_service: MonitorService):
-            # if removing a monitor that is being viewed stop it
-            if self.viewing_monitor:
-                if self.viewing_monitor is monitor_service:
-                    self.viewing_monitor.display = False
-                    self.viewing_monitor = None
-
-            self.active_monitors.pop(monitor_service.monitor.id)
-
-        def get(self, monitor_id: int):
-            ms = self.active_monitors.get(monitor_id)
-
-            if ms is None:
-                return {'success': False, 'message': f"MonitorService with is '{monitor_id}' is not active."}
-
-            return {'success': True, 'monitor_service': ms}
-
-        def getall(self):
-            return self.active_monitors

@@ -6,7 +6,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 from traffic_monitor.services.elapsed_time import ElapsedTime
-# from traffic_monitor.services.monitor_service import MonitorService
+# from traffic_monitor.models.model_monitor import Monitor
 
 logger = logging.getLogger('detector')
 
@@ -26,13 +26,6 @@ class DetectorAbstract(ABC, threading.Thread):
     Each Detector must be configured and will inherit this Abstract Class.
     """
 
-    # def __init__(self, detector_id: str,
-    #              queue_detready: queue.Queue,
-    #              queue_detframe: queue.Queue,
-    #              queue_dets_log: queue.Queue,
-    #              queue_dets_mon: queue.Queue,
-    #              mon_objs: list, log_objs: list,
-    #              detection_interval: int):
     def __init__(self, **kwargs):
 
         threading.Thread.__init__(self)
@@ -41,9 +34,6 @@ class DetectorAbstract(ABC, threading.Thread):
         name, model = self.detector_id.split('__')
         self.name = name.replace(' ', '_')
         self.model = model
-
-
-        # self.monitor_service: MonitorService = monitor_service
 
         self.is_ready = True
         self.running = False
@@ -54,16 +44,17 @@ class DetectorAbstract(ABC, threading.Thread):
 
         self.notified_objects = kwargs.get('notified_objects')
         self.logged_objects = kwargs.get('logged_objects')
+        # self.monitor: Monitor = kwargs.get('monitor')
         self.detection_interval = kwargs.get('detection_interval')
 
     def __str__(self):
         return "Detector: {}".format(self.detector_id)
 
-    def set_logged_objects(self, logged_objects: list):
-        self.logged_objects = logged_objects
-
-    def set_monitored_objects(self, monitored_objects):
-        self.monitored_objects = monitored_objects
+    # def set_logged_objects(self, logged_objects: list):
+    #     self.logged_objects = logged_objects
+    #
+    # def set_monitored_objects(self, monitored_objects):
+    #     self.monitored_objects = monitored_objects
 
     def start(self):
         self.logger.info("Starting detector ... ")
@@ -130,10 +121,11 @@ class DetectorAbstract(ABC, threading.Thread):
         """
         ...
 
+    @classmethod
     @abstractmethod
-    def get_trained_objects(self) -> set:
+    def get_trained_objects(cls) -> set:
         """
-        Each supported detector must override this method.
+        Each supported detector class must override this method.
         :return: set of strings where each string is the name of a trained object. Spaces
         must be represented with an underscore, '_'.
         """

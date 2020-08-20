@@ -22,16 +22,23 @@ urlpatterns = [
     path("get_monitors", api.get_monitors, name="get_monitors"),
     re_path(r"get_monitor[\/|\?].*", api.get_monitor, name='get_monitor'),
 
-    re_path(r"create_monitor_service[\/|\?].*", api.create_monitor_service, name='create_monitor_service'),
-    path("get_monitor_services", api.get_monitor_services, name="get_monitor_services"),
-    re_path(r"get_monitor_service[\/|\?].*", api.get_monitor_service, name='get_monitor_service'),
-
     re_path(r"get_trained_objects[\/|\?].*", api.get_trained_objects, name='get_trained_objects'),
-    re_path(r"toggle_log_object[\/|\?].*", api.toggle_log_object, name='toggle_log_object'),
     re_path(r"get_logged_objects[\/|\?].*", api.get_logged_objects, name='get_logged_objects'),
+    re_path(r"get_notification_objects[\/|\?].*", api.get_notification_objects, name='get_notified_objects'),
 
-    re_path(r"toggle_notified_object[\/|\?].*", api.toggle_notified_object, name='toggle_notified_object'),
-    re_path(r"get_notified_objects[\/|\?].*", api.get_notified_objects, name='get_notified_objects'),
+    re_path(r"toggle_logged_object[\/|\?].*", api.toggle_logged_object, name='toggle_logged_object'),
+    re_path(r"toggle_notification_object[\/|\?].*", api.toggle_notification_object, name='toggle_notification_object'),
+
+    re_path(r"set_log_objects[\/|\?].*", api.set_log_objects, name='set_log_objects'),
+    re_path(r"set_notification_objects[\/|\?].*", api.set_notification_objects, name='set_notification_objects'),
+
+
+    re_path(r"start_monitor_service[\/|\?].*", api.start_monitor_service, name="start_monitor_service"),
+    re_path(r"stop_monitor_service[\/|\?].*", api.stop_monitor_service, name="stop_monitor_service"),
+
+    # re_path(r"create_monitor_service[\/|\?].*", api.create_monitor_service, name='create_monitor_service'),
+    # path("get_monitor_services", api.get_monitor_services, name="get_monitor_services"),
+    # re_path(r"get_monitor_service[\/|\?].*", api.get_monitor_service, name='get_monitor_service'),
 
 
     # path("get_class_data/<int:monitor_id>", api.get_class_data, name="get_class_data"),
@@ -41,8 +48,7 @@ urlpatterns = [
 
 
 
-    path("monitor/start/<int:monitor_id>", api.start_monitor, name="start_monitor"),
-    path("monitor/stop/<int:monitor_id>", api.stop_monitor, name="stop_monitor"),
+
     path("get_chart/<int:monitor_id>", api.get_chart, name="get_chart"),
 
 

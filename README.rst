@@ -32,6 +32,8 @@ The Notification service will perform a notification action (alert, email, text 
 
 In order to used a service with a Montitor, an instance of the service's class can be instantiated with a reference to the Monitor.  The Monitor and its services use queues to communicate as well as an Observer pattern.
 
+A small hierarchy of objects are necessary to organize data collected by a Monitor.  A Monitor is defined as a combination of a Video Feed and a Detector.  A Monitor is created by a user and given a unique name.  Data is retrieved via a reference to the Monitor.  Using this Monitor level prevents data queries that may have overlapping data and provides the user the ability to provide a descriptive name to a Monitor that may have practical use.
+
 
 Environment Setup
 -----------------

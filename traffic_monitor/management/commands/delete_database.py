@@ -32,7 +32,7 @@ class Command(BaseCommand):
             else:
                 logger.info(f"No entries in table '{name}'. No entries deleted.")
 
-        del_table(Class, "Class")
+        # del_table(Class, "Class")
         del_table(Feed, "Feed")
         del_table(LogEntry, "LogEntry")
         del_table(Detector, "Detector")

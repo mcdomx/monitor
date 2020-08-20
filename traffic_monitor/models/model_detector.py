@@ -13,10 +13,6 @@ class Detector(models.Model):
 
     def __str__(self):
         rv = self.__dict__
-        try:
-            del rv['_state']
-        except KeyError:
-            pass
         return f"{rv}"
 
     @staticmethod

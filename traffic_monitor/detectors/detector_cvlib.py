@@ -28,7 +28,7 @@ class DetectorCVlib(DetectorAbstract):
         log_labels = list(np.array(labels)[log_idxs])
 
         # only keep detections that are being monitored
-        mon_idxs = [i for i, l in enumerate(labels) if l in self.monitored_objects]
+        mon_idxs = [i for i, l in enumerate(labels) if l in self.notified_objects]
         mon_labels = list(np.array(labels)[mon_idxs])
         bbox = list(np.array(bbox)[mon_idxs])
         conf = list(np.array(conf)[mon_idxs])
@@ -37,5 +37,9 @@ class DetectorCVlib(DetectorAbstract):
 
         return 0, frame, log_labels, mon_labels
 
-    def get_trained_objects(self) -> set:
+    @classmethod
+    def get_trained_objects(cls) -> set:
         return set(populate_class_labels())
+
+    # def get_trained_objects(self) -> set:
+    #     return set(populate_class_labels())

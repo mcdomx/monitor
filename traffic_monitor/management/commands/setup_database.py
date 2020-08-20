@@ -63,4 +63,4 @@ class Command(BaseCommand):
 
         for d in Detector.objects.all():
             for f in Feed.objects.all():
-                _ = MonitorFactory().add(name=f"MON_{f.description}_{d.detector_id}", detector_id=d.detector_id, feed_cam=f.cam)
+                _ = MonitorFactory().create(name=f"MON_{f.description}_{d.detector_id}", detector_id=d.detector_id, feed_cam=f.cam)
