@@ -3,7 +3,7 @@ import logging
 from traffic_monitor.services.monitor_service import MonitorService
 
 
-class ActiveMonitors:
+class MonitorServiceManager:
     singleton = None
 
     def __new__(cls):
@@ -25,12 +25,47 @@ class ActiveMonitors:
             """
             return self.active_monitors.get(monitor_name, False)
 
-        def add(self, monitor_name: str, monitor_service: MonitorService):
+        def start(self,
+                  monitor_name: str,
+                  detector_id: str,
+                  feed_id: str,
+                  time_zone: str,
+                  logged_objects: list = None,
+                  notified_objects: list = None,
+                  logging_on: bool = True,
+                  notifications_on: bool = False,
+                  charting_on: bool = False,
+                  log_interval: int = 60, detection_interval: int = 5
+                  ):
             if self.is_active(monitor_name):
                 return {'success': False, 'message': f"Service for monitor '{monitor_name}' is already active."}
             else:
-                self.active_monitors.update({monitor_name: monitor_service})
-                return {'success': True, 'message': f"Service for monitor '{monitor_name}' added to active monitors."}
+                # create a monitor service and start it
+                ms = MonitorService(monitor_name=monitor_name,
+                                    detector_id=detector_id,
+                                    feed_id=feed_id,
+                                    time_zone=time_zone,
+                                    logged_objects=logged_objects,
+                                    notified_objects=notified_objects,
+                                    logging_on=logging_on,
+                                    charting_on=charting_on,
+                                    notifications_on=notifications_on,
+                                    log_interval=log_interval,
+                                    detection_interval=detection_interval)
+
+                self.active_monitors.update({monitor_name: ms})
+                rv = ms.start()
+                return rv
+
+        def stop(self, monitor_name):
+            if not self.is_active(monitor_name):
+                return {'success': False, 'message': f"Service for monitor '{monitor_name}' is not created nor running."}
+
+            ms: MonitorService = self.active_monitors.get(monitor_name)
+            rv = ms.stop()
+            if rv['success']:
+                self.remove(monitor_name)
+            return rv
 
         def view(self, monitor_name: int):
             ms = self.active_monitors.get(monitor_name)

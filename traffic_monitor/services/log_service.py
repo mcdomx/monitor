@@ -11,7 +11,6 @@ import datetime
 import pytz
 import time
 
-from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.models.model_logentry import LogEntry
 from traffic_monitor.services.observer import Subject
 
@@ -19,13 +18,13 @@ logger = logging.getLogger('log_service')
 
 
 class LogService(threading.Thread, Subject):
-    def __init__(self, monitor_id: int, queue_dets_log: queue.Queue, log_interval: int):
+    def __init__(self, monitor_name: str, queue_dets_log: queue.Queue, log_interval: int, time_zone: str):
         threading.Thread.__init__(self)
         Subject.__init__(self)
-        self.subject_name = f"logservice__{monitor_id}"
+        self.subject_name = f"logservice__{monitor_name}"
         self.running = False
-        self.monitor_id = monitor_id
-        self.time_zone = Monitor.get_timezone(monitor_id)
+        self.monitor_name = monitor_name
+        self.time_zone = time_zone
         self.queue_dets_log = queue_dets_log
         self.log_interval = log_interval  # freq (in sec) in detections are logged
 
@@ -62,12 +61,12 @@ class LogService(threading.Thread, Subject):
 
                 # add observations to database
                 LogEntry.add(time_stamp=timestamp,
-                             monitor_id=self.monitor_id,
+                             monitor_name=self.monitor_name,
                              count_dict=minute_counts_dict)
-                logger.info(f"Monitor: {self.monitor_id} Detections: {minute_counts_dict}")
+                logger.info(f"Monitor: {self.monitor_name} Detections: {minute_counts_dict}")
 
                 # update observers
-                self.publish({'monitor_id': self.monitor_id, 'timestamp': timestamp, 'counts': minute_counts_dict})
+                self.publish({'monitor_id': self.monitor_name, 'timestamp': timestamp, 'counts': minute_counts_dict})
 
                 # reset variables for next observation
                 log_interval_detections.clear()

@@ -35,8 +35,8 @@ admin.site.register(Detector, DetectorAdmin)
 
 
 class LogEntryAdmin(admin.ModelAdmin):
-    list_display = ('time_stamp', 'monitor', 'class_id')
-    list_filter = ('monitor', 'time_stamp', 'class_id')
+    list_display = ('time_stamp', 'monitor', 'class_name')
+    list_filter = ('monitor', 'time_stamp', 'class_name')
 
 
 admin.site.register(LogEntry, LogEntryAdmin)

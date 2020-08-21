@@ -11,12 +11,9 @@ import logging
 import cv2 as cv
 
 from traffic_monitor.detectors.detector_factory import DetectorFactory
-# from traffic_monitor.models.model_monitor import Monitor, MonitorFactory
-from traffic_monitor.models.model_feed import FeedFactory
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.observer import Observer, Subject
 from traffic_monitor.services.chart_service import ChartService
-from traffic_monitor.services.active_monitors import ActiveMonitors
 
 BUFFER_SIZE = 512
 
@@ -52,17 +49,30 @@ class MonitorService(threading.Thread, Observer, Subject):
 
     """
     def __init__(self,
-                 # monitor: Monitor,
-                 # logged_objects: list = None, notified_objects: list = None,
-                 log_interval: int = 60, detection_interval: int = 5):
+                 monitor_name: str,
+                 detector_id: str,
+                 feed_id: str,
+                 time_zone: str,
+                 log_interval: int, detection_interval: int,
+                 logged_objects: list = None,
+                 notified_objects: list = None,
+                 logging_on: bool = True,
+                 notifications_on: bool = False,
+                 charting_on: bool = False):
         """ Requires existing monitor.  1:1 relationship with a monitor but this is not
         enforced when creating the Monitor Service. """
         threading.Thread.__init__(self)
         Observer.__init__(self)
         Subject.__init__(self)
         self.id = id(self)
-        self.name = f"MonitorServiceThread-{monitor.name}"
-        # self.monitor: Monitor = monitor
+        self.name = f"MonitorServiceThread-{monitor_name}"
+        self.monitor_name: str = monitor_name
+        self.detector_id = detector_id
+        self.feed_id = feed_id
+        self.time_zone = time_zone
+        self.logging_on = logging_on
+        self.notifications_on = notifications_on
+        self.charting_on = charting_on
 
         # DETECTOR STATES
         self.running = False
@@ -78,13 +88,13 @@ class MonitorService(threading.Thread, Observer, Subject):
         self.queue_dets_log = queue.Queue(BUFFER_SIZE)
 
         # Monitor Service Parameters
-        # self.notified_objects = self.monitor.notification_objects
-        # self.logged_objects = self.monitor.log_objects
+        self.notified_objects: list = notified_objects
+        self.logged_objects: list = logged_objects
         self.log_interval: int = log_interval
         self.log_channel_url: str = '/ws/traffic_monitor/log/'
         self.detection_interval: int = detection_interval
 
-        self.subject_name = f"monitor_service__{self.monitor.name}"
+        self.subject_name = f"monitor_service__{self.monitor_name}"
         self.detector = self.get_detector()
 
     def __str__(self):
@@ -113,35 +123,19 @@ class MonitorService(threading.Thread, Observer, Subject):
         :return: An instance of Detector.
         """
         rv = DetectorFactory().get(
-            detector_id=self.monitor.detector.detector_id,
+            detector_id=self.detector_id,
             queue_detready=self.queue_detready,
             queue_detframe=self.queue_detframe,
             queue_dets_log=self.queue_dets_log,
             queue_dets_not=self.queue_dets_not,
-            notified_objects=self.monitor.notification_objects,
-            logged_objects=self.monitor.log_objects,
+            notified_objects=self.notified_objects,
+            logged_objects=self.logged_objects,
             detection_interval=self.detection_interval
         )
         if rv.get('success'):
             return rv.get('detector')
         else:
             raise Exception(rv.get('message'))
-
-    # @staticmethod
-    # def get_feed(feed_cam):
-    #     rv = FeedFactory().get(feed_cam)
-    #     if rv.get('success'):
-    #         return rv.get('feed')
-    #     else:
-    #         raise Exception(rv.get('message'))
-    #
-    # @staticmethod
-    # def get_monitor(d_id, feed_cam):
-    #     rv = MonitorFactory().get(d_id, feed_cam)
-    #     if rv.get('success'):
-    #         return rv.get('monitor')
-    #     else:
-    #         raise Exception(rv.get('message'))
 
     def get_next_frame(self):
         q = self.queue_refframe.get()
@@ -153,17 +147,13 @@ class MonitorService(threading.Thread, Observer, Subject):
         the monitor and set the 'running' variable.
         :return: A dict with bool 'success' and string 'message' describing result.
         """
-        rv = ActiveMonitors().add(self.monitor.name, self)
-        if rv['success']:
-            self.running = True
-            threading.Thread.start(self)
-            return{'success': True, 'message': f"Service started for {self.monitor.name}"}
-        else:
-            return rv
+        self.running = True
+        threading.Thread.start(self)
+        return{'success': True, 'message': f"Service started for {self.monitor_name}"}
 
-    def stop(self):
+    def stop(self) -> dict:
         self.running = False
-        ActiveMonitors().remove(self.monitor.name)
+        return {'success': True, 'message': f"Service stopped for {self.monitor_name}"}
 
     def run(self):
         """
@@ -171,31 +161,32 @@ class MonitorService(threading.Thread, Observer, Subject):
         Frames will be placed in respective queues.
         """
         # set source of video stream
-        cap = cv.VideoCapture(self.monitor.feed.url)
+        cap = cv.VideoCapture(self.feed_id)
 
         # start detector instance
         self.detector.start()
 
         # start a logging service and register as observer
-        if self.monitor.logging_on:
-            log = LogService(monitor_id=self.monitor.id,
+        if self.logging_on:
+            log = LogService(monitor_name=self.monitor_name,
                              queue_dets_log=self.queue_dets_log,
-                             log_interval=self.log_interval)
+                             log_interval=self.log_interval,
+                             time_zone=self.time_zone)
             log.register(self)  # register with the log service to get log updates
             log.start()
 
         # start a charting service and register as observer
-        if self.monitor.charting_on:
-            chart = ChartService(monitor_id=self.monitor.id, charting_interval=self.log_interval)
+        if self.charting_on:
+            chart = ChartService(monitor_name=self.monitor_name, charting_interval=self.log_interval)
             chart.register(self)
             chart.start()
 
         # start notification service and register as observer
-        if self.monitor.notifications_on:
+        if self.notifications_on:
             """Future release functionality"""
             pass
 
-        logger.info(f"Starting monitoring service for id: {self.monitor.id}")
+        logger.info(f"Starting monitoring service for id: {self.monitor_name}")
         while self.running and cap.isOpened():
 
             cap.grab()  # only read every other frame
@@ -237,10 +228,15 @@ class MonitorService(threading.Thread, Observer, Subject):
 
         # stop the services
         self.detector.stop()
-        log.stop()
+        if self.logging_on:
+            log.stop()
 
-        self.detector.join()
+        if self.charting_on:
+            chart.stop()
+
+        chart.join()
         log.join()
+        self.detector.join()
 
         logger.info(f"Monitor Service, Detector and Log are stopped!")
 

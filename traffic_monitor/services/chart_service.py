@@ -7,7 +7,7 @@ import logging
 
 from traffic_monitor.services.observer import Subject
 
-from traffic_monitor.models.model_logentry import LogEntry
+# from traffic_monitor.models.model_logentry import LogEntry
 
 logger = logging.getLogger('log_service')
 

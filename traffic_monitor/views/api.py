@@ -4,31 +4,30 @@ from django.http import StreamingHttpResponse, JsonResponse, HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 from traffic_monitor.views import video_views, chart_views
-from traffic_monitor.models.model_monitor import Monitor, MonitorFactory
-from traffic_monitor.models.model_feed import FeedFactory
+from traffic_monitor.models.model_monitor import Monitor
+from traffic_monitor.models.monitor_factory import MonitorFactory
+from traffic_monitor.models.feed_factory import FeedFactory
 from traffic_monitor.models.model_detector import Detector
-from traffic_monitor.services.monitor_service import MonitorService
-from traffic_monitor.services.active_monitors import ActiveMonitors
 
 logger = logging.getLogger('api')
 
 
-def get_class_data(request, monitor_id):
-    """
-    Get class data including class_name, class_id, is_mon_on and is_log_on
-
-    :param request:
-    :param monitor_id:
-    :return:
-    """
-
-    class_data = video_views.get_class_data(request, monitor_id)
-    class_data = {c['class_id']: {'class_name': c['class_name'],
-                                  'class_id': c['class_name'].replace(' ', '_'),
-                                  'is_monitoring': c['is_monitoring'],
-                                  'is_logging': c['is_logging']} for c in class_data}
-
-    return JsonResponse(class_data, safe=False)
+# def get_class_data(request, monitor_id):
+#     """
+#     Get class data including class_name, class_id, is_mon_on and is_log_on
+#
+#     :param request:
+#     :param monitor_id:
+#     :return:
+#     """
+#
+#     class_data = video_views.get_class_data(request, monitor_id)
+#     class_data = {c['class_id']: {'class_name': c['class_name'],
+#                                   'class_id': c['class_name'].replace(' ', '_'),
+#                                   'is_monitoring': c['is_monitoring'],
+#                                   'is_logging': c['is_logging']} for c in class_data}
+#
+#     return JsonResponse(class_data, safe=False)
 
 
 def toggle_box(request):
@@ -136,7 +135,7 @@ def get_monitor(request):
 def create_monitor(request):
     """
 
-    :param request: The HTML request that should include values for 'state', 'exclude_counties', 'top_n_counties' and 'data_type'.
+    :param request: The HTML request
     See the parameter descriptions below for constraints and defaults for each parameter.
     :return:
     """
@@ -272,20 +271,20 @@ def start_monitor_service(request):
 
     rv = MonitorFactory().start(monitor_name=monitor_name, log=log, notify=notify, chart=chart)
 
+    return JsonResponse(rv, safe=False)
 
 
-    return JsonResponse({'success': True, 'monitor_id': ms.monitor.id}, safe=False)
-
-
-def stop_monitor_service(request, monitor_id: int):
-    rv = ActiveMonitorServices().get(monitor_id)
+def stop_monitor_service(request):
+    monitor_name = request.GET.get('monitor_name', None)
+    if monitor_name is None:
+        return JsonResponse({"success": False, "message": "'monitor_name' of a Monitor is a required parameter."})
+    rv = MonitorFactory().get(monitor_name=monitor_name)
     if not rv['success']:
-        return JsonResponse({'success': False, 'message': rv['message']}, safe=False)
+        return JsonResponse(rv, safe=False)
 
-    ms = rv.get('monitor_service')
-    ms.stop()
+    rv = MonitorFactory().stop(monitor_name)
 
-    return JsonResponse({'success': True, 'monitor_id': ms.monitor.id}, safe=False)
+    return JsonResponse(rv, safe=False)
 
 
 def get_chart(request, monitor_id: int, interval: int = 0):

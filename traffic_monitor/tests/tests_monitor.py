@@ -6,7 +6,7 @@ from traffic_monitor.models.model_feed import Feed
 from traffic_monitor.models.model_detector import Detector
 from traffic_monitor.models.model_class import Class
 
-from traffic_monitor.services.monitor_service import MonitorService, ActiveMonitors
+from traffic_monitor.services.monitor_service import MonitorService, MonitorServiceManager
 
 # Create your tests here.
 

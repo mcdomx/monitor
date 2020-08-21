@@ -4,11 +4,9 @@ import cv2
 
 from django.http import StreamingHttpResponse
 
-from traffic_monitor.services.monitor_service import MonitorService, ActiveMonitorServices
+from traffic_monitor.services.monitor_service import MonitorService
+from traffic_monitor.services.monitor_service_manager import MonitorServiceManager
 from traffic_monitor.consumers import ConsumerFactory
-from traffic_monitor.models.model_monitor import MonitorFactory
-from traffic_monitor.models.model_feed import FeedFactory
-from traffic_monitor.models.model_detector import Detector
 
 from traffic_monitor.services.observer import Observer
 
@@ -44,7 +42,7 @@ def gen_stream(monitor_id: int):
     """Video streaming generator function."""
 
     # rv = ActiveMonitors().get(monitor_id)
-    rv = ActiveMonitorServices().view(monitor_id)  # gets monitor and turn on viewing mode
+    rv = MonitorServiceManager().view(monitor_id)  # gets monitor and turn on viewing mode
     ms: MonitorService = rv.get('monitor_service')
 
     if ms is None:
@@ -79,7 +77,7 @@ def video_feed(request, monitor_id: int):
 
 
 def toggle_box(action: str, class_id: str, monitor_id: int):
-    rv = ActiveMonitorServices().get(monitor_id)
+    rv = MonitorServiceManager().get(monitor_id)
     if not rv['success']:
         logger.error(f"No active monitor with id: {monitor_id}")
     ms = rv.get('monitor_service')
@@ -95,10 +93,10 @@ def toggle_box(action: str, class_id: str, monitor_id: int):
 
 
 def toggle_all(monitor_id: int, action: str):
-    rv = ActiveMonitorServices().get(monitor_id)
+    rv = MonitorServiceManager().get(monitor_id)
     if not rv['success']:
         logger.error(f"No active monitor with id: {monitor_id}")
-        logger.error(f"Active monitors: \n {[x for x in ActiveMonitorServices().getall()]}")
+        logger.error(f"Active monitors: \n {[x for x in MonitorServiceManager().getall()]}")
     ms: MonitorService = rv.get('monitor_service')
 
     if action == 'mon':
@@ -112,6 +110,6 @@ def toggle_all(monitor_id: int, action: str):
 
 
 def get_active_monitors():
-    return ActiveMonitorServices().getall()
+    return MonitorServiceManager().getall()
 
 # END VIDEO STEAMING FUNCTIONS ##########################
