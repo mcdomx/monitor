@@ -33,8 +33,8 @@ urlpatterns = [
     re_path(r"set_notification_objects[\/|\?].*", api.set_notification_objects, name='set_notification_objects'),
 
 
-    re_path(r"start_monitor_service[\/|\?].*", api.start_monitor_service, name="start_monitor_service"),
-    re_path(r"stop_monitor_service[\/|\?].*", api.stop_monitor_service, name="stop_monitor_service"),
+    re_path(r"start_monitor[\/|\?].*", api.start_monitor, name="start_monitor"),
+    re_path(r"stop_monitor[\/|\?].*", api.stop_monitor, name="stop_monitor"),
 
     # re_path(r"create_monitor_service[\/|\?].*", api.create_monitor_service, name='create_monitor_service'),
     # path("get_monitor_services", api.get_monitor_services, name="get_monitor_services"),

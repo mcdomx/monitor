@@ -1,7 +1,7 @@
 import logging
 
 from traffic_monitor.models.model_monitor import Monitor
-from traffic_monitor.services.monitor_service_manager import MonitorServiceManager
+from traffic_monitor.services.monitor_service import MonitorService
 
 
 class MonitorFactory:
@@ -25,7 +25,11 @@ class MonitorFactory:
                 return 'US/Eastern'
 
         @staticmethod
-        def getall() -> dict:
+        def get_feed(monitor_name: str):
+            Monitor.get_feed()
+
+        @staticmethod
+        def all_monitors() -> dict:
             try:
                 mon_objs = Monitor.objects.all()
                 return {'success': True, 'monitors': mon_objs}
@@ -33,12 +37,20 @@ class MonitorFactory:
                 return {'success': False, 'message': f"Failed to retrieve detectors"}
 
         @staticmethod
+        def all_feeds() -> dict:
+            return Monitor.all_feeds()
+
+        @staticmethod
+        def all_detectors() -> dict:
+            return Monitor.all_detectors()
+
+        @staticmethod
         def create(name: str, detector_id: str, feed_cam: str,
-                   log_objects: list = None,
-                   notification_objects: list = None,
-                   logging_on: bool = True,
-                   notifications_on: bool = False,
-                   charting_on: bool = False) -> dict:
+                   log_objects: list,
+                   notification_objects: list,
+                   logging_on: bool,
+                   notifications_on: bool,
+                   charting_on: bool) -> dict:
             """
             Create a Monitor entry which is simply a combination of detector_id and feed_cam
 
@@ -58,11 +70,11 @@ class MonitorFactory:
                 return {'success': False, 'message': f"Monitor with name '{name}' already exists.", 'monitor': obj}
             except Monitor.DoesNotExist:
                 try:
-                    # detector = Detector.objects.get(pk=detector_id)
-                    # feed = Feed.objects.get(pk=feed_cam)
+                    detector = Monitor.get_detector(detector_id)
+                    feed = Monitor.get_feed(feed_cam)
                     return {'success': True, 'monitor': Monitor.objects.create(name=name,
-                                                                               detector__id=detector_id,
-                                                                               feed__cam=feed_cam,
+                                                                               detector=detector,
+                                                                               feed=feed,
                                                                                log_objects=log_objects,
                                                                                notification_objects=notification_objects,
                                                                                logging_on=logging_on,
@@ -97,36 +109,96 @@ class MonitorFactory:
                 return {'success': False, 'monitor': None,
                         'message': f"Monitor with name '{monitor_name}' does not exist."}
 
+
+
         @staticmethod
-        def start(monitor_name: str):
-            """
-            Setup and start a monitoring service with respective support services for logging, notifying and charting.
-
-            :param monitor_name: Name of monitor to start
-            :return: Dictionary with 'success' bool and 'message' indicating result
-            """
-
-            # get monitor details from db - fail if monitor doesn't exist
+        def toggle_logged_object(monitor_name: str, object_name: str, trained_objects: list) -> dict:
             rv = MonitorFactory().get(monitor_name)
             if not rv['success']:
-                return {'success': False, 'message': rv['message']}
+                return rv
 
-            monitor: Monitor = rv.get('monitor')
-            rv = MonitorServiceManager().start(monitor_name=monitor.name,
-                                               detector_id=monitor.detector.detector_id,
-                                               feed_id=monitor.feed.cam,
-                                               time_zone=monitor.feed.time_zone,
-                                               logged_objects=monitor.log_objects,
-                                               notified_objects=monitor.notification_objects,
-                                               logging_on=monitor.logging_on,
-                                               charting_on=monitor.charting_on,
-                                               notifications_on=monitor.notifications_on)
+            monitor: Monitor = rv['monitor']
 
-            return rv
+            return monitor.toggle_logged_object(object_name=object_name, trained_objects=trained_objects)
 
         @staticmethod
-        def stop(monitor_name: str):
-            rv = MonitorServiceManager().stop(monitor_name)
-            return rv
+        def toggle_notification_object(monitor_name: str, object_name: str, trained_objects: list) -> dict:
+            rv = MonitorFactory().get(monitor_name)
+            if not rv['success']:
+                return rv
 
+            monitor: Monitor = rv['monitor']
 
+            return monitor.toggle_notification_object(object_name=object_name, trained_objects=trained_objects)
+
+        @staticmethod
+        def set_log_objects(monitor_name: str, set_objects: list, trained_objects: list):
+            rv = MonitorFactory().get(monitor_name)
+            if not rv['success']:
+                return rv
+
+            monitor: Monitor = rv['monitor']
+
+            return monitor.set_log_objects(set_objects=set_objects, trained_objects=trained_objects)
+
+        @staticmethod
+        def set_notification_objects(monitor_name: str, set_objects: list, trained_objects: list):
+            rv = MonitorFactory().get(monitor_name)
+            if not rv['success']:
+                return rv
+
+            monitor: Monitor = rv['monitor']
+
+            return monitor.set_notification_objects(set_objects=set_objects, trained_objects=trained_objects)
+
+        @staticmethod
+        def get_detector_name(monitor_name: str):
+            rv = MonitorFactory().get(monitor_name)
+            if not rv['success']:
+                return rv
+
+            monitor: Monitor = rv['monitor']
+
+            return {'success': True, 'name': monitor.get_detector_name()}
+
+        @staticmethod
+        def get_logged_objects(monitor_name: str):
+            rv = MonitorFactory().get(monitor_name)
+            if not rv['success']:
+                return rv
+
+            monitor: Monitor = rv['monitor']
+
+            return {'success': True, 'objects': monitor.get_logged_objects()}
+
+        @staticmethod
+        def get_notification_objects(monitor_name: str) -> dict:
+            rv = MonitorFactory().get(monitor_name)
+            if not rv['success']:
+                return rv
+
+            monitor: Monitor = rv['monitor']
+
+            return {'success': True, 'objects': monitor.get_notification_objects()}
+
+        @staticmethod
+        def get_monitor_configuration(monitor_name: str) -> dict:
+            rv = MonitorFactory().get(monitor_name)
+            if not rv['success']:
+                return rv
+
+            monitor: Monitor = rv['monitor']
+
+            return {'success': True,
+                    'configuration': {'monitor_name': monitor.name,
+                                      'detector_id': monitor.detector.detector_id,
+                                      'detector_name': monitor.detector.name,
+                                      'detector_model': monitor.detector.model,
+                                      'feed_id': monitor.feed.cam,
+                                      'feed_url': monitor.feed.url,
+                                      'time_zone': monitor.feed.time_zone,
+                                      'logged_objects': monitor.log_objects,
+                                      'notified_objects': monitor.notification_objects,
+                                      'logging_on': monitor.logging_on,
+                                      'notifications_on': monitor.notifications_on,
+                                      'charting_on': monitor.charting_on}}

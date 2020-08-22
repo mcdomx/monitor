@@ -1,0 +1,1 @@
+from traffic_monitor.detector_machines.detector_machine_cvlib import DetectorMachineCVlib

@@ -116,7 +116,7 @@ class FeedFactory:
             return cam_fps
 
         @staticmethod
-        def getall() -> dict:
+        def get_feeds() -> dict:
             try:
                 feed_objs = Feed.objects.all()
                 return {'success': True, 'feeds': feed_objs}

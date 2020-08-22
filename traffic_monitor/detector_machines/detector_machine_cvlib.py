@@ -2,10 +2,10 @@ import numpy as np
 
 from cvlib.object_detection import populate_class_labels, draw_bbox, detect_common_objects
 
-from traffic_monitor.detectors.detector_abstract import DetectorAbstract
+from traffic_monitor.detector_machines.detector_machine_abstract import DetectorMachineAbstract
 
 
-class DetectorCVlib(DetectorAbstract):
+class DetectorMachineCVlib(DetectorMachineAbstract):
     """
     Implementation of DetectorAbstract.  This implementation is from the OpenCV
     implementation of object instance detection.
@@ -18,7 +18,7 @@ class DetectorCVlib(DetectorAbstract):
     """
 
     def __init__(self, **kwargs):
-        DetectorAbstract.__init__(self, **kwargs)
+        DetectorMachineAbstract.__init__(self, **kwargs)
 
     def detect(self, frame: np.array) -> (int, np.array, list, list):
         bbox, labels, conf = detect_common_objects(frame, confidence=.5, model=self.model)
@@ -40,6 +40,3 @@ class DetectorCVlib(DetectorAbstract):
     @classmethod
     def get_trained_objects(cls) -> set:
         return set(populate_class_labels())
-
-    # def get_trained_objects(self) -> set:
-    #     return set(populate_class_labels())

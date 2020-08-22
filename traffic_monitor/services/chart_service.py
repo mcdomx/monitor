@@ -7,8 +7,6 @@ import logging
 
 from traffic_monitor.services.observer import Subject
 
-# from traffic_monitor.models.model_logentry import LogEntry
-
 logger = logging.getLogger('log_service')
 
 
@@ -18,14 +16,14 @@ class ChartService(threading.Thread, Subject):
     and publish updated chart data based on the results.
     """
 
-    def __init__(self, monitor_id: int, charting_interval: int = 60):
+    def __init__(self, monitor_name: str, charting_interval: int = 60):
         threading.Thread.__init__(self)
         Subject.__init__(self)
         self.name = "Chart_Service_Thread"
-        self.subject_name = f"chartservice__{monitor_id}"
+        self.subject_name = f"chartservice__{monitor_name}"
         self.charting_interval = charting_interval
         self.running = False
-        self.monitor_id = monitor_id
+        self.monitor_name = monitor_name
 
     def start(self):
         self.running = True
@@ -42,7 +40,7 @@ class ChartService(threading.Thread, Subject):
 
             time.sleep(self.charting_interval)
 
-            self.publish({'monitor_id': self.monitor_id})
+            self.publish({'monitor_name': self.monitor_name})
 
             # logger.info(f"Hi! I'm charting. {i}")
 

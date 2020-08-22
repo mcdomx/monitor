@@ -10,14 +10,18 @@ import logging
 
 import cv2 as cv
 
-from traffic_monitor.detectors.detector_factory import DetectorFactory
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.observer import Observer, Subject
 from traffic_monitor.services.chart_service import ChartService
+from traffic_monitor.detector_machines.detector_machine_abstract import DetectorMachineAbstract
+from traffic_monitor.detector_machines.detetor_machine_factory import DetectorMachineFactory
 
 BUFFER_SIZE = 512
 
 logger = logging.getLogger('monitor_service')
+
+# keeps track of active monitors
+active_monitors = {}
 
 
 class MonitorService(threading.Thread, Observer, Subject):
@@ -49,30 +53,27 @@ class MonitorService(threading.Thread, Observer, Subject):
 
     """
     def __init__(self,
-                 monitor_name: str,
-                 detector_id: str,
-                 feed_id: str,
-                 time_zone: str,
-                 log_interval: int, detection_interval: int,
-                 logged_objects: list = None,
-                 notified_objects: list = None,
-                 logging_on: bool = True,
-                 notifications_on: bool = False,
-                 charting_on: bool = False):
+                 monitor_config: dict,
+                 log_interval: int, detection_interval: int):
         """ Requires existing monitor.  1:1 relationship with a monitor but this is not
         enforced when creating the Monitor Service. """
         threading.Thread.__init__(self)
         Observer.__init__(self)
         Subject.__init__(self)
         self.id = id(self)
-        self.name = f"MonitorServiceThread-{monitor_name}"
-        self.monitor_name: str = monitor_name
-        self.detector_id = detector_id
-        self.feed_id = feed_id
-        self.time_zone = time_zone
-        self.logging_on = logging_on
-        self.notifications_on = notifications_on
-        self.charting_on = charting_on
+
+        # logger.info(monitor_config)
+        self.monitor_name: str = monitor_config.get('monitor_name')
+        self.name = f"MonitorServiceThread-{self.monitor_name}"
+        self.detector_id = monitor_config.get('detector_id')
+        self.detector_name = monitor_config.get('detector_name')
+        self.detector_model = monitor_config.get('detector_model')
+        self.feed_url = monitor_config.get('feed_url')
+
+        self.time_zone = monitor_config.get('time_zone')
+        self.logging_on = monitor_config.get('logging_on')
+        self.notifications_on = monitor_config.get('notifications_on')
+        self.charting_on = monitor_config.get('charting_on')
 
         # DETECTOR STATES
         self.running = False
@@ -88,14 +89,29 @@ class MonitorService(threading.Thread, Observer, Subject):
         self.queue_dets_log = queue.Queue(BUFFER_SIZE)
 
         # Monitor Service Parameters
-        self.notified_objects: list = notified_objects
-        self.logged_objects: list = logged_objects
+        self.notified_objects: list = monitor_config.get('notified_objects')
+        self.logged_objects: list = monitor_config.get('logged_objects')
         self.log_interval: int = log_interval
         self.log_channel_url: str = '/ws/traffic_monitor/log/'
         self.detection_interval: int = detection_interval
 
         self.subject_name = f"monitor_service__{self.monitor_name}"
-        self.detector = self.get_detector()
+
+        # start detector machine
+        kwargs = {
+            'detector_id': self.detector_id,
+            'detector_name': self.detector_name,
+            'detector_model': self.detector_model,
+            'queue_detready': self.queue_detready,
+            'queue_detframe': self.queue_detframe,
+            'queue_dets_log': self.queue_dets_log,
+            'queue_dets_mon': self.queue_dets_not,
+            'notified_objects': self.notified_objects,
+            'logged_objects': self.logged_objects,
+            'detection_interval': self.detection_interval
+        }
+
+        self.detector = DetectorMachineFactory().get_detector_machine(**kwargs)
 
     def __str__(self):
         rv = self.__dict__
@@ -114,32 +130,42 @@ class MonitorService(threading.Thread, Observer, Subject):
 
         self.publish(subject_info)
 
-    def get_detector(self):
-        """
-        Returns a detector instance based on the settings of the service.
-        The service object itself cannot be used to instantiate the new class
-        as this will cause a circular dependency.
-
-        :return: An instance of Detector.
-        """
-        rv = DetectorFactory().get(
-            detector_id=self.detector_id,
-            queue_detready=self.queue_detready,
-            queue_detframe=self.queue_detframe,
-            queue_dets_log=self.queue_dets_log,
-            queue_dets_not=self.queue_dets_not,
-            notified_objects=self.notified_objects,
-            logged_objects=self.logged_objects,
-            detection_interval=self.detection_interval
-        )
-        if rv.get('success'):
-            return rv.get('detector')
-        else:
-            raise Exception(rv.get('message'))
-
     def get_next_frame(self):
         q = self.queue_refframe.get()
         return q.get()
+
+    @staticmethod
+    def start_monitor(monitor_config: dict, log_interval: int, detection_interval: int) -> dict:
+        """
+        Setup and start a monitoring service with respective support services for logging, notifying and charting.
+
+        :param monitor_config: Monitor configuration dictionary
+        :param detection_interval:
+        :param log_interval:
+        :return: Dictionary with 'success' bool and 'message' indicating result
+        """
+
+        # check if the monitor is already active
+        if MonitorService.is_active(monitor_config.get('monitor_name')):
+            return {'success': False, 'message': f"Service for monitor '{monitor_config.get('monitor_name')}' is already active."}
+
+        ms = MonitorService(monitor_config=monitor_config,
+                            log_interval=log_interval,
+                            detection_interval=detection_interval)
+
+        rv = ms.start()
+        return rv
+
+    @staticmethod
+    def stop_monitor(monitor_name) -> dict:
+        # check if the monitor is already active
+        if not MonitorService.is_active(monitor_name):
+            return {'success': False,
+                    'message': f"Service for monitor '{monitor_name}' is not active."}
+        ms = active_monitors.get(monitor_name)
+        ms.running = False
+        del active_monitors[monitor_name]
+        return {'success': True, 'message': f"Service stopped for {monitor_name}"}
 
     def start(self) -> dict:
         """
@@ -149,11 +175,8 @@ class MonitorService(threading.Thread, Observer, Subject):
         """
         self.running = True
         threading.Thread.start(self)
+        active_monitors.update({self.monitor_name: self})
         return{'success': True, 'message': f"Service started for {self.monitor_name}"}
-
-    def stop(self) -> dict:
-        self.running = False
-        return {'success': True, 'message': f"Service stopped for {self.monitor_name}"}
 
     def run(self):
         """
@@ -161,9 +184,10 @@ class MonitorService(threading.Thread, Observer, Subject):
         Frames will be placed in respective queues.
         """
         # set source of video stream
-        cap = cv.VideoCapture(self.feed_id)
+        cap = cv.VideoCapture(self.feed_url)
+        logger.info(cap.isOpened())
 
-        # start detector instance
+        # start the detector machine
         self.detector.start()
 
         # start a logging service and register as observer
@@ -187,6 +211,8 @@ class MonitorService(threading.Thread, Observer, Subject):
             pass
 
         logger.info(f"Starting monitoring service for id: {self.monitor_name}")
+        logger.info(self.running)
+        logger.info(cap.isOpened())
         while self.running and cap.isOpened():
 
             cap.grab()  # only read every other frame
@@ -230,14 +256,32 @@ class MonitorService(threading.Thread, Observer, Subject):
         self.detector.stop()
         if self.logging_on:
             log.stop()
+            log.join()
 
         if self.charting_on:
             chart.stop()
+            chart.join()
 
-        chart.join()
-        log.join()
+
+
         self.detector.join()
 
         logger.info(f"Monitor Service, Detector and Log are stopped!")
+
+    @staticmethod
+    def is_active(monitor_name: str) -> bool:
+        if monitor_name in active_monitors.keys():
+            return True
+
+        return False
+
+    @staticmethod
+    def get_trained_objects(detector_name):
+        try:
+            objects = DetectorMachineFactory().get_trained_objects(detector_name)
+            return {'success': True, 'message': "Trained objects successfully retrieved.", 'objects': objects}
+        except Exception as e:
+            return {'success': False, 'message': f"Unable to retrieve trained objects: {e}"}
+
 
 

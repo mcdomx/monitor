@@ -2,10 +2,9 @@ import logging
 from django.test import TestCase
 import queue
 import cv2 as cv
-import time
 
 from traffic_monitor.models.model_detector import Detector
-from traffic_monitor.detectors.detector_factory import DetectorFactory
+from traffic_monitor.models.detector_factory import DetectorFactory
 from traffic_monitor.models.model_feed import FeedFactory
 
 # Create your tests here.

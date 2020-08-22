@@ -6,12 +6,11 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 from traffic_monitor.services.elapsed_time import ElapsedTime
-# from traffic_monitor.models.model_monitor import Monitor
 
 logger = logging.getLogger('detector')
 
 
-class DetectorAbstract(ABC, threading.Thread):
+class DetectorMachineAbstract(ABC, threading.Thread):
     """
     Abstract class for a detector.
     required methods:
@@ -31,9 +30,8 @@ class DetectorAbstract(ABC, threading.Thread):
         threading.Thread.__init__(self)
         self.logger = logging.Logger('detector')
         self.detector_id = kwargs.get('detector_id')
-        name, model = self.detector_id.split('__')
-        self.name = name.replace(' ', '_')
-        self.model = model
+        self.name = kwargs.get('detector_name')
+        self.model = kwargs.get('detector_model')
 
         self.is_ready = True
         self.running = False
@@ -49,12 +47,6 @@ class DetectorAbstract(ABC, threading.Thread):
 
     def __str__(self):
         return "Detector: {}".format(self.detector_id)
-
-    # def set_logged_objects(self, logged_objects: list):
-    #     self.logged_objects = logged_objects
-    #
-    # def set_monitored_objects(self, monitored_objects):
-    #     self.monitored_objects = monitored_objects
 
     def start(self):
         self.logger.info("Starting detector ... ")
@@ -131,6 +123,3 @@ class DetectorAbstract(ABC, threading.Thread):
         """
         ...
 
-    # @staticmethod
-    # def get_class_data(monitor_name: int):
-    #     return Class.objects.filter(monitor__name=monitor_name).values()

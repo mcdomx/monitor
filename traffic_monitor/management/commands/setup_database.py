@@ -5,9 +5,9 @@ from django.core.management.base import BaseCommand
 from django.db import models
 
 from traffic_monitor.models.model_detector import Detector
-from traffic_monitor.models.model_feed import Feed, FeedFactory
-from traffic_monitor.models.model_monitor import Monitor, MonitorFactory
-from traffic_monitor.services.monitor_service import MonitorService
+from traffic_monitor.models.model_feed import Feed
+from traffic_monitor.models.model_monitor import Monitor
+from traffic_monitor.services.monitor_service_manager import MonitorServiceManager
 
 logger = logging.getLogger('command')
 
@@ -22,7 +22,7 @@ class Command(BaseCommand):
         """ Setup DB with supported Detectors and models"""
 
         # DETECTORS
-        # first, erase existing detectors
+        # first, erase existing detector_machines
         dets = Detector.objects.all()
         for d in dets:
             d.delete()
@@ -47,7 +47,7 @@ class Command(BaseCommand):
                  'JacksonHole_Roadhouse': {'cam': '6aJXND_Lfk8', 'time_zone': 'US/Mountain'}}
 
         for desc, settings in feeds.items():
-            rv = FeedFactory().get(cam=settings.get('cam'), time_zone=settings.get('time_zone'))
+            rv = MonitorServiceManager().get_feed(cam=settings.get('cam'), time_zone=settings.get('time_zone'))
             if rv.get('success'):
                 obj = rv.get('feed')
                 obj.description = desc
@@ -55,7 +55,7 @@ class Command(BaseCommand):
 
         # MONITORS
         # Create monitors for all combinations of
-        # detectors and feeds that are created above.
+        # detector_machines and feeds that are created above.
         # first, erase existing monitors
         monitors = Monitor.objects.all()
         for m in monitors:
@@ -63,4 +63,11 @@ class Command(BaseCommand):
 
         for d in Detector.objects.all():
             for f in Feed.objects.all():
-                _ = MonitorFactory().create(name=f"MON_{f.description}_{d.detector_id}", detector_id=d.detector_id, feed_cam=f.cam)
+                _ = MonitorServiceManager().create_monitor(name=f"MON_{f.description}_{d.detector_id}",
+                                                           detector_id=d.detector_id,
+                                                           feed_id=f.cam,
+                                                           log_objects=[],
+                                                           notification_objects=[],
+                                                           logging_on=True,
+                                                           notifications_on=False,
+                                                           charting_on=False)
