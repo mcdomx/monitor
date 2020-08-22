@@ -4,7 +4,7 @@ logged. The service will summarize entries after a specified
 time interval and save the entries to database.
 """
 
-import threading
+# import threading
 import logging
 import queue
 import datetime
@@ -13,14 +13,16 @@ import time
 
 from traffic_monitor.models.model_logentry import LogEntry
 from traffic_monitor.services.observer import Subject
+from traffic_monitor.services.service_abstract import ServiceAbstract
 
 logger = logging.getLogger('log_service')
 
 
-class LogService(threading.Thread, Subject):
+class LogService(ServiceAbstract):
     def __init__(self, monitor_name: str, queue_dets_log: queue.Queue, log_interval: int, time_zone: str):
-        threading.Thread.__init__(self)
-        Subject.__init__(self)
+        super().__init__()
+        # threading.Thread.__init__(self)
+        # Subject.__init__(self)
         self.subject_name = f"logservice__{monitor_name}"
         self.running = False
         self.monitor_name = monitor_name
@@ -30,7 +32,8 @@ class LogService(threading.Thread, Subject):
 
     def start(self):
         self.running = True
-        threading.Thread.start(self)
+        # threading.Thread.start(self)
+        ServiceAbstract.start(self)
 
     def stop(self):
         self.running = False

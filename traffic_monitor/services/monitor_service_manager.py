@@ -2,6 +2,9 @@ import logging
 
 from traffic_monitor.models.monitor_factory import MonitorFactory
 from traffic_monitor.services.monitor_service import MonitorService
+from traffic_monitor.services.log_service import LogService
+from traffic_monitor.services.chart_service import ChartService
+from traffic_monitor.detector_machines.detetor_machine_factory import DetectorMachineFactory
 
 
 class MonitorServiceManager:
@@ -26,15 +29,6 @@ class MonitorServiceManager:
             """
             return self.active_monitors.get(monitor_name, False)
 
-        # def set_active(self, monitor_name: str, monitor_service: MonitorService):
-        #     """
-        #     Set a Monitor to active status
-        #     :param monitor_name: Name of monitor
-        #     :param monitor_service: The service that is currently running for the Monitor
-        #     :return: None
-        #     """
-
-
         def set_view_status(self, monitor_name: str) -> dict:
             is_active = self.is_active(monitor_name)
             if not is_active:
@@ -49,30 +43,6 @@ class MonitorServiceManager:
             self.viewing_monitor.display = True
 
             return {'success': True, 'monitor_name': monitor_name}
-
-        # def set_inactive(self, monitor_name: str):
-        #     if not self.is_active(monitor_name):
-        #         return {'success': False, 'message': f"'{monitor_name}' is not active."}
-        #
-        #     # if removing a monitor that is being viewed stop it
-        #     if self.viewing_monitor:
-        #         if self.viewing_monitor is monitor_name:
-        #             self.viewing_monitor.display = False
-        #             self.viewing_monitor = None
-        #
-        #     del self.active_monitors[monitor_name]
-        #     return {'success': True, 'message': f"'{monitor_name}' set to inactive."}
-
-        # def get(self, monitor_name: int):
-        #     ms = self.active_monitors.get(monitor_name)
-        #
-        #     if ms is None:
-        #         return {'success': False, 'message': f"Monitor with name '{monitor_name}' is not active."}
-        #
-        #     return {'success': True, 'monitor_name': monitor_name}
-
-        # def getall(self):
-        #     return self.active_monitors
 
         @staticmethod
         def toggle_logged_object(monitor_name: str, object_name: str):
@@ -165,6 +135,18 @@ class MonitorServiceManager:
 
             return rv['objects']
 
+        @staticmethod
+        def _get_services_from_config(monitor_config: dict) -> list:
+            services = []
+            if monitor_config['logging_on']:
+                services.append(LogService)
+            if monitor_config['charting_on']:
+                services.append(ChartService)
+            if monitor_config['notifications_on']:
+                pass
+
+            return services
+
         def start_monitor(self, monitor_name: str, log_interval: int, detection_interval: int) -> dict:
 
             rv = MonitorFactory().get_monitor_configuration(monitor_name)
@@ -179,6 +161,7 @@ class MonitorServiceManager:
                         'message': f"Service for monitor '{monitor_config.get('monitor_name')}' is already active."}
 
             ms = MonitorService(monitor_config=monitor_config,
+                                services=self._get_services_from_config(monitor_config),
                                 log_interval=log_interval,
                                 detection_interval=detection_interval)
 

@@ -13,15 +13,11 @@ import cv2 as cv
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.observer import Observer, Subject
 from traffic_monitor.services.chart_service import ChartService
-from traffic_monitor.detector_machines.detector_machine_abstract import DetectorMachineAbstract
 from traffic_monitor.detector_machines.detetor_machine_factory import DetectorMachineFactory
 
 BUFFER_SIZE = 512
 
 logger = logging.getLogger('monitor_service')
-
-# keeps track of active monitors
-# active_monitors = {}
 
 
 class MonitorService(threading.Thread, Observer, Subject):
@@ -54,6 +50,7 @@ class MonitorService(threading.Thread, Observer, Subject):
     """
     def __init__(self,
                  monitor_config: dict,
+                 services: list,
                  log_interval: int, detection_interval: int):
         """ Requires existing monitor.  1:1 relationship with a monitor but this is not
         enforced when creating the Monitor Service. """
@@ -75,6 +72,8 @@ class MonitorService(threading.Thread, Observer, Subject):
         self.logging_on = monitor_config.get('logging_on')
         self.notifications_on = monitor_config.get('notifications_on')
         self.charting_on = monitor_config.get('charting_on')
+
+        self.services: list = services
 
         # DETECTOR STATES
         self.running = False
