@@ -21,7 +21,7 @@ BUFFER_SIZE = 512
 logger = logging.getLogger('monitor_service')
 
 # keeps track of active monitors
-active_monitors = {}
+# active_monitors = {}
 
 
 class MonitorService(threading.Thread, Observer, Subject):
@@ -69,6 +69,7 @@ class MonitorService(threading.Thread, Observer, Subject):
         self.detector_name = monitor_config.get('detector_name')
         self.detector_model = monitor_config.get('detector_model')
         self.feed_url = monitor_config.get('feed_url')
+        self.feed_id = monitor_config.get('feed_id')
 
         self.time_zone = monitor_config.get('time_zone')
         self.logging_on = monitor_config.get('logging_on')
@@ -134,38 +135,38 @@ class MonitorService(threading.Thread, Observer, Subject):
         q = self.queue_refframe.get()
         return q.get()
 
-    @staticmethod
-    def start_monitor(monitor_config: dict, log_interval: int, detection_interval: int) -> dict:
-        """
-        Setup and start a monitoring service with respective support services for logging, notifying and charting.
+    # @staticmethod
+    # def start_monitor(monitor_config: dict, log_interval: int, detection_interval: int) -> dict:
+    #     """
+    #     Setup and start a monitoring service with respective support services for logging, notifying and charting.
+    #
+    #     :param monitor_config: Monitor configuration dictionary
+    #     :param detection_interval:
+    #     :param log_interval:
+    #     :return: Dictionary with 'success' bool and 'message' indicating result
+    #     """
+    #
+    #     # check if the monitor is already active
+    #     if MonitorService.is_active(monitor_config.get('monitor_name')):
+    #         return {'success': False, 'message': f"Service for monitor '{monitor_config.get('monitor_name')}' is already active."}
+    #
+    #     ms = MonitorService(monitor_config=monitor_config,
+    #                         log_interval=log_interval,
+    #                         detection_interval=detection_interval)
+    #
+    #     rv = ms.start()
+    #     return rv
 
-        :param monitor_config: Monitor configuration dictionary
-        :param detection_interval:
-        :param log_interval:
-        :return: Dictionary with 'success' bool and 'message' indicating result
-        """
-
-        # check if the monitor is already active
-        if MonitorService.is_active(monitor_config.get('monitor_name')):
-            return {'success': False, 'message': f"Service for monitor '{monitor_config.get('monitor_name')}' is already active."}
-
-        ms = MonitorService(monitor_config=monitor_config,
-                            log_interval=log_interval,
-                            detection_interval=detection_interval)
-
-        rv = ms.start()
-        return rv
-
-    @staticmethod
-    def stop_monitor(monitor_name) -> dict:
-        # check if the monitor is already active
-        if not MonitorService.is_active(monitor_name):
-            return {'success': False,
-                    'message': f"Service for monitor '{monitor_name}' is not active."}
-        ms = active_monitors.get(monitor_name)
-        ms.running = False
-        del active_monitors[monitor_name]
-        return {'success': True, 'message': f"Service stopped for {monitor_name}"}
+    # @staticmethod
+    # def stop_monitor(monitor_name) -> dict:
+    #     # check if the monitor is already active
+    #     if not MonitorService.is_active(monitor_name):
+    #         return {'success': False,
+    #                 'message': f"Service for monitor '{monitor_name}' is not active."}
+    #     ms = active_monitors.get(monitor_name)
+    #     ms.running = False
+    #     del active_monitors[monitor_name]
+    #     return {'success': True, 'message': f"Service stopped for {monitor_name}"}
 
     def start(self) -> dict:
         """
@@ -173,10 +174,16 @@ class MonitorService(threading.Thread, Observer, Subject):
         the monitor and set the 'running' variable.
         :return: A dict with bool 'success' and string 'message' describing result.
         """
-        self.running = True
-        threading.Thread.start(self)
-        active_monitors.update({self.monitor_name: self})
-        return{'success': True, 'message': f"Service started for {self.monitor_name}"}
+        try:
+            self.running = True
+            threading.Thread.start(self)
+            # active_monitors.update({self.monitor_name: self})
+            return {'success': True, 'message': f"Service started for:  {self.monitor_name}"}
+        except Exception as e:
+            return {'success': False, 'message': f"Could not start '{self.monitor_name}': {e}"}
+
+    def stop(self):
+        self.running = False
 
     def run(self):
         """
@@ -185,7 +192,6 @@ class MonitorService(threading.Thread, Observer, Subject):
         """
         # set source of video stream
         cap = cv.VideoCapture(self.feed_url)
-        logger.info(cap.isOpened())
 
         # start the detector machine
         self.detector.start()
@@ -211,8 +217,8 @@ class MonitorService(threading.Thread, Observer, Subject):
             pass
 
         logger.info(f"Starting monitoring service for id: {self.monitor_name}")
-        logger.info(self.running)
-        logger.info(cap.isOpened())
+        logger.info(f"Running: {self.running}")
+        logger.info(f"Capture Opened: {cap.isOpened()}")
         while self.running and cap.isOpened():
 
             cap.grab()  # only read every other frame
@@ -262,21 +268,19 @@ class MonitorService(threading.Thread, Observer, Subject):
             chart.stop()
             chart.join()
 
-
-
         self.detector.join()
 
         logger.info(f"Monitor Service, Detector and Log are stopped!")
 
-    @staticmethod
-    def is_active(monitor_name: str) -> bool:
-        if monitor_name in active_monitors.keys():
-            return True
+    # @staticmethod
+    # def is_active(monitor_name: str) -> bool:
+    #     if monitor_name in active_monitors.keys():
+    #         return True
+    #
+    #     return False
 
-        return False
-
     @staticmethod
-    def get_trained_objects(detector_name):
+    def get_trained_objects(detector_name) -> dict:
         try:
             objects = DetectorMachineFactory().get_trained_objects(detector_name)
             return {'success': True, 'message': "Trained objects successfully retrieved.", 'objects': objects}

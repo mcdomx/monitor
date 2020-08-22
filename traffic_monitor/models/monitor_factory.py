@@ -16,17 +16,17 @@ class MonitorFactory:
         def __init__(self):
             self.logger = logging.getLogger('monitor_factory')
 
-        @staticmethod
-        def get_timezone(monitor_id: int):
-            try:
-                obj = Monitor.objects.get(pk=monitor_id)
-                return obj.feed.time_zone
-            except Monitor.DoesNotExist:
-                return 'US/Eastern'
+        # @staticmethod
+        # def get_timezone(monitor_id: int):
+        #     try:
+        #         obj = Monitor.objects.get(pk=monitor_id)
+        #         return obj.feed.time_zone
+        #     except Monitor.DoesNotExist:
+        #         return 'US/Eastern'
 
-        @staticmethod
-        def get_feed(monitor_name: str):
-            Monitor.get_feed()
+        # @staticmethod
+        # def get_feed(monitor_name: str):
+        #     Monitor.get_feed()
 
         @staticmethod
         def all_monitors() -> dict:
@@ -91,12 +91,7 @@ class MonitorFactory:
         @staticmethod
         def get(monitor_name) -> dict:
             """
-            Returns Monitor object.  If the monitor doesn't already exist,
-            it is created if a stream and detector exist.
-
-            For extensibility:
-                Update this function to add new detection models.
-                New models will require new class that inherits from Detector class.
+            Retrieve a monitor object.
 
             :param monitor_name: The name of the monitor to retrieve
             :return: A dictionary with keys: 'success', 'message', 'monitor' here monitor is the Django monitor object.
@@ -108,8 +103,6 @@ class MonitorFactory:
             except Monitor.DoesNotExist:
                 return {'success': False, 'monitor': None,
                         'message': f"Monitor with name '{monitor_name}' does not exist."}
-
-
 
         @staticmethod
         def toggle_logged_object(monitor_name: str, object_name: str, trained_objects: list) -> dict:

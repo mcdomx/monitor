@@ -15,21 +15,28 @@ class MonitorServiceManager:
     class _Singleton:
         def __init__(self):
             self.logger = logging.getLogger('detector')
-            # self.active_monitors = {}
+            self.active_monitors = {}
             self.viewing_monitor: str = ''
 
-        # @staticmethod
-        # def is_active(monitor_name) -> bool:
-        #     """
-        #     Determine is a named monitor is currently active
-        #     :param monitor_name: Name of monitor
-        #     :return: If active, return the monitor, else return False
-        #     """
-        #     # return self.active_monitors.get(monitor_name, False)
-        #     return MonitorFactory().is_active(monitor_name)
+        def is_active(self, monitor_name) -> bool:
+            """
+            Determine is a named monitor is currently active
+            :param monitor_name: Name of monitor
+            :return: If active, return the monitor, else return False
+            """
+            return self.active_monitors.get(monitor_name, False)
 
-        def view(self, monitor_name: str) -> dict:
-            is_active = MonitorService.is_active(monitor_name)
+        # def set_active(self, monitor_name: str, monitor_service: MonitorService):
+        #     """
+        #     Set a Monitor to active status
+        #     :param monitor_name: Name of monitor
+        #     :param monitor_service: The service that is currently running for the Monitor
+        #     :return: None
+        #     """
+
+
+        def set_view_status(self, monitor_name: str) -> dict:
+            is_active = self.is_active(monitor_name)
             if not is_active:
                 return {'success': False, 'message': f"MonitorService with is '{monitor_name}' is not active."}
 
@@ -43,7 +50,10 @@ class MonitorServiceManager:
 
             return {'success': True, 'monitor_name': monitor_name}
 
-        # def remove(self, monitor_name: str):
+        # def set_inactive(self, monitor_name: str):
+        #     if not self.is_active(monitor_name):
+        #         return {'success': False, 'message': f"'{monitor_name}' is not active."}
+        #
         #     # if removing a monitor that is being viewed stop it
         #     if self.viewing_monitor:
         #         if self.viewing_monitor is monitor_name:
@@ -51,6 +61,7 @@ class MonitorServiceManager:
         #             self.viewing_monitor = None
         #
         #     del self.active_monitors[monitor_name]
+        #     return {'success': True, 'message': f"'{monitor_name}' set to inactive."}
 
         # def get(self, monitor_name: int):
         #     ms = self.active_monitors.get(monitor_name)
@@ -88,15 +99,15 @@ class MonitorServiceManager:
             return MonitorFactory().set_notification_objects(monitor_name, set_objects, trained_objects)
 
         @staticmethod
-        def all_monitors():
+        def all_monitors() -> dict:
             return MonitorFactory().all_monitors()
 
         @staticmethod
-        def all_feeds():
+        def all_feeds() -> dict:
             return MonitorFactory().all_feeds()
 
         @staticmethod
-        def all_detectors():
+        def all_detectors() -> dict:
             return MonitorFactory().all_detectors()
 
         @staticmethod
@@ -122,6 +133,12 @@ class MonitorServiceManager:
 
         @staticmethod
         def get_trained_objects(monitor_name: str):
+            """
+            Retrieve a set of objects that the named monitor has been
+            trained to detect.
+            :param monitor_name: String name of the monitor.
+            :return: A set of the objects that are trained.
+            """
             rv = MonitorFactory().get_detector_name(monitor_name)
             if not rv['success']:
                 return rv
@@ -148,8 +165,7 @@ class MonitorServiceManager:
 
             return rv['objects']
 
-        @staticmethod
-        def start_monitor(monitor_name: str, log_interval: int, detection_interval: int) -> dict:
+        def start_monitor(self, monitor_name: str, log_interval: int, detection_interval: int) -> dict:
 
             rv = MonitorFactory().get_monitor_configuration(monitor_name)
             if not rv['success']:
@@ -157,10 +173,33 @@ class MonitorServiceManager:
 
             monitor_config = rv['configuration']
 
-            return MonitorService.start_monitor(monitor_config=monitor_config,
-                                                log_interval=log_interval,
-                                                detection_interval=detection_interval)
+            # check if the monitor is already active
+            if self.is_active(monitor_config.get('monitor_name')):
+                return {'success': False,
+                        'message': f"Service for monitor '{monitor_config.get('monitor_name')}' is already active."}
 
-        @staticmethod
-        def stop_monitor(monitor_name: str) -> dict:
-            return MonitorService.stop_monitor(monitor_name)
+            ms = MonitorService(monitor_config=monitor_config,
+                                log_interval=log_interval,
+                                detection_interval=detection_interval)
+
+            rv = ms.start()
+            if rv['success']:
+                self.active_monitors.update({monitor_name: ms})
+
+            return rv
+
+        def stop_monitor(self, monitor_name) -> dict:
+            # check if the monitor is already active
+            if not self.is_active(monitor_name):
+                return {'success': False, 'message': f"'{monitor_name}' is not active."}
+
+            # if removing a monitor that is being viewed stop it
+            if self.viewing_monitor:
+                if self.viewing_monitor is monitor_name:
+                    self.viewing_monitor.display = False
+                    self.viewing_monitor = None
+
+            ms = self.active_monitors.get(monitor_name)
+            ms.stop()
+            del self.active_monitors[monitor_name]
+            return {'success': True, 'message': f"Service stopped for {monitor_name}"}
