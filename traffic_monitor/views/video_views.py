@@ -109,7 +109,5 @@ def toggle_all(monitor_id: int, action: str):
     return rv
 
 
-def get_active_monitors():
-    return MonitorServiceManager().getall()
 
 # END VIDEO STEAMING FUNCTIONS ##########################

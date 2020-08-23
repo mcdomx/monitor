@@ -155,7 +155,7 @@ class MonitorServiceManager:
 
             return services
 
-        def start_monitor(self, monitor_name: str, log_interval: int, detection_interval: int) -> dict:
+        def start_monitor(self, monitor_name: str, log_interval: int, detection_interval: int, charting_interval: int) -> dict:
 
             rv = MonitorFactory().get_monitor_configuration(monitor_name)
             if not rv['success']:
@@ -171,7 +171,8 @@ class MonitorServiceManager:
             ms = MonitorService(monitor_config=monitor_config,
                                 services=self._get_services_from_config(monitor_config),
                                 log_interval=log_interval,
-                                detection_interval=detection_interval)
+                                detection_interval=detection_interval,
+                                charting_interval=charting_interval)
 
             rv = ms.start()
             if rv['success']:
@@ -194,3 +195,14 @@ class MonitorServiceManager:
             ms.stop()
             del self.active_monitors[monitor_name]
             return {'success': True, 'message': f"Service stopped for {monitor_name}"}
+
+        def get_active_monitors(self) -> {}:
+            active_monitors = self.active_monitors
+
+            rv = {}
+            for k, v in active_monitors.items():
+                v: MonitorService = v
+                rv.update({k: v.get_config()})
+
+            return rv
+

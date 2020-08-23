@@ -19,16 +19,18 @@ logger = logging.getLogger('log_service')
 
 
 class LogService(ServiceAbstract):
-    def __init__(self, monitor_name: str, queue_dets_log: queue.Queue, log_interval: int, time_zone: str):
+
+    # def __init__(self, monitor_name: str, queue_dets_log: queue.Queue, log_interval: int, time_zone: str):
+    def __init__(self, **kwargs):
         super().__init__()
         # threading.Thread.__init__(self)
         # Subject.__init__(self)
-        self.subject_name = f"logservice__{monitor_name}"
+        self.subject_name = f"logservice__{kwargs.get('monitor_name')}"
         self.running = False
-        self.monitor_name = monitor_name
-        self.time_zone = time_zone
-        self.queue_dets_log = queue_dets_log
-        self.log_interval = log_interval  # freq (in sec) in detections are logged
+        self.monitor_name = kwargs.get('monitor_name')
+        self.time_zone = kwargs.get('time_zone')
+        self.queue_dets_log = kwargs.get('queue_dets_log')
+        self.log_interval = kwargs.get('log_interval')  # freq (in sec) in detections are logged
 
     def start(self):
         self.running = True

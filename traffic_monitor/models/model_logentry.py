@@ -14,7 +14,7 @@ class LogEntry(models.Model):
     def add(time_stamp: datetime, monitor_name: str, count_dict: dict):
         for class_name, count in count_dict.items():
             obj = LogEntry.objects.create(time_stamp=time_stamp,
-                                          monitor__pk=monitor_name,
+                                          monitor=Monitor.objects.get(pk=monitor_name),
                                           class_name=class_name,
                                           count=count)
             obj.save()

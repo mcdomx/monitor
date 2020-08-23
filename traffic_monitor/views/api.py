@@ -40,14 +40,18 @@ def toggle_all(request, monitor_id, action):
     return HttpResponse(rv)
 
 
-def get_active_monitors(request):
-    active_monitors = video_views.get_active_monitors()
+def get_active_monitors(request) -> JsonResponse:
+    try:
+        active_monitors = MonitorServiceManager().get_active_monitors()
 
-    rv = {m_id: {'id': m_id,
-                 'detector': m.detector.detector_id,
-                 'feed': m.feed.description} for m_id, m in active_monitors.items()}
+        rv = _filter_serializable(active_monitors)
 
-    return JsonResponse(rv, safe=False)
+        # make the response serializable
+        return JsonResponse(rv, safe=False)
+
+    except Exception as e:
+        logger.error(e)
+        JsonResponse([], safe=False)
 
 
 def get_streams(request) -> JsonResponse:
@@ -100,9 +104,14 @@ def _filter_serializable(filter_me: dict) -> dict:
     for k, v in filter_me.items():
         try:
             json.dumps(v)
-            rv.update({k: v})
         except Exception:
-            continue
+            try:
+                iter(v)  # test if its iterable
+                v = _filter_serializable(v)  # if so, filter it
+            except Exception:
+                pass
+
+        rv.update({k: v})
 
     return rv
 
@@ -277,10 +286,12 @@ def start_monitor(request):
 
     log_interval = request.GET.get('log_interval', 60)
     detection_interval = request.GET.get('detection_interval', 5)
+    charting_interval = request.GET.get('detection_interval', 60)
 
     rv = MonitorServiceManager().start_monitor(monitor_name=monitor_name,
                                                log_interval=log_interval,
-                                               detection_interval=detection_interval)
+                                               detection_interval=detection_interval,
+                                               charting_interval=charting_interval)
 
     return JsonResponse(rv, safe=False)
 
@@ -295,6 +306,11 @@ def stop_monitor(request):
     return JsonResponse(rv, safe=False)
 
 
+
+
+
 def get_chart(request, monitor_id: int, interval: int = 0):
     rv = chart_views.get_chart(monitor_id=monitor_id, interval=interval)
     return rv
+
+

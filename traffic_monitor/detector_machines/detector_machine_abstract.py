@@ -3,7 +3,7 @@ import queue
 import time
 import logging
 import numpy as np
-from abc import ABC, abstractmethod, ABCMeta
+from abc import abstractmethod, ABCMeta
 
 from traffic_monitor.services.service_abstract import ServiceAbstract
 from traffic_monitor.services.elapsed_time import ElapsedTime
