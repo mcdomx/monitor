@@ -12,15 +12,20 @@ import pytz
 import time
 
 from traffic_monitor.models.model_logentry import LogEntry
-from traffic_monitor.services.observer import Subject
 from traffic_monitor.services.service_abstract import ServiceAbstract
 
 logger = logging.getLogger('log_service')
 
 
 class LogService(ServiceAbstract):
+    """
+    An instance of a log service will create entries into the database on a specified interval.
+    The LogService operates as a thread and sleeps until the logging interval is complete.
+    Once ready to create the log entry, the LogService will look for detections in a
+    referenced queue, clearing the queue and writing the detections from that queue
+    into the database.
+    """
 
-    # def __init__(self, monitor_name: str, queue_dets_log: queue.Queue, log_interval: int, time_zone: str):
     def __init__(self, **kwargs):
         super().__init__()
         # threading.Thread.__init__(self)
@@ -29,7 +34,8 @@ class LogService(ServiceAbstract):
         self.running = False
         self.monitor_name = kwargs.get('monitor_name')
         self.time_zone = kwargs.get('time_zone')
-        self.queue_dets_log = kwargs.get('queue_dets_log')
+        self.logged_objects = kwargs.get('logged_objects')
+        self.queue_dets_log = kwargs.get('queue_dets_log') # ref to queue in Monitor where detections are stored for logging
         self.log_interval = kwargs.get('log_interval')  # freq (in sec) in detections are logged
 
     def start(self):
@@ -50,25 +56,26 @@ class LogService(ServiceAbstract):
             # sleep for log interval time
             time.sleep(self.log_interval)
 
-            # collect the detections from the queue
             try:
                 while True:
+                    # collect the detections from the queue - fails when empty
                     log_interval_detections += self.queue_dets_log.get(block=False)
                     capture_count += 1
 
             # once all the queued items are collected, summarize and record them
             except queue.Empty:
                 # Counts the mean observation count at any moment over the log interval period.
+                # Only count items that are on the logged_objects list
                 objs_unique = set(log_interval_detections)
                 minute_counts_dict = {obj: round(log_interval_detections.count(obj) / capture_count, 3) for obj in
-                                      objs_unique}
+                                      objs_unique if obj in self.logged_objects}
                 timestamp = datetime.datetime.now(tz=pytz.timezone(self.time_zone))
 
                 # add observations to database
                 LogEntry.add(time_stamp=timestamp,
                              monitor_name=self.monitor_name,
                              count_dict=minute_counts_dict)
-                logger.info(f"Monitor: {self.monitor_name} Detections: {minute_counts_dict}")
+                logger.info(f"Monitor: {self.monitor_name} Logged Detections: {minute_counts_dict}")
 
                 # update observers
                 self.publish({'monitor_id': self.monitor_name, 'timestamp': timestamp, 'counts': minute_counts_dict})

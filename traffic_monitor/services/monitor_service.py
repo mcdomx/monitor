@@ -156,7 +156,7 @@ class MonitorService(ServiceAbstract, Observer):
         q = self.queue_refframe.get()
         return q.get()
 
-    def start(self) -> dict:
+    def start(self) -> str:
         """
         Overriding Threading.start() so that we can test if a monitor service  is already active for
         the monitor and set the 'running' variable.
@@ -166,9 +166,9 @@ class MonitorService(ServiceAbstract, Observer):
             self.running = True
             threading.Thread.start(self)
             # active_monitors.update({self.monitor_name: self})
-            return {'success': True, 'message': f"Service started for:  {self.monitor_name}"}
+            return f"Service started for:  {self.monitor_name}"
         except Exception as e:
-            return {'success': False, 'message': f"Could not start '{self.monitor_name}': {e}"}
+            raise Exception(f"Could not start '{self.monitor_name}': {e}")
 
     def stop(self):
         self.running = False
@@ -179,7 +179,12 @@ class MonitorService(ServiceAbstract, Observer):
         Frames will be placed in respective queues.
         """
         # set source of video stream
-        cap = cv.VideoCapture(self.feed_url)
+        try:
+            cap = cv.VideoCapture(self.feed_url)
+        except Exception as e:
+            logger.error("Failed to create a video stream.")
+            logger.error(e)
+            return
 
         # start the detector machine
         self.detector.start()
@@ -214,8 +219,8 @@ class MonitorService(ServiceAbstract, Observer):
         #     pass
 
         logger.info(f"Starting monitoring service for id: {self.monitor_name}")
-        logger.info(f"Running: {self.running}")
-        logger.info(f"Capture Opened: {cap.isOpened()}")
+        logger.info(f"Monitor Service Running for {self.monitor_name}: {self.running}")
+        logger.info(f"Video Capture Opened: {cap.isOpened()}")
         while self.running and cap.isOpened():
 
             cap.grab()  # only read every other frame
@@ -226,7 +231,6 @@ class MonitorService(ServiceAbstract, Observer):
             if success:
 
                 # if detector is ready, perform frame detection
-
                 if self.detector.is_ready:
                     try:
                         self.queue_detready.put(frame, block=False)

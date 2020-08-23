@@ -26,6 +26,12 @@ class Monitor(models.Model):
         return f"{rv}"
 
     @staticmethod
+    def get(monitor_name: str):
+        monitor: Monitor = Monitor.objects.get(pk=monitor_name)
+        FeedFactory().refresh_url(monitor.feed_id)
+        return Monitor.objects.get(pk=monitor_name)
+
+    @staticmethod
     def create(**kwargs):
         detector = Detector.objects.get(name=kwargs.get('detector_name'), model=kwargs.get('detector_model'))
         feed = Feed.objects.get(pk=kwargs.get('feed_id'))
@@ -42,25 +48,27 @@ class Monitor(models.Model):
     def get_notification_objects(self) -> list:
         return sorted(self.notification_objects)
 
-    def toggle_notification_object(self, object_name) -> list:
+    def toggle_notification_objects(self, objects: list) -> list:
         """
         Toggle a single object's notification status on or off by the name of the object.
 
-        :param object_name: String name of the object
+        :param objects: List of named object strings
         :return: None if object is not supported and no action taken; else; the name of the object.
         """
-        if object_name is None:
+        if len(objects) == 0:
             pass
-        elif object_name in self.notification_objects:
-            self.notification_objects.remove(object_name)
-            self.save()
-        else:
-            self.notification_objects.append(object_name)
-            self.save()
+
+        for o in objects:
+            if o in self.notification_objects:
+                self.notification_objects.remove(o)
+                self.save()
+            else:
+                self.notification_objects.append(o)
+                self.save()
 
         return self.notification_objects
 
-    def toggle_logged_object(self, object_name) -> list:
+    def toggle_logged_objects(self, objects: list) -> list:
         """
         Toggle a single object's logging status on or off by the name of the object.
 
@@ -68,28 +76,31 @@ class Monitor(models.Model):
         :return: None if object is not supported and no action taken; else; the name of the object.
         """
 
-        if object_name is None:
+        if len(objects) == 0:
             pass
-        elif object_name in self.log_objects:
-            self.log_objects.remove(object_name)
-            self.save()
-        else:
-            self.log_objects.append(object_name)
-            self.save()
+
+        for o in objects:
+            if o in self.log_objects:
+                self.log_objects.remove(o)
+                self.save()
+            else:
+                self.log_objects.append(o)
+                self.save()
 
         return self.log_objects
 
-    def _filter_list(self, set_objects, trained_objects) -> (list, list):
-        """
-        Determine items that are trained objects
-
-        :param objects: A list that should be split between valid and invalid objects
-        :return: Tuple: A list of valid objects and invalid objects
-        """
-
-        invalid_objects = set(set_objects) - set(trained_objects)
-        valid_objects = set(set_objects) - set(invalid_objects)
-        return list(valid_objects), list(invalid_objects)
+    # @staticmethod
+    # def _filter_list(set_objects, trained_objects) -> (list, list):
+    #     """
+    #     Determine items that are trained objects
+    #
+    #     :param objects: A list that should be split between valid and invalid objects
+    #     :return: Tuple: A list of valid objects and invalid objects
+    #     """
+    #
+    #     invalid_objects = set(set_objects) - set(trained_objects)
+    #     valid_objects = set(set_objects) - set(invalid_objects)
+    #     return list(valid_objects), list(invalid_objects)
 
     def set_log_objects(self, set_objects: list) -> list:
         self.log_objects = set_objects

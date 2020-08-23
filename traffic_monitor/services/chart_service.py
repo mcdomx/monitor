@@ -46,7 +46,5 @@ class ChartService(ServiceAbstract):
 
             self.publish({'monitor_name': self.monitor_name})
 
-            # logger.info(f"Hi! I'm charting. {i}")
-
             i += 1
 

@@ -109,7 +109,7 @@ def _filter_serializable(filter_me: dict) -> dict:
                 iter(v)  # test if its iterable
                 v = _filter_serializable(v)  # if so, filter it
             except Exception:
-                pass
+                continue
 
         rv.update({k: v})
 
@@ -219,35 +219,37 @@ def get_notification_objects(request) -> JsonResponse:
         return JsonResponse([], safe=False)
 
 
-def toggle_logged_object(request) -> JsonResponse:
+def toggle_logged_objects(request) -> JsonResponse:
     try:
         monitor_name = request.GET.get('monitor_name', None)
         if monitor_name is None:
             raise Exception("'monitor_name' of a Monitor is a required parameter.")
 
-        object_name = request.GET.get('object', None)
-        if object_name is None:
-            raise Exception("'object' is a required parameter.")
+        objects = request.GET.get('objects', None)
+        if objects is None:
+            raise Exception("'objects' is a required parameter.")
+        objects = [o.strip() for o in request.GET.get('objects', None).split(",")]
 
-        rv = MonitorServiceManager().toggle_logged_object(monitor_name=monitor_name,
-                                                          object_name=object_name)
+        rv = MonitorServiceManager().toggle_logged_objects(monitor_name=monitor_name,
+                                                           objects=objects)
         return JsonResponse(rv, safe=False)
     except Exception as e:
         logger.error(e)
         JsonResponse([], safe=False)
 
 
-def toggle_notification_object(request) -> JsonResponse:
+def toggle_notification_objects(request) -> JsonResponse:
     monitor_name = request.GET.get('monitor_name', None)
     if monitor_name is None:
-        return JsonResponse({"success": False, "message": "'monitor_name' of a Monitor is a required parameter."})
+        raise Exception("'monitor_name' of a Monitor is a required parameter.")
 
-    object_name = request.GET.get('object', None)
-    if object_name is None:
-        return JsonResponse({"success": False, "message": "'object' is a required parameter."}, safe=False)
+    objects = request.GET.get('objects', None)
+    if objects is None:
+        raise Exception("'objects' is a required parameter.")
+    objects = [o.strip() for o in request.GET.get('objects', None).split(",")]
 
-    rv = MonitorServiceManager().toggle_notification_object(monitor_name=monitor_name,
-                                                            object_name=object_name)
+    rv = MonitorServiceManager().toggle_notification_objects(monitor_name=monitor_name,
+                                                             objects=objects)
 
     return JsonResponse(rv, safe=False)
 

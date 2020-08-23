@@ -136,6 +136,13 @@ class FeedFactory:
                 return {'success': False, 'message': e}
 
         @staticmethod
+        def refresh_url(feed_id: str):
+            obj = Feed.objects.get(pk=feed_id)
+            url = FeedFactory().get_url(feed_id)
+            setattr(obj, 'url', url)
+            obj.save()
+
+        @staticmethod
         def get(cam: str) -> dict:
             """
             Returns a dict with 'success' and 'payload'.  If 'success' is False,

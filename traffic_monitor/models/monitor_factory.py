@@ -3,6 +3,8 @@ import logging
 from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.models.feed_factory import FeedFactory
 
+from traffic_monitor.services.observer import Subject
+
 
 class MonitorFactory:
     singleton = None
@@ -99,14 +101,14 @@ class MonitorFactory:
                 raise Exception(f"Monitor with name '{monitor_name}' does not exist.")
 
         @staticmethod
-        def toggle_logged_object(monitor_name: str, object_name: str) -> list:
+        def toggle_logged_objects(monitor_name: str, objects: list) -> list:
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            return monitor.toggle_logged_object(object_name=object_name)
+            return monitor.toggle_logged_objects(objects=objects)
 
         @staticmethod
-        def toggle_notification_object(monitor_name: str, object_name: str) -> list:
+        def toggle_notification_objects(monitor_name: str, objects: list) -> list:
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            return monitor.toggle_notification_object(object_name=object_name)
+            return monitor.toggle_notification_objects(objects=objects)
 
         @staticmethod
         def set_log_objects(monitor_name: str, set_objects: list):
@@ -135,18 +137,17 @@ class MonitorFactory:
 
         @staticmethod
         def get_monitor_configuration(monitor_name: str) -> dict:
-            monitor: Monitor = Monitor.objects.get(pk=monitor_name)
+            monitor: Monitor = Monitor.get(monitor_name=monitor_name)
 
-            return {'success': True,
-                    'configuration': {'monitor_name': monitor.name,
-                                      'detector_id': monitor.detector.detector_id,
-                                      'detector_name': monitor.detector.name,
-                                      'detector_model': monitor.detector.model,
-                                      'feed_id': monitor.feed.cam,
-                                      'feed_url': monitor.feed.url,
-                                      'time_zone': monitor.feed.time_zone,
-                                      'logged_objects': monitor.log_objects,
-                                      'notified_objects': monitor.notification_objects,
-                                      'logging_on': monitor.logging_on,
-                                      'notifications_on': monitor.notifications_on,
-                                      'charting_on': monitor.charting_on}}
+            return {'monitor_name': monitor.name,
+                    'detector_id': monitor.detector.detector_id,
+                    'detector_name': monitor.detector.name,
+                    'detector_model': monitor.detector.model,
+                    'feed_id': monitor.feed.cam,
+                    'feed_url': monitor.feed.url,
+                    'time_zone': monitor.feed.time_zone,
+                    'logged_objects': monitor.log_objects,
+                    'notified_objects': monitor.notification_objects,
+                    'logging_on': monitor.logging_on,
+                    'notifications_on': monitor.notifications_on,
+                    'charting_on': monitor.charting_on}

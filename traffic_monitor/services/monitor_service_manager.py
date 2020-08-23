@@ -46,20 +46,20 @@ class MonitorServiceManager:
             return {'success': True, 'monitor_name': monitor_name}
 
         @staticmethod
-        def toggle_logged_object(monitor_name: str, object_name: str) -> list:
+        def toggle_logged_objects(monitor_name: str, objects: list) -> list:
             detector_name = MonitorFactory().get_detector_name(monitor_name)
-            object_name, _ = MonitorServiceManager()._validate_objects([object_name], detector_name)
+            valid_objects, _ = MonitorServiceManager()._validate_objects(objects, detector_name)
 
-            return MonitorFactory().toggle_logged_object(monitor_name=monitor_name,
-                                                         object_name=object_name[0])
+            return MonitorFactory().toggle_logged_objects(monitor_name=monitor_name,
+                                                          objects=valid_objects)
 
         @staticmethod
-        def toggle_notification_object(monitor_name: str, object_name: str):
+        def toggle_notification_objects(monitor_name: str, objects: list):
             detector_name = MonitorFactory().get_detector_name(monitor_name)
-            object_name, _ = MonitorServiceManager()._validate_objects([object_name], detector_name)
+            valid_objects, _ = MonitorServiceManager()._validate_objects(objects, detector_name)
 
-            return MonitorFactory().toggle_notification_object(monitor_name=monitor_name,
-                                                               object_name=object_name[0])
+            return MonitorFactory().toggle_notification_objects(monitor_name=monitor_name,
+                                                                objects=valid_objects)
 
         @staticmethod
         def _validate_objects(set_objects: list, detector_name: str) -> (list, list):
@@ -73,7 +73,9 @@ class MonitorServiceManager:
 
             invalid_objects = set(set_objects) - set(trained_objects)
             valid_objects = set(set_objects) - set(invalid_objects)
-            logger.warning(f"Untrained objects are not considered: {invalid_objects}")
+            if len(invalid_objects) > 0:
+                logger.warning(f"Untrained objects are not considered: {invalid_objects}")
+
             return list(valid_objects), list(invalid_objects)
 
         @staticmethod
@@ -122,6 +124,9 @@ class MonitorServiceManager:
             kwargs.update({'log_objects': log_objects})
             kwargs.update({'notification_objects': notification_objects})
 
+            # make sure the the feed url is valid
+
+
             return MonitorFactory().create(**kwargs)
 
         @staticmethod
@@ -155,46 +160,46 @@ class MonitorServiceManager:
 
             return services
 
-        def start_monitor(self, monitor_name: str, log_interval: int, detection_interval: int, charting_interval: int) -> dict:
+        def start_monitor(self, monitor_name: str, log_interval: int, detection_interval: int, charting_interval: int) -> str:
 
-            rv = MonitorFactory().get_monitor_configuration(monitor_name)
-            if not rv['success']:
-                return rv
+            try:
+                monitor_config = MonitorFactory().get_monitor_configuration(monitor_name)
 
-            monitor_config = rv['configuration']
+                # check if the monitor is already active
+                if self.is_active(monitor_config.get('monitor_name')):
+                    raise Exception(f"Service for monitor '{monitor_config.get('monitor_name')}' is already active.")
 
-            # check if the monitor is already active
-            if self.is_active(monitor_config.get('monitor_name')):
-                return {'success': False,
-                        'message': f"Service for monitor '{monitor_config.get('monitor_name')}' is already active."}
+                ms = MonitorService(monitor_config=monitor_config,
+                                    services=self._get_services_from_config(monitor_config),
+                                    log_interval=log_interval,
+                                    detection_interval=detection_interval,
+                                    charting_interval=charting_interval)
 
-            ms = MonitorService(monitor_config=monitor_config,
-                                services=self._get_services_from_config(monitor_config),
-                                log_interval=log_interval,
-                                detection_interval=detection_interval,
-                                charting_interval=charting_interval)
-
-            rv = ms.start()
-            if rv['success']:
+                rv = ms.start()
                 self.active_monitors.update({monitor_name: ms})
 
-            return rv
+                return rv
+            except Exception as e:
+                logger.error(e)
 
-        def stop_monitor(self, monitor_name) -> dict:
-            # check if the monitor is already active
-            if not self.is_active(monitor_name):
-                return {'success': False, 'message': f"'{monitor_name}' is not active."}
+        def stop_monitor(self, monitor_name) -> str:
+            try:
+                # check if the monitor is already active
+                if not self.is_active(monitor_name):
+                    raise Exception(f"'{monitor_name}' is not active.")
 
-            # if removing a monitor that is being viewed stop it
-            if self.viewing_monitor:
-                if self.viewing_monitor is monitor_name:
-                    self.viewing_monitor.display = False
-                    self.viewing_monitor = None
+                # if removing a monitor that is being viewed stop it
+                if self.viewing_monitor:
+                    if self.viewing_monitor is monitor_name:
+                        self.viewing_monitor.display = False
+                        self.viewing_monitor = None
 
-            ms = self.active_monitors.get(monitor_name)
-            ms.stop()
-            del self.active_monitors[monitor_name]
-            return {'success': True, 'message': f"Service stopped for {monitor_name}"}
+                ms = self.active_monitors.get(monitor_name)
+                ms.stop()
+                del self.active_monitors[monitor_name]
+                return f"Service stopped for {monitor_name}"
+            except Exception as e:
+                logger.error(f"{__name__}: {e}")
 
         def get_active_monitors(self) -> {}:
             active_monitors = self.active_monitors
