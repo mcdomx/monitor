@@ -14,6 +14,7 @@ import os
 import logging
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -48,7 +49,6 @@ INSTALLED_APPS = [
     'django_extensions',
     'channels'
 ]
-
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -109,7 +109,6 @@ if len(missing_keys) > 0:
     logging.error("\t>> Setup missing variables in '.env' file located in project's root.")
     exit(1)
 
-
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
 
@@ -158,17 +157,17 @@ LOGGING = {
             'style': '{', },
     },
 
-    'handlers': {'console':      {'level': 'INFO',
-                                  'class': 'logging.StreamHandler',
-                                  'formatter': 'verbose'},
+    'handlers': {'console': {'level': 'INFO',
+                             'class': 'logging.StreamHandler',
+                             'formatter': 'verbose'},
                  },
 
     'loggers': {'django': {'handlers': ['console'],
                            'level': 'INFO', },
-                'view':   {'handlers': ['console'],
-                           'level': 'INFO', },
-                'model':  {'handlers': ['console'],
-                           'level': 'INFO', },
+                'view': {'handlers': ['console'],
+                         'level': 'INFO', },
+                'model': {'handlers': ['console'],
+                          'level': 'INFO', },
                 'detector': {'handlers': ['console'],
                              'level': 'INFO', },
                 'command': {'handlers': ['console'],
@@ -176,11 +175,13 @@ LOGGING = {
                 'channel': {'handlers': ['console'],
                             'level': 'INFO', },
                 'api': {'handlers': ['console'],
-                                            'level': 'INFO', },
+                        'level': 'INFO', },
                 'monitor_service': {'handlers': ['console'],
                                     'level': 'INFO', },
+                'monitor_service_manager': {'handlers': ['console'],
+                                            'level': 'INFO', },
                 'log_service': {'handlers': ['console'],
-                                    'level': 'INFO', },
+                                'level': 'INFO', },
                 'monitor_factory': {'handlers': ['console'],
                                     'level': 'INFO', },
                 'feed_factory': {'handlers': ['console'],

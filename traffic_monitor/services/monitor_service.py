@@ -279,12 +279,6 @@ class MonitorService(threading.Thread, Observer, Subject):
     #     return False
 
     @staticmethod
-    def get_trained_objects(detector_name) -> dict:
-        try:
-            objects = DetectorMachineFactory().get_trained_objects(detector_name)
-            return {'success': True, 'message': "Trained objects successfully retrieved.", 'objects': objects}
-        except Exception as e:
-            return {'success': False, 'message': f"Unable to retrieve trained objects: {e}"}
-
-
+    def get_trained_objects(detector_name) -> list:
+        return DetectorMachineFactory().get_trained_objects(detector_name)
 

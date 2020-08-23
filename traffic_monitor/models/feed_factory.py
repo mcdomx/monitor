@@ -116,20 +116,31 @@ class FeedFactory:
             return cam_fps
 
         @staticmethod
-        def get_feeds() -> dict:
+        def get_feeds() -> list:
             try:
-                feed_objs = Feed.objects.all()
-                return {'success': True, 'feeds': feed_objs}
-            except Exception:
-                return {'success': False, 'message': f"Failed to retrieve feeds", 'feeds': None}
+                return list(Feed.objects.all().values())
+            except Exception as e:
+                raise Exception(f"Failed to retrieve feeds: {e}")
 
         @staticmethod
-        def get(cam: str, time_zone: str = None) -> dict:
+        def create(cam: str, time_zone: str, description: str) -> dict:
+
+            try:
+                url = FeedFactory().get_url(cam=cam)
+                obj = Feed.objects.create(cam=cam, url=url, description=description, time_zone=time_zone)
+                obj.save()
+                logger.info(f"Created new feed entry for: {cam}")
+                return {'success': True, 'feed': obj}
+            except Exception as e:
+                logger.error(e)
+                return {'success': False, 'message': e}
+
+        @staticmethod
+        def get(cam: str) -> dict:
             """
             Returns a dict with 'success' and 'payload'.  If 'success' is False,
             payload is 'message'; if 'success is True, payload is 'feed' which
             contains a db Feed instance with (feed.cam, .timezone, .url, & .description)
-            If a new feed is created, time_zone is required.
 
             """
             try:
@@ -142,15 +153,6 @@ class FeedFactory:
                 logger.info(f"Updated feed with new url for: {cam}")
                 return {'success': True, 'feed': obj}
 
-            except Feed.DoesNotExist as e:  # cam doesn't exist, create a new db entry
-                if time_zone is None:
-                    return {'success': False, 'message': 'New feed requires time_zone parameter.'}
-                try:
-                    url = FeedFactory().get_url(cam=cam)
-                    obj = Feed.objects.create(cam=cam, url=url, description=cam, time_zone=time_zone)
-                    obj.save()
-                    logger.info(f"Created new feed entry for: {cam}")
-                    return {'success': True, 'feed': obj}
-                except Exception as e:
-                    logger.error(e)
-                    return {'success': False, 'message': e}
+            except Exception as e:
+                logger.error(e)
+                return {'success': False, 'message': e}

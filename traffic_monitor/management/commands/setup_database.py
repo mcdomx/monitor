@@ -47,7 +47,9 @@ class Command(BaseCommand):
                  'JacksonHole_Roadhouse': {'cam': '6aJXND_Lfk8', 'time_zone': 'US/Mountain'}}
 
         for desc, settings in feeds.items():
-            rv = MonitorServiceManager().get_feed(cam=settings.get('cam'), time_zone=settings.get('time_zone'))
+            rv = MonitorServiceManager().create_feed(cam=settings.get('cam'),
+                                                     time_zone=settings.get('time_zone'),
+                                                     description=desc)
             if rv.get('success'):
                 obj = rv.get('feed')
                 obj.description = desc

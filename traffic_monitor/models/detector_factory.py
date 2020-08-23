@@ -22,16 +22,13 @@ class DetectorFactory:
             """
             # get supported detector from db
             try:
-                obj = Detector.objects.get(detector_id=detector_id)
-                return {'success': True, 'detector': obj}
+                return Detector.objects.get(detector_id=detector_id).__dict__
             except Detector.DoesNotExist as e:
-                return {'success': False, 'message': f"Detector not setup: {detector_id} \n Available Detectors: \n {[x.detector_id for x in Detector.objects.all()]}"}
+                raise Exception(f"Detector not setup: {detector_id} \n Available Detectors: \n {[x.detector_id for x in Detector.objects.all()]}")
 
         @staticmethod
-        def get_detectors() -> dict:
+        def get_detectors() -> list:
             try:
-                det_objs = Detector.objects.all()
-                return {'success': True, 'detector_machines': det_objs}
+                return list(Detector.objects.all().values())
             except Exception:
-                return {'success': False, 'message': f"Failed to retrieve detector_machines", 'detector_machines': None}
-
+                raise Exception(f"Failed to retrieve detector_machines")

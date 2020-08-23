@@ -3,6 +3,7 @@ import numpy as np
 from cvlib.object_detection import populate_class_labels, draw_bbox, detect_common_objects
 
 from traffic_monitor.detector_machines.detector_machine_abstract import DetectorMachineAbstract
+from traffic_monitor.services.service_abstract import ServiceAbstract
 
 
 class DetectorMachineCVlib(DetectorMachineAbstract):
@@ -38,5 +39,5 @@ class DetectorMachineCVlib(DetectorMachineAbstract):
         return 0, frame, log_labels, mon_labels
 
     @classmethod
-    def get_trained_objects(cls) -> set:
-        return set(populate_class_labels())
+    def get_trained_objects(cls) -> list:
+        return list(populate_class_labels())

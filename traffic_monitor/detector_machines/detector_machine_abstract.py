@@ -3,14 +3,15 @@ import queue
 import time
 import logging
 import numpy as np
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, ABCMeta
 
+from traffic_monitor.services.service_abstract import ServiceAbstract
 from traffic_monitor.services.elapsed_time import ElapsedTime
 
 logger = logging.getLogger('detector')
 
 
-class DetectorMachineAbstract(ABC, threading.Thread):
+class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
     """
     Abstract class for a detector.
     required methods:
@@ -115,7 +116,7 @@ class DetectorMachineAbstract(ABC, threading.Thread):
 
     @classmethod
     @abstractmethod
-    def get_trained_objects(cls) -> set:
+    def get_trained_objects(cls) -> list:
         """
         Each supported detector class must override this method.
         :return: set of strings where each string is the name of a trained object. Spaces
