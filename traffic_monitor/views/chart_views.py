@@ -1,4 +1,4 @@
-import datetime
+import time
 import pandas as pd
 
 from traffic_monitor.models.model_logentry import LogEntry
@@ -24,6 +24,9 @@ def get_chart(monitor_id: int, interval:int):
 
     # data
     rs = LogEntry.objects.filter(monitor_id=monitor_id).values('time_stamp', 'class_id', 'count')
+    if not rs.exists():
+        return JsonResponse("")
+
     df = pd.DataFrame(rs)
     df.rename(columns={'count': 'counts'}, inplace=True)
 
