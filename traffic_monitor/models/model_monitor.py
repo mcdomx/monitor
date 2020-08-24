@@ -72,7 +72,7 @@ class Monitor(models.Model):
         """
         Toggle a single object's logging status on or off by the name of the object.
 
-        :param object_name: String name of the object
+        :param objects: String list of objects to toggle
         :return: None if object is not supported and no action taken; else; the name of the object.
         """
 
@@ -89,28 +89,15 @@ class Monitor(models.Model):
 
         return self.log_objects
 
-    # @staticmethod
-    # def _filter_list(set_objects, trained_objects) -> (list, list):
-    #     """
-    #     Determine items that are trained objects
-    #
-    #     :param objects: A list that should be split between valid and invalid objects
-    #     :return: Tuple: A list of valid objects and invalid objects
-    #     """
-    #
-    #     invalid_objects = set(set_objects) - set(trained_objects)
-    #     valid_objects = set(set_objects) - set(invalid_objects)
-    #     return list(valid_objects), list(invalid_objects)
-
     def set_log_objects(self, set_objects: list) -> list:
         self.log_objects = set_objects
         self.save()
-        return set_objects
+        return self.log_objects
 
     def set_notification_objects(self, set_objects: list):
         self.notification_objects = set_objects
         self.save()
-        return set_objects
+        return self.notification_objects
 
     def get_detector_name(self):
         return self.detector.name
@@ -134,4 +121,3 @@ class Monitor(models.Model):
     @staticmethod
     def get_monitor(monitor_name: str) -> dict:
         return Monitor.objects.get(pk=monitor_name)
-

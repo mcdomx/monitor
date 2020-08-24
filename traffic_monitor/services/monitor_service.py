@@ -10,9 +10,7 @@ import logging
 
 import cv2 as cv
 
-from traffic_monitor.services.log_service import LogService
-from traffic_monitor.services.observer import Observer, Subject
-from traffic_monitor.services.chart_service import ChartService
+# from traffic_monitor.services.observer import Observer, Subject
 from traffic_monitor.detector_machines.detetor_machine_factory import DetectorMachineFactory
 from traffic_monitor.services.service_abstract import ServiceAbstract
 
@@ -22,7 +20,7 @@ logger = logging.getLogger('monitor_service')
 
 
 # class MonitorService(threading.Thread, Observer, Subject):
-class MonitorService(ServiceAbstract, Observer):
+class MonitorService(ServiceAbstract):
     """
     A Monitor is defined as a Detector and a URL video feed.
     The class is a thread that will continually run and log
@@ -56,12 +54,11 @@ class MonitorService(ServiceAbstract, Observer):
                  log_interval: int, detection_interval: int, charting_interval: int):
         """ Requires existing monitor.  1:1 relationship with a monitor but this is not
         enforced when creating the Monitor Service. """
-        threading.Thread.__init__(self)
-        Observer.__init__(self)
-        Subject.__init__(self)
+        # threading.Thread.__init__(self)
+        # Observer.__init__(self)
+        ServiceAbstract.__init__(self)
         self.id = id(self)
 
-        # logger.info(monitor_config)
         self.monitor_name: str = monitor_config.get('monitor_name')
         self.name = f"MonitorServiceThread-{self.monitor_name}"
         self.detector_id = monitor_config.get('detector_id')
@@ -134,7 +131,9 @@ class MonitorService(ServiceAbstract, Observer):
             'detector_model': self.detector_model,
             'feed_id': self.feed_id,
             'logging': self.logging_on,
+            'logged_objects': self.logged_objects,
             'notifications': self.notifications_on,
+            'notified_objects': self.notified_objects,
             'charting': self.charting_on,
             'services': [f"{s.__name__}" for s in self.services]
         }
@@ -149,7 +148,7 @@ class MonitorService(ServiceAbstract, Observer):
         :param subject_info:
         :return: None
         """
-
+        logger.info(f"{[{__name__}]} :UPDATED WITH: {subject_info}")
         self.publish(subject_info)
 
     def get_next_frame(self):
@@ -165,10 +164,9 @@ class MonitorService(ServiceAbstract, Observer):
         try:
             self.running = True
             threading.Thread.start(self)
-            # active_monitors.update({self.monitor_name: self})
-            return f"Service started for:  {self.monitor_name}"
+            return f"[{__name__}] Service started for:  {self.monitor_name}"
         except Exception as e:
-            raise Exception(f"Could not start '{self.monitor_name}': {e}")
+            raise Exception(f"[{__name__}] Could not start '{self.monitor_name}': {e}")
 
     def stop(self):
         self.running = False
@@ -182,7 +180,7 @@ class MonitorService(ServiceAbstract, Observer):
         try:
             cap = cv.VideoCapture(self.feed_url)
         except Exception as e:
-            logger.error("Failed to create a video stream.")
+            logger.error(f"[{__name__}] Failed to create a video stream.")
             logger.error(e)
             return
 
@@ -193,7 +191,7 @@ class MonitorService(ServiceAbstract, Observer):
         active_services = []
         for service in self.services:
             s: ServiceAbstract = service(**self.service_kwargs)
-            s.register(self)
+            self.register(s)  # register the service as an observer with the monitor service
             s.start()
             active_services.append(s)
 

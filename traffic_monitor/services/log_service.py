@@ -38,6 +38,24 @@ class LogService(ServiceAbstract):
         self.queue_dets_log = kwargs.get('queue_dets_log') # ref to queue in Monitor where detections are stored for logging
         self.log_interval = kwargs.get('log_interval')  # freq (in sec) in detections are logged
 
+    @staticmethod
+    def _get_monitor_info(subject_info):
+        for s in subject_info:
+            if type(s) == 'Tuple':
+                if s[0] == 'Monitor':
+                    return s[1]
+                else:
+
+
+
+    def update(self, subject_info: tuple):
+        logger.info(f"[{__name__}] UPDATE: {subject_info}")
+
+
+
+                if subject_info[1].get('logged_objects', False):
+                    self.logged_objects = subject_info[1].get('logged_objects')
+
     def start(self):
         self.running = True
         # threading.Thread.start(self)

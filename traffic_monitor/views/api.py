@@ -232,6 +232,7 @@ def toggle_logged_objects(request) -> JsonResponse:
 
         rv = MonitorServiceManager().toggle_logged_objects(monitor_name=monitor_name,
                                                            objects=objects)
+
         return JsonResponse(rv, safe=False)
     except Exception as e:
         logger.error(e)

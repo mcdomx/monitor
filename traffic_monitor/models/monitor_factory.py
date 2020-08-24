@@ -3,7 +3,7 @@ import logging
 from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.models.feed_factory import FeedFactory
 
-from traffic_monitor.services.observer import Subject
+from traffic_monitor.services.observer import Subject, Observer
 
 
 class MonitorFactory:
@@ -14,21 +14,11 @@ class MonitorFactory:
             cls.singleton = cls._Singleton()
         return cls.singleton
 
-    class _Singleton:
+    class _Singleton(Subject):
         def __init__(self):
+            Subject.__init__(self)
             self.logger = logging.getLogger('monitor_factory')
-
-        # @staticmethod
-        # def get_timezone(monitor_id: int):
-        #     try:
-        #         obj = Monitor.objects.get(pk=monitor_id)
-        #         return obj.feed.time_zone
-        #     except Monitor.DoesNotExist:
-        #         return 'US/Eastern'
-
-        # @staticmethod
-        # def get_feed(monitor_name: str):
-        #     return Monitor.get_feed()
+            self.subject_name = 'Monitor'
 
         @staticmethod
         def create_feed(cam: str, time_zone: str, description: str) -> dict:
@@ -58,7 +48,8 @@ class MonitorFactory:
                    notifications_on: bool,
                    charting_on: bool) -> dict:
             """
-            Create a Monitor entry which is simply a combination of detector_id and feed_cam
+            Create a Monitor entry which is a combination of detector and feed
+            as well as the logged and notified objects.
 
             :param detector_model:
             :param detector_name:
@@ -76,16 +67,17 @@ class MonitorFactory:
                 _ = Monitor.objects.get(pk=name)
                 raise Exception(f"Monitor with name '{name}' already exists.")
             except Monitor.DoesNotExist:
-                mon = Monitor.create(name=name,
-                                     detector_name=detector_name,
-                                     detector_model=detector_model,
-                                     feed_id=feed_id,
-                                     log_objects=log_objects,
-                                     notification_objects=notification_objects,
-                                     logging_on=logging_on,
-                                     notifications_on=notifications_on,
-                                     charting_on=charting_on)
-                return mon.__dict__
+                monitor: Monitor = Monitor.create(name=name,
+                                                  detector_name=detector_name,
+                                                  detector_model=detector_model,
+                                                  feed_id=feed_id,
+                                                  log_objects=log_objects,
+                                                  notification_objects=notification_objects,
+                                                  logging_on=logging_on,
+                                                  notifications_on=notifications_on,
+                                                  charting_on=charting_on)
+
+                return monitor.__dict__
 
         @staticmethod
         def get(monitor_name) -> dict:
@@ -103,7 +95,9 @@ class MonitorFactory:
         @staticmethod
         def toggle_logged_objects(monitor_name: str, objects: list) -> list:
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            return monitor.toggle_logged_objects(objects=objects)
+            logged_objects = monitor.toggle_logged_objects(objects=objects)
+            MonitorFactory().publish({'logged_objects': logged_objects})
+            return logged_objects
 
         @staticmethod
         def toggle_notification_objects(monitor_name: str, objects: list) -> list:

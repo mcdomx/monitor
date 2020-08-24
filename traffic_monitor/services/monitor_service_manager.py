@@ -50,16 +50,20 @@ class MonitorServiceManager:
             detector_name = MonitorFactory().get_detector_name(monitor_name)
             valid_objects, _ = MonitorServiceManager()._validate_objects(objects, detector_name)
 
-            return MonitorFactory().toggle_logged_objects(monitor_name=monitor_name,
-                                                          objects=valid_objects)
+            objects = MonitorFactory().toggle_logged_objects(monitor_name=monitor_name,
+                                                             objects=valid_objects)
+
+            return objects
 
         @staticmethod
         def toggle_notification_objects(monitor_name: str, objects: list):
             detector_name = MonitorFactory().get_detector_name(monitor_name)
             valid_objects, _ = MonitorServiceManager()._validate_objects(objects, detector_name)
 
-            return MonitorFactory().toggle_notification_objects(monitor_name=monitor_name,
-                                                                objects=valid_objects)
+            objects =  MonitorFactory().toggle_notification_objects(monitor_name=monitor_name,
+                                                                    objects=valid_objects)
+
+            return objects
 
         @staticmethod
         def _validate_objects(set_objects: list, detector_name: str) -> (list, list):
@@ -84,7 +88,9 @@ class MonitorServiceManager:
             detector_name = MonitorFactory().get_detector_name(monitor_name)
             valid_objects, invalid_objects = MonitorServiceManager()._validate_objects(set_objects, detector_name)
 
-            return MonitorFactory().set_log_objects(monitor_name, valid_objects)
+            objects = MonitorFactory().set_log_objects(monitor_name, valid_objects)
+
+            return objects
 
         @staticmethod
         def set_notification_objects(monitor_name: str, set_objects: list):
@@ -92,7 +98,9 @@ class MonitorServiceManager:
             detector_name = MonitorFactory().get_detector_name(monitor_name)
             valid_objects, invalid_objects = MonitorServiceManager()._validate_objects(set_objects, detector_name)
 
-            return MonitorFactory().set_notification_objects(monitor_name, valid_objects)
+            objects = MonitorFactory().set_notification_objects(monitor_name, valid_objects)
+
+            return objects
 
         @staticmethod
         def all_monitors() -> list:
@@ -123,9 +131,6 @@ class MonitorServiceManager:
                 kwargs.get('notification_objects'), kwargs.get('detector_name'))
             kwargs.update({'log_objects': log_objects})
             kwargs.update({'notification_objects': notification_objects})
-
-            # make sure the the feed url is valid
-
 
             return MonitorFactory().create(**kwargs)
 
@@ -160,7 +165,11 @@ class MonitorServiceManager:
 
             return services
 
-        def start_monitor(self, monitor_name: str, log_interval: int, detection_interval: int, charting_interval: int) -> str:
+        def start_monitor(self,
+                          monitor_name: str,
+                          log_interval: int,
+                          detection_interval: int,
+                          charting_interval: int) -> str:
 
             try:
                 monitor_config = MonitorFactory().get_monitor_configuration(monitor_name)
@@ -178,14 +187,19 @@ class MonitorServiceManager:
                 rv = ms.start()
                 self.active_monitors.update({monitor_name: ms})
 
+                # register the monitor service with the MonitorFactory to get configuration updates
+                MonitorFactory().register(ms)
+
                 return rv
             except Exception as e:
-                logger.error(e)
+                logger.error(f"{__name__}: {e}")
 
         def stop_monitor(self, monitor_name) -> str:
             try:
+                ms: MonitorService = self.active_monitors.pop(monitor_name, None)
+
                 # check if the monitor is already active
-                if not self.is_active(monitor_name):
+                if ms is None:
                     raise Exception(f"'{monitor_name}' is not active.")
 
                 # if removing a monitor that is being viewed stop it
@@ -194,9 +208,7 @@ class MonitorServiceManager:
                         self.viewing_monitor.display = False
                         self.viewing_monitor = None
 
-                ms = self.active_monitors.get(monitor_name)
                 ms.stop()
-                del self.active_monitors[monitor_name]
                 return f"Service stopped for {monitor_name}"
             except Exception as e:
                 logger.error(f"{__name__}: {e}")
