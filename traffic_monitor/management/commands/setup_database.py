@@ -65,8 +65,9 @@ class Command(BaseCommand):
 
         for d in Detector.objects.all():
             for f in Feed.objects.all():
-                _ = MonitorServiceManager().create_monitor(name=f"MON_{f.description}_{d.detector_id}",
-                                                           detector_id=d.detector_id,
+                _ = MonitorServiceManager().create_monitor(name=f"MON_{d.name}_{d.model}_{f.description}",
+                                                           detector_name=d.name,
+                                                           detector_model=d.model,
                                                            feed_id=f.cam,
                                                            log_objects=[],
                                                            notification_objects=[],

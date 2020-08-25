@@ -45,16 +45,15 @@ class LogService(ServiceAbstract):
                 if s[0] == 'Monitor':
                     return s[1]
                 else:
-
-
+                    return LogService._get_monitor_info(s[1])
 
     def update(self, subject_info: tuple):
         logger.info(f"[{__name__}] UPDATE: {subject_info}")
 
+        monitor_info = LogService._get_monitor_info(subject_info)
 
-
-                if subject_info[1].get('logged_objects', False):
-                    self.logged_objects = subject_info[1].get('logged_objects')
+        if monitor_info.get('logged_objects', False):
+            self.logged_objects = monitor_info.get('logged_objects')
 
     def start(self):
         self.running = True
