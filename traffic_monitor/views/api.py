@@ -95,7 +95,6 @@ def _parse_args(request, *args):
 
 
 def create_stream(request) -> JsonResponse:
-
     try:
         kwargs = _parse_args(request, 'cam', 'time_zone', 'description')
         rv = MonitorServiceManager().create_stream(**kwargs)

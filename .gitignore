@@ -1,6 +1,8 @@
 .idea/
 Pipfile.lock
 migrations/*.py
+zookeeper/*
+kafka/*
 
 # weight files
 *.weights
