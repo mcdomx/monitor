@@ -52,6 +52,7 @@ class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
 
     def stop(self):
         self.running = False
+        self.publish(('Monitor', {'stop': None}))
         logger.info(f"Stopping detector '{self.name}' ...")
 
     def run(self):

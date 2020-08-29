@@ -123,7 +123,9 @@ class MonitorService(ServiceAbstract):
 
     @staticmethod
     def _get_message_info(subject_name, subject_info):
-        if subject_info[0] == subject_name:
+        if len(subject_info) == 1:
+            return {}  # keyword not found
+        elif subject_info[0] == subject_name:
             return subject_info[1]
         else:
             for s in subject_info:
@@ -155,7 +157,10 @@ class MonitorService(ServiceAbstract):
             for f_name, a_value in subject_info.items():
                 if hasattr(self, f_name) and callable(getattr(self, f_name)):
                     func = getattr(self, f_name)
-                    rv = func(a_value)
+                    if a_value:
+                        rv = func(a_value)
+                    else:
+                        rv = func()
                     logger.info(f"'{self.__class__.__name__}' :UPDATED WITH: {f_name}({a_value}) RV: {rv}")
         except Exception as e:
             logger.error(f"[{self.__class__.__name__}]: {e}")
@@ -195,6 +200,7 @@ class MonitorService(ServiceAbstract):
 
     def stop(self):
         self.running = False
+        logger.info(f"[{__name__}] Stopped.  Set running to False.")
 
     def run(self):
         """
@@ -211,6 +217,8 @@ class MonitorService(ServiceAbstract):
 
         # start the detector machine
         self.detector.start()
+        # register monitor_service with detector to get detector updates
+        self.detector.register(self)
 
         # start services and register the monitor as observer of the service
         # active_services = []
@@ -259,7 +267,7 @@ class MonitorService(ServiceAbstract):
                         _ = self.get_next_frame()
                         self.queue_refframe.put(target_queue, block=False)
 
-        logger.info("Stopped monitor service")
+        logger.info(f"[{self.monitor_name}] Stopped monitor service")
 
         # stop the services
         self.detector.stop()
@@ -271,7 +279,7 @@ class MonitorService(ServiceAbstract):
 
         self.detector.join()
 
-        logger.info(f"Monitor Service, Detector and Log are stopped!")
+        logger.info(f"[{self.monitor_name}] Monitor Service and its services are all stopped!")
 
     @staticmethod
     def get_trained_objects(detector_name) -> list:

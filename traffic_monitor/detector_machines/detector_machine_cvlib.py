@@ -19,6 +19,8 @@ class DetectorMachineCVlib(DetectorMachineAbstract):
 
     def __init__(self, **kwargs):
         DetectorMachineAbstract.__init__(self, **kwargs)
+        self.observers = []
+        self.subject_name = 'detector_cvlib'
 
     def detect(self, frame: np.array) -> (int, np.array, list):
         bbox, labels, conf = detect_common_objects(frame, confidence=.5, model=self.model)

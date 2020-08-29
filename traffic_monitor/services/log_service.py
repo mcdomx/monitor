@@ -68,10 +68,9 @@ class LogService(ServiceAbstract):
             time.sleep(self.log_interval)
 
             try:
-                while True:
-                    # collect the detections from the queue - fails when empty
-                    log_interval_detections += self.queue_dets_log.get(block=False)
-                    capture_count += 1
+                # collect the detections from the queue - fails when empty
+                log_interval_detections += self.queue_dets_log.get(block=False)
+                capture_count += 1
 
             # once all the queued items are collected, summarize and record them
             except queue.Empty:

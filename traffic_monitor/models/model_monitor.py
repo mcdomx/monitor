@@ -26,8 +26,10 @@ class Monitor(models.Model):
     charting_on = models.BooleanField(default=False)
 
     def __str__(self):
-        rv = self.__dict__
-        return f"{rv}"
+        # this is set to self.name so that the admin page shows the monitor name
+        return self.name
+        # rv = self.__dict__
+        # return f"{rv}"
 
     @staticmethod
     def get(monitor_name: str):

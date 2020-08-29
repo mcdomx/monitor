@@ -116,7 +116,7 @@ class MonitorFactory:
                     'detector_name': monitor.detector.name,
                     'detector_model': monitor.detector.model,
                     'feed_id': monitor.feed.cam,
-                    # 'feed_url': monitor.feed.url,
+                    'feed_url': monitor.feed.url,
                     'time_zone': monitor.feed.time_zone,
                     'logged_objects': monitor.log_objects,
                     'notified_objects': monitor.notification_objects,
