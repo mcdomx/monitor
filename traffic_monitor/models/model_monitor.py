@@ -48,46 +48,46 @@ class Monitor(models.Model):
     def get_notification_objects(self) -> list:
         return sorted(self.notification_objects)
 
-    def toggle_notification_objects(self, objects: list) -> list:
-        """
-        Toggle a single object's notification status on or off by the name of the object.
+    # def toggle_notification_objects(self, objects: list) -> list:
+    #     """
+    #     Toggle a single object's notification status on or off by the name of the object.
+    #
+    #     :param objects: List of named object strings
+    #     :return: None if object is not supported and no action taken; else; the name of the object.
+    #     """
+    #     if len(objects) == 0:
+    #         pass
+    #
+    #     for o in objects:
+    #         if o in self.notification_objects:
+    #             self.notification_objects.remove(o)
+    #             self.save()
+    #         else:
+    #             self.notification_objects.append(o)
+    #             self.save()
+    #
+    #     return self.notification_objects
 
-        :param objects: List of named object strings
-        :return: None if object is not supported and no action taken; else; the name of the object.
-        """
-        if len(objects) == 0:
-            pass
-
-        for o in objects:
-            if o in self.notification_objects:
-                self.notification_objects.remove(o)
-                self.save()
-            else:
-                self.notification_objects.append(o)
-                self.save()
-
-        return self.notification_objects
-
-    def toggle_logged_objects(self, objects: list) -> list:
-        """
-        Toggle a single object's logging status on or off by the name of the object.
-
-        :param objects: String list of objects to toggle
-        :return: None if object is not supported and no action taken; else; the name of the object.
-        """
-
-        if len(objects) == 0:
-            pass
-
-        for o in objects:
-            if o in self.log_objects:
-                self.log_objects.remove(o)
-                self.save()
-            else:
-                self.log_objects.append(o)
-                self.save()
-
-        return self.log_objects
+    # def toggle_logged_objects(self, objects: list) -> list:
+    #     """
+    #     Toggle a single object's logging status on or off by the name of the object.
+    #
+    #     :param objects: String list of objects to toggle
+    #     :return: None if object is not supported and no action taken; else; the name of the object.
+    #     """
+    #
+    #     if len(objects) == 0:
+    #         pass
+    #
+    #     for o in objects:
+    #         if o in self.log_objects:
+    #             self.log_objects.remove(o)
+    #             self.save()
+    #         else:
+    #             self.log_objects.append(o)
+    #             self.save()
+    #
+    #     return self.log_objects
 
     def set_log_objects(self, set_objects: list) -> list:
         self.log_objects = set_objects

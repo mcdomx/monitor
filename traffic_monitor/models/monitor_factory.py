@@ -92,27 +92,34 @@ class MonitorFactory:
             except Monitor.DoesNotExist:
                 raise Exception(f"Monitor with name '{monitor_name}' does not exist.")
 
-        @staticmethod
-        def toggle_logged_objects(monitor_name: str, objects: list) -> list:
-            monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            logged_objects = monitor.toggle_logged_objects(objects=objects)
-            MonitorFactory().publish({'logged_objects': logged_objects})
-            return logged_objects
+        # @staticmethod
+        # def toggle_logged_objects(monitor_name: str, objects: list) -> list:
+        #     try:
+        #         monitor: Monitor = Monitor.objects.get(pk=monitor_name)
+        #         logged_objects = monitor.toggle_logged_objects(objects=objects)
+        #         MonitorFactory().publish({'logged_objects': logged_objects})
+        #         return logged_objects
+        #     except Monitor.DoesNotExist as e:
+        #         raise Exception({'error': e.args, 'message': "monitor_factory.py toggle_logged_objects", 'arguments': {monitor_name, objects} })
+        #
+        # @staticmethod
+        # def toggle_notification_objects(monitor_name: str, objects: list) -> list:
+        #     monitor: Monitor = Monitor.objects.get(pk=monitor_name)
+        #     return monitor.toggle_notification_objects(objects=objects)
 
         @staticmethod
-        def toggle_notification_objects(monitor_name: str, objects: list) -> list:
+        def set_logged_objects(monitor_name: str, set_objects: list):
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            return monitor.toggle_notification_objects(objects=objects)
-
-        @staticmethod
-        def set_log_objects(monitor_name: str, set_objects: list):
-            monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            return monitor.set_log_objects(set_objects=set_objects)
+            objects = monitor.set_log_objects(set_objects=set_objects)
+            MonitorFactory().publish({'logged_objects': objects})
+            return objects
 
         @staticmethod
         def set_notification_objects(monitor_name: str, set_objects: list):
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            return monitor.set_notification_objects(set_objects=set_objects)
+            objects = monitor.set_notification_objects(set_objects=set_objects)
+            MonitorFactory().publish({'notification_objects': objects})
+            return objects
 
         @staticmethod
         def get_detector_name(monitor_name: str) -> str:

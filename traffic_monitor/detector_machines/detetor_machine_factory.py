@@ -3,6 +3,10 @@ import logging
 from traffic_monitor.detector_machines.detector_machine_abstract import DetectorMachineAbstract
 from traffic_monitor.detector_machines.detector_machines import *
 
+# This dictionary must be updated with new detector name and class
+# Any new class must also be imported into the traffic_monitor.detector_machines.detector_machines module
+detectors = {'cvlib': DetectorMachineCVlib}
+
 
 class DetectorMachineFactory:
     singleton = None
@@ -37,8 +41,9 @@ class DetectorMachineFactory:
             :return: An implemented instance of a detector machine that is ready to be started with .start()
             """
 
-            if kwargs.get('detector_name') == 'cvlib':
-                return DetectorMachineCVlib(**kwargs)
+            detector_class = DetectorMachineFactory()._get_detector_class(kwargs.get('detector_name'))
+
+            return detector_class(**kwargs)
 
         @staticmethod
         def _get_detector_class(detector_name) -> DetectorMachineAbstract.__class__:
@@ -48,10 +53,18 @@ class DetectorMachineFactory:
             :param detector_name: Name of the detector for which the corresponding class is requested
             :return: An unimplemented class reference to the detector
             """
-            if detector_name == 'cvlib':
-                return DetectorMachineCVlib
+
+            detector_class = detectors.get(detector_name)
+
+            if detector_class is None:
+                raise Exception(f"Detector with name '{detector_name}' does not exist. Available detectors: {list(detectors.keys())}")
+            else:
+                return detector_class
 
         @staticmethod
         def get_trained_objects(detector_name):
+
             return DetectorMachineFactory()._get_detector_class(detector_name).get_trained_objects()
+
+
 

@@ -45,25 +45,30 @@ class MonitorServiceManager:
 
             return {'success': True, 'monitor_name': monitor_name}
 
-        @staticmethod
-        def toggle_logged_objects(monitor_name: str, objects: list) -> list:
-            detector_name = MonitorFactory().get_detector_name(monitor_name)
-            valid_objects, _ = MonitorServiceManager()._validate_objects(objects, detector_name)
-
-            objects = MonitorFactory().toggle_logged_objects(monitor_name=monitor_name,
-                                                             objects=valid_objects)
-
-            return objects
 
         @staticmethod
-        def toggle_notification_objects(monitor_name: str, objects: list):
+        def _get_toggled_objects(current_objects: list, toggle_objects: list) -> list:
+            # determine items to remove and to add
+            remove_these = set(current_objects).intersection(set(toggle_objects))
+            return list(set(current_objects).union(toggle_objects).difference(remove_these))
+
+        @staticmethod
+        def toggle_logged_objects(monitor_name: str, toggle_objects: list) -> list:
+            current_objects = MonitorFactory().get_logged_objects(monitor_name)
             detector_name = MonitorFactory().get_detector_name(monitor_name)
-            valid_objects, _ = MonitorServiceManager()._validate_objects(objects, detector_name)
+            toggle_objects, _ = MonitorServiceManager()._validate_objects(toggle_objects, detector_name)
+            new_objects = MonitorServiceManager()._get_toggled_objects(current_objects, toggle_objects)
 
-            objects =  MonitorFactory().toggle_notification_objects(monitor_name=monitor_name,
-                                                                    objects=valid_objects)
+            return MonitorFactory().set_logged_objects(monitor_name, new_objects)
 
-            return objects
+        @staticmethod
+        def toggle_notification_objects(monitor_name: str, toggle_objects: list):
+            current_objects = MonitorFactory().get_notification_objects(monitor_name)
+            detector_name = MonitorFactory().get_detector_name(monitor_name)
+            toggle_objects, _ = MonitorServiceManager()._validate_objects(toggle_objects, detector_name)
+            new_objects = MonitorServiceManager()._get_toggled_objects(current_objects, toggle_objects)
+
+            return MonitorFactory().set_notification_objects(monitor_name, new_objects)
 
         @staticmethod
         def _validate_objects(set_objects: list, detector_name: str) -> (list, list):
@@ -124,25 +129,47 @@ class MonitorServiceManager:
 
         @staticmethod
         def create_monitor(**kwargs) -> dict:
+            """
+            Create a monitor.  Requires parameters:
+                detector_name: name of detector to use (get available names via /get_detectors)
+                detector_model: name of detector model to use (get available models via /get_detectors)
+                feed_id: id of feed that the monitor will use (get available feeds via /get_streams)
+                log_objects: comma separated list of objects that the monitor should log
+                notification_objects: comma separated list of objects that the monitor will notify
+
+            Log and notification objects will be validated.  A valid list of objects can be retrieved via
+            get_trained_objects/detector_name={{detector_name}}
+            :param kwargs:
+            :return:
+            """
             # validate log and notification lists
             log_objects, invalid_objects = MonitorServiceManager()._validate_objects(kwargs.get('log_objects'),
                                                                                      kwargs.get('detector_name'))
             notification_objects, invalid_objects = MonitorServiceManager()._validate_objects(
                 kwargs.get('notification_objects'), kwargs.get('detector_name'))
+
+            # update variables so they only include valid objects
             kwargs.update({'log_objects': log_objects})
             kwargs.update({'notification_objects': notification_objects})
 
             return MonitorFactory().create(**kwargs)
 
         @staticmethod
-        def get_trained_objects(monitor_name: str) -> list:
+        def get_trained_objects(monitor_name: str = None, detector_name: str = None) -> list:
             """
-            Retrieve a set of objects that the named monitor has been
-            trained to detect.
+            Retrieve a set of objects that the named detector or monitor has been
+            trained to detect. Either the monitor name or detecror name must be provided.
+            If both are provided, the monitor name is used.
+            :param detector_name: Name of detector
             :param monitor_name: String name of the monitor.
             :return: A set of the objects that are trained.
             """
-            detector_name = MonitorFactory().get_detector_name(monitor_name)
+            if monitor_name is None and detector_name is None:
+                raise Exception("Either a 'monitor_name' or a 'detector_name' must be provided.")
+
+            if monitor_name is not None:
+                detector_name = MonitorFactory().get_detector_name(monitor_name)
+
             return MonitorService.get_trained_objects(detector_name)
 
         @staticmethod
@@ -152,6 +179,14 @@ class MonitorServiceManager:
         @staticmethod
         def get_notification_objects(monitor_name: str) -> list:
             return MonitorFactory().get_notification_objects(monitor_name)
+
+        @staticmethod
+        def set_logged_objects(monitor_name: str) -> list:
+            return MonitorFactory().set_logged_objects(monitor_name)
+
+        @staticmethod
+        def set_notification_objects(monitor_name: str) -> list:
+            return MonitorFactory().set_notification_objects(monitor_name)
 
         @staticmethod
         def _get_services_from_config(monitor_config: dict) -> list:

@@ -51,7 +51,7 @@ def get_active_monitors(request) -> JsonResponse:
 
     except Exception as e:
         logger.error(e)
-        JsonResponse([], safe=False)
+        return JsonResponse({'error': e.args}, safe=False)
 
 
 def get_streams(request) -> JsonResponse:
@@ -66,7 +66,7 @@ def get_streams(request) -> JsonResponse:
         return JsonResponse(rv, safe=False)
     except Exception as e:
         logger.error(e)
-        return JsonResponse([], safe=False)
+        return JsonResponse({'error': e.args}, safe=False)
 
 
 def get_detectors(request) -> JsonResponse:
@@ -81,7 +81,7 @@ def get_detectors(request) -> JsonResponse:
         return JsonResponse(rv, safe=False)
     except Exception as e:
         logger.error(e)
-        return JsonResponse([], safe=False)
+        return JsonResponse({'error': e.args}, safe=False)
 
 
 def get_monitors(request) -> JsonResponse:
@@ -90,7 +90,7 @@ def get_monitors(request) -> JsonResponse:
         return JsonResponse(rv, safe=False)
     except Exception as e:
         logger.error(e)
-        return JsonResponse([], safe=False)
+        return JsonResponse({'error': e.args}, safe=False)
 
 
 def _filter_serializable(filter_me: dict) -> dict:
@@ -130,7 +130,7 @@ def get_monitor(request) -> JsonResponse:
         return JsonResponse(rv, safe=False)
     except Exception as e:
         logger.error(e)
-        return JsonResponse({}, safe=False)
+        return JsonResponse({'error': e.args}, safe=False)
 
 
 def create_monitor(request) -> JsonResponse:
@@ -177,20 +177,24 @@ def create_monitor(request) -> JsonResponse:
 
     except Exception as e:
         logger.error(e)
-        return JsonResponse({}, safe=False)
+        return JsonResponse({'error': e.args}, safe=False)
 
 
 def get_trained_objects(request) -> JsonResponse:
     try:
         monitor_name = request.GET.get('monitor_name', None)
-        if monitor_name is None:
-            raise Exception("'monitor_name' of a Monitor is a required parameter.")
+        detector_name = request.GET.get('detector_name', None)
+        if monitor_name is None and detector_name is None:
+            raise Exception("Either a 'monitor_name' or a 'detector_name' is a required parameter.")
 
-        objects = MonitorServiceManager().get_trained_objects(monitor_name=monitor_name)
+        kwargs = {'monitor_name': monitor_name, 'detector_name': detector_name}
+
+        objects = MonitorServiceManager().get_trained_objects(**kwargs)
+
         return JsonResponse(sorted(list(objects)), safe=False)
     except Exception as e:
         logger.error(e)
-        return JsonResponse([], safe=False)
+        return JsonResponse({'error': e.args}, safe=False)
 
 
 def get_logged_objects(request) -> JsonResponse:
@@ -203,7 +207,7 @@ def get_logged_objects(request) -> JsonResponse:
         return JsonResponse(sorted(list(objects)), safe=False)
     except Exception as e:
         logger.error(e)
-        return JsonResponse([], safe=False)
+        return JsonResponse({'error': e.args}, safe=False)
 
 
 def get_notification_objects(request) -> JsonResponse:
@@ -216,7 +220,7 @@ def get_notification_objects(request) -> JsonResponse:
         return JsonResponse(objects, safe=False)
     except Exception as e:
         logger.error(e)
-        return JsonResponse([], safe=False)
+        return JsonResponse({'error': e.args}, safe=False)
 
 
 def toggle_logged_objects(request) -> JsonResponse:
@@ -231,12 +235,12 @@ def toggle_logged_objects(request) -> JsonResponse:
         objects = [o.strip() for o in request.GET.get('objects', None).split(",")]
 
         rv = MonitorServiceManager().toggle_logged_objects(monitor_name=monitor_name,
-                                                           objects=objects)
+                                                           toggle_objects=objects)
 
         return JsonResponse(rv, safe=False)
     except Exception as e:
         logger.error(e)
-        JsonResponse([], safe=False)
+        return JsonResponse({'error': e.args}, safe=False)
 
 
 def toggle_notification_objects(request) -> JsonResponse:
@@ -250,7 +254,7 @@ def toggle_notification_objects(request) -> JsonResponse:
     objects = [o.strip() for o in request.GET.get('objects', None).split(",")]
 
     rv = MonitorServiceManager().toggle_notification_objects(monitor_name=monitor_name,
-                                                             objects=objects)
+                                                             toggle_objects=objects)
 
     return JsonResponse(rv, safe=False)
 

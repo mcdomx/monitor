@@ -41,7 +41,7 @@ class LogService(ServiceAbstract):
     @staticmethod
     def _get_monitor_info(subject_info):
         for s in subject_info:
-            if type(s) == 'Tuple':
+            if type(s) == tuple:
                 if s[0] == 'Monitor':
                     return s[1]
                 else:
@@ -49,7 +49,6 @@ class LogService(ServiceAbstract):
 
     def update(self, subject_info: tuple):
         logger.info(f"[{__name__}] UPDATE: {subject_info}")
-
         monitor_info = LogService._get_monitor_info(subject_info)
 
         if monitor_info.get('logged_objects', False):
