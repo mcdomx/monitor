@@ -16,6 +16,7 @@ urlpatterns = [
 
     # API routes
     path("get_streams", api.get_streams, name="get_streams"),
+    re_path(r"create_stream[\/|\?].*", api.create_stream, name='create_stream'),
     path("get_detectors", api.get_detectors, name="get_detectors"),
 
     re_path(r"create_monitor[\/|\?].*", api.create_monitor, name='create_monitor'),

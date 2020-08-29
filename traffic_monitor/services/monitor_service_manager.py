@@ -65,6 +65,9 @@ class MonitorServiceManager:
             :return:
             """
             # use helper function to determine a new list of objects after toggling
+            if type(objects) == str:
+                objects = [o.strip() for o in objects.split(",")]
+
             toggled_objects: list = MonitorServiceManager()._get_toggled_objects(monitor_name, objects, _type=_type)
             return MonitorServiceManager().set_objects(monitor_name, toggled_objects, _type)
 
@@ -92,12 +95,16 @@ class MonitorServiceManager:
             return MonitorFactory().all_feeds()
 
         @staticmethod
+        def create_stream(**kwargs) -> dict:
+            return MonitorFactory().create_feed(**kwargs)
+
+        @staticmethod
         def all_detectors() -> list:
             return MonitorFactory().all_detectors()
 
         @staticmethod
-        def get_monitor(monitor_name: str) -> dict:
-            return MonitorFactory().get(monitor_name=monitor_name)
+        def get_monitor(name: str) -> dict:
+            return MonitorFactory().get(monitor_name=name)
 
         @staticmethod
         def create_feed(cam: str, time_zone: str, description: str) -> dict:
@@ -118,20 +125,37 @@ class MonitorServiceManager:
             :param kwargs:
             :return:
             """
-            # validate log and notification lists
-            log_objects, invalid_objects = MonitorServiceManager()._validate_objects(kwargs.get('log_objects'),
-                                                                                     kwargs.get('detector_name'))
-            notification_objects, invalid_objects = MonitorServiceManager()._validate_objects(
-                kwargs.get('notification_objects'), kwargs.get('detector_name'))
+            # convert string to lists for log and notification objects
 
-            # update variables so they only include valid objects
-            kwargs.update({'log_objects': log_objects})
-            kwargs.update({'notification_objects': notification_objects})
+            # validate log and notification lists
+            invalid_log_objects = []
+            invalid_not_objects = []
+            if kwargs.get('log_objects'):
+                if type(kwargs.get('log_objects')) == str:
+                    kwargs.update({'log_objects': [o.strip() for o in kwargs.get('log_objects').split(",")]})
+                log_objects, invalid_log_objects = MonitorServiceManager()._validate_objects(kwargs.get('log_objects'),
+                                                                                             kwargs.get(
+                                                                                                 'detector_name'))
+                kwargs.update({'log_objects': log_objects})
+
+            if kwargs.get('notification_objects'):
+                if type(kwargs.get('notification_objects')) == str:
+                    kwargs.update(
+                        {'notification_objects': [o.strip() for o in kwargs.get('notification_objects').split(",")]})
+                notification_objects, invalid_not_objects = MonitorServiceManager()._validate_objects(
+                    kwargs.get('notification_objects'), kwargs.get('detector_name'))
+                kwargs.update({'notification_objects': notification_objects})
 
             rv = MonitorFactory().create(**kwargs)
 
-            if len(invalid_objects) > 0:
-                message = {'message': f"Untrained objects are not considered: {invalid_objects}"}
+            # create return messages that identify untrained items that were included in lists
+            if len(invalid_log_objects) > 0:
+                message = {'message_log': f"Untrained log objects are not considered: {invalid_log_objects}"}
+                logger.warning(message)
+                rv = {**message, **rv}
+
+            if len(invalid_not_objects) > 0:
+                message = {'message_not': f"Untrained notification objects are not considered: {invalid_not_objects}"}
                 logger.warning(message)
                 rv = {**message, **rv}
 
@@ -242,4 +266,3 @@ class MonitorServiceManager:
         @staticmethod
         def get_monitor_configuration(monitor_name: str) -> dict:
             return MonitorFactory().get_monitor_configuration(monitor_name)
-

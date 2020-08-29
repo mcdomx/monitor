@@ -2,8 +2,10 @@ import logging
 import pafy
 import cv2 as cv
 import numpy as np
+import json
 
 from traffic_monitor.models.model_feed import Feed
+
 
 logger = logging.getLogger('model')
 
@@ -127,13 +129,13 @@ class FeedFactory:
 
             try:
                 url = FeedFactory().get_url(cam=cam)
-                obj = Feed.objects.create(cam=cam, url=url, description=description, time_zone=time_zone)
+                obj: Feed = Feed.objects.create(cam=cam, url=url, description=description, time_zone=time_zone)
                 obj.save()
                 logger.info(f"Created new feed entry for: {cam}")
-                return {'success': True, 'feed': obj}
+                return obj.__dict__
             except Exception as e:
                 logger.error(e)
-                return {'success': False, 'message': e}
+                return {'success': False, 'message': e.args}
 
         @staticmethod
         def refresh_url(feed_id: str):

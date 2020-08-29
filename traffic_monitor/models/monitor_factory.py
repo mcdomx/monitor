@@ -39,13 +39,12 @@ class MonitorFactory:
             return Monitor.all_detectors()
 
         @staticmethod
-        def create(name: str,
-                   detector_name: str, detector_model: str, feed_id: str,
-                   log_objects: list,
-                   notification_objects: list,
-                   logging_on: bool,
-                   notifications_on: bool,
-                   charting_on: bool) -> dict:
+        def create(name: str, detector_name: str, detector_model: str, feed_id: str,
+                   log_objects: list = [],
+                   notification_objects: list = [],
+                   logging_on: bool = True,
+                   notifications_on: bool = False,
+                   charting_on: bool = False) -> dict:
             """
             Create a Monitor entry which is a combination of detector and feed
             as well as the logged and notified objects.

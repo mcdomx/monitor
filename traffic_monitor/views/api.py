@@ -69,6 +69,44 @@ def get_streams(request) -> JsonResponse:
         return JsonResponse({'error': e.args}, safe=False)
 
 
+def _parse_args(request, *args):
+    """
+    Helper function that will parse a series of args from a request.
+    If an arg is not in the request, an exception is thrown.
+    Arguments in the request that are not listed are included in the returned dictionary.
+    :param request: The HTTP request that should contain the arguments
+    :param args: A series of string values that represent the name of the argument
+    :return: A dictionary where keys are the arguments and values the respective values of each argument.
+    """
+
+    rv = {}
+
+    for arg_name in args:
+        arg_value = request.GET.get(arg_name)
+        if not arg_value:
+            raise Exception(f"'{arg_name}' parameter is required.")
+        rv.update({arg_name: arg_value})
+
+    other_args = set(request.GET.keys()).difference(rv.keys())
+    for other_name in other_args:
+        rv.update({other_name: request.GET.get(other_name)})
+
+    return rv
+
+
+def create_stream(request) -> JsonResponse:
+
+    try:
+        kwargs = _parse_args(request, 'cam', 'time_zone', 'description')
+        rv = MonitorServiceManager().create_stream(**kwargs)
+        # only return values that are Json serializable
+        rv = _filter_serializable(rv)
+        return JsonResponse(rv, safe=False)
+    except Exception as e:
+        logger.error(e)
+        return JsonResponse({'error': e.args}, safe=False)
+
+
 def get_detectors(request) -> JsonResponse:
     """
     Return a dictionary of all available detector_machines.
@@ -118,11 +156,12 @@ def _filter_serializable(filter_me: dict) -> dict:
 
 def get_monitor(request) -> JsonResponse:
     try:
-        name = request.GET.get('name')
-        if name is None:
-            raise Exception("'name' parameter is required.")
+        kwargs = _parse_args(request, 'name')
+        # name = request.GET.get('name')
+        # if name is None:
+        #     raise Exception("'name' parameter is required.")
 
-        mon = MonitorServiceManager().get_monitor(monitor_name=name)
+        mon = MonitorServiceManager().get_monitor(**kwargs)
 
         # only return values that are Json serializable
         rv = _filter_serializable(mon)
@@ -141,34 +180,8 @@ def create_monitor(request) -> JsonResponse:
     :return:
     """
     try:
-        name = request.GET.get('name', None)
-        detector_name = request.GET.get('detector_name', None)
-        detector_model = request.GET.get('detector_model', None)
-        feed_id = request.GET.get('feed_id', None)
-        logging_on = bool(request.GET.get('logging_on', True))
-        notifications_on = bool(request.GET.get('notifications_on', False))
-        charting_on = bool(request.GET.get('charting_on', False))
-        log_objects = [o.strip() for o in request.GET.get('log_objects', None).split(",")]
-        notification_objects = [o.strip() for o in request.GET.get('notification_objects', None).split(",")]
-
-        if name is None:
-            raise Exception("'name' parameter is required.")
-        if detector_name is None:
-            raise Exception("'detector_name' parameter is required.")
-        if detector_model is None:
-            raise Exception("'detector_model' parameter is required.")
-        if feed_id is None:
-            raise Exception("'feed_id' parameter is required.")
-
-        mon = MonitorServiceManager().create_monitor(name=name,
-                                                     detector_name=detector_name,
-                                                     detector_model=detector_model,
-                                                     feed_id=feed_id,
-                                                     log_objects=log_objects,
-                                                     notification_objects=notification_objects,
-                                                     logging_on=logging_on,
-                                                     notifications_on=notifications_on,
-                                                     charting_on=charting_on)
+        kwargs = _parse_args(request, 'name', 'detector_name', 'detector_model', 'feed_id')
+        mon = MonitorServiceManager().create_monitor(**kwargs)
 
         # only return values that are Json serializable
         rv = _filter_serializable(mon)
@@ -199,11 +212,9 @@ def get_trained_objects(request) -> JsonResponse:
 
 def get_log_objects(request) -> JsonResponse:
     try:
-        monitor_name = request.GET.get('monitor_name', None)
-        if monitor_name is None:
-            raise Exception("'monitor_name' of a Monitor is a required parameter.")
+        kwargs = _parse_args(request, 'monitor_name')
 
-        objects = MonitorServiceManager().get_objects(monitor_name, _type='log')
+        objects = MonitorServiceManager().get_objects(**kwargs, _type='log')
         return JsonResponse(sorted(list(objects)), safe=False)
     except Exception as e:
         logger.error(e)
@@ -212,11 +223,9 @@ def get_log_objects(request) -> JsonResponse:
 
 def get_notification_objects(request) -> JsonResponse:
     try:
-        monitor_name = request.GET.get('monitor_name', None)
-        if monitor_name is None:
-            raise Exception("'monitor_name' of a Monitor is a required parameter.")
+        kwargs = _parse_args(request, 'monitor_name')
 
-        objects = MonitorServiceManager().get_objects(monitor_name, _type='notification')
+        objects = MonitorServiceManager().get_objects(**kwargs, _type='notification')
         return JsonResponse(objects, safe=False)
     except Exception as e:
         logger.error(e)
@@ -224,20 +233,19 @@ def get_notification_objects(request) -> JsonResponse:
 
 
 def toggle_objects(request, _type: str = None) -> JsonResponse:
-    monitor_name = request.GET.get('monitor_name', None)
-    if monitor_name is None:
-        return JsonResponse({"success": False, "message": "'monitor_name' of a Monitor is a required parameter."})
+    kwargs = _parse_args(request, 'monitor_name', 'objects')
 
-    objects = [o.strip() for o in request.GET.get('objects', None).split(",")]
-    if objects is None:
-        return JsonResponse({"success": False, "message": "A comma separated list of 'objects' is required."})
+    # the type parameter needs special handling since type is a reserved word
+    if 'type' not in kwargs.keys():
+        if _type is None:
+            return JsonResponse({"success": False, "message": "A 'type' is required. ('log', 'notification')"})
+        else:
+            kwargs.update({'_type': _type})
+    else:
+        kwargs.update({'_type': kwargs.get('type')})
+        kwargs.pop('type')
 
-    _type = request.GET.get('type', _type)
-    if _type is None:
-        return JsonResponse({"success": False, "message": "A 'type' is required. ('log', 'notification')"})
-
-    return JsonResponse(MonitorServiceManager().toggle_objects(monitor_name=monitor_name, objects=objects, _type=_type),
-                        safe=False)
+    return JsonResponse(MonitorServiceManager().toggle_objects(**kwargs), safe=False)
 
 
 def toggle_log_objects(request) -> JsonResponse:
@@ -259,11 +267,6 @@ def _set_objects(request, _type: str) -> JsonResponse:
 
     return JsonResponse(MonitorServiceManager().set_objects(monitor_name=monitor_name, objects=objects, _type=_type),
                         safe=False)
-    # elif set_type == 'notify':
-    #     return JsonResponse(
-    #         MonitorServiceManager().set_notification_objects(monitor_name=monitor_name, objects=objects), safe=False)
-    # else:
-    #     return JsonResponse([], safe=False)
 
 
 def set_log_objects(request) -> JsonResponse:
@@ -292,11 +295,9 @@ def start_monitor(request):
 
 
 def stop_monitor(request):
-    monitor_name = request.GET.get('monitor_name', None)
-    if monitor_name is None:
-        return JsonResponse({"success": False, "message": "'monitor_name' of a Monitor is a required parameter."})
+    kwargs = _parse_args(request, 'monitor_name')
 
-    rv = MonitorServiceManager().stop_monitor(monitor_name)
+    rv = MonitorServiceManager().stop_monitor(**kwargs)
 
     return JsonResponse(rv, safe=False)
 
