@@ -23,10 +23,10 @@ urlpatterns = [
     re_path(r"get_monitor[\/|\?].*", api.get_monitor, name='get_monitor'),
 
     re_path(r"get_trained_objects[\/|\?].*", api.get_trained_objects, name='get_trained_objects'),
-    re_path(r"get_logged_objects[\/|\?].*", api.get_logged_objects, name='get_logged_objects'),
+    re_path(r"get_log_objects[\/|\?].*", api.get_log_objects, name='get_log_objects'),
     re_path(r"get_notification_objects[\/|\?].*", api.get_notification_objects, name='get_notified_objects'),
 
-    re_path(r"toggle_logged_objects[\/|\?].*", api.toggle_logged_objects, name='toggle_logged_objects'),
+    re_path(r"toggle_log_objects[\/|\?].*", api.toggle_log_objects, name='toggle_log_objects'),
     re_path(r"toggle_notification_objects[\/|\?].*", api.toggle_notification_objects, name='toggle_notification_objects'),
 
     re_path(r"set_log_objects[\/|\?].*", api.set_log_objects, name='set_log_objects'),

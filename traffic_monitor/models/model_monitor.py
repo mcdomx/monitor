@@ -1,9 +1,13 @@
 
+import logging
 from django.db import models
 from traffic_monitor.models.detector_factory import DetectorFactory
 from traffic_monitor.models.model_detector import Detector
 from traffic_monitor.models.feed_factory import FeedFactory
 from traffic_monitor.models.model_feed import Feed
+
+
+logger = logging.getLogger('monitor')
 
 
 class Monitor(models.Model):
@@ -27,9 +31,12 @@ class Monitor(models.Model):
 
     @staticmethod
     def get(monitor_name: str):
-        monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-        FeedFactory().refresh_url(monitor.feed_id)
-        return Monitor.objects.get(pk=monitor_name)
+        try:
+            monitor: Monitor = Monitor.objects.get(pk=monitor_name)
+            FeedFactory().refresh_url(monitor.feed_id)
+            return Monitor.objects.get(pk=monitor_name)
+        except Monitor.DoesNotExist as e:
+            logger.error(f"[{__name__}]: {monitor_name} {e}")
 
     @staticmethod
     def create(**kwargs):
@@ -42,62 +49,25 @@ class Monitor(models.Model):
         kwargs.update({'feed': feed})
         return Monitor.objects.create(**kwargs)
 
-    def get_logged_objects(self) -> list:
-        return sorted(self.log_objects)
+    def get_objects(self, _type: str) -> list:
+        if _type == 'log':
+            return sorted(self.log_objects)
+        elif _type == 'notification':
+            return sorted(self.notification_objects)
+        else:
+            raise Exception(f"Object type '{_type}' not supported.")
 
-    def get_notification_objects(self) -> list:
-        return sorted(self.notification_objects)
-
-    # def toggle_notification_objects(self, objects: list) -> list:
-    #     """
-    #     Toggle a single object's notification status on or off by the name of the object.
-    #
-    #     :param objects: List of named object strings
-    #     :return: None if object is not supported and no action taken; else; the name of the object.
-    #     """
-    #     if len(objects) == 0:
-    #         pass
-    #
-    #     for o in objects:
-    #         if o in self.notification_objects:
-    #             self.notification_objects.remove(o)
-    #             self.save()
-    #         else:
-    #             self.notification_objects.append(o)
-    #             self.save()
-    #
-    #     return self.notification_objects
-
-    # def toggle_logged_objects(self, objects: list) -> list:
-    #     """
-    #     Toggle a single object's logging status on or off by the name of the object.
-    #
-    #     :param objects: String list of objects to toggle
-    #     :return: None if object is not supported and no action taken; else; the name of the object.
-    #     """
-    #
-    #     if len(objects) == 0:
-    #         pass
-    #
-    #     for o in objects:
-    #         if o in self.log_objects:
-    #             self.log_objects.remove(o)
-    #             self.save()
-    #         else:
-    #             self.log_objects.append(o)
-    #             self.save()
-    #
-    #     return self.log_objects
-
-    def set_log_objects(self, set_objects: list) -> list:
-        self.log_objects = set_objects
-        self.save()
-        return self.log_objects
-
-    def set_notification_objects(self, set_objects: list):
-        self.notification_objects = set_objects
-        self.save()
-        return self.notification_objects
+    def set_objects(self, objects: list, _type: str) -> list:
+        if _type == 'log':
+            self.log_objects = objects
+            self.save()
+            return sorted(self.log_objects)
+        elif _type == 'notification':
+            self.notification_objects = objects
+            self.save()
+            return sorted(self.notification_objects)
+        else:
+            raise Exception(f"Object type '{_type}' not supported.")
 
     def get_detector_name(self):
         return self.detector.name

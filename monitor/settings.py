@@ -168,6 +168,8 @@ LOGGING = {
                          'level': 'INFO', },
                 'model': {'handlers': ['console'],
                           'level': 'INFO', },
+                'monitor': {'handlers': ['console'],
+                            'level': 'INFO', },
                 'detector': {'handlers': ['console'],
                              'level': 'INFO', },
                 'command': {'handlers': ['console'],

@@ -197,13 +197,13 @@ def get_trained_objects(request) -> JsonResponse:
         return JsonResponse({'error': e.args}, safe=False)
 
 
-def get_logged_objects(request) -> JsonResponse:
+def get_log_objects(request) -> JsonResponse:
     try:
         monitor_name = request.GET.get('monitor_name', None)
         if monitor_name is None:
             raise Exception("'monitor_name' of a Monitor is a required parameter.")
 
-        objects = MonitorServiceManager().get_logged_objects(monitor_name)
+        objects = MonitorServiceManager().get_objects(monitor_name, _type='log')
         return JsonResponse(sorted(list(objects)), safe=False)
     except Exception as e:
         logger.error(e)
@@ -216,50 +216,14 @@ def get_notification_objects(request) -> JsonResponse:
         if monitor_name is None:
             raise Exception("'monitor_name' of a Monitor is a required parameter.")
 
-        objects = MonitorServiceManager().get_notification_objects(monitor_name)
+        objects = MonitorServiceManager().get_objects(monitor_name, _type='notification')
         return JsonResponse(objects, safe=False)
     except Exception as e:
         logger.error(e)
         return JsonResponse({'error': e.args}, safe=False)
 
 
-def toggle_logged_objects(request) -> JsonResponse:
-    try:
-        monitor_name = request.GET.get('monitor_name', None)
-        if monitor_name is None:
-            raise Exception("'monitor_name' of a Monitor is a required parameter.")
-
-        objects = request.GET.get('objects', None)
-        if objects is None:
-            raise Exception("'objects' is a required parameter.")
-        objects = [o.strip() for o in request.GET.get('objects', None).split(",")]
-
-        rv = MonitorServiceManager().toggle_logged_objects(monitor_name=monitor_name,
-                                                           toggle_objects=objects)
-
-        return JsonResponse(rv, safe=False)
-    except Exception as e:
-        logger.error(e)
-        return JsonResponse({'error': e.args}, safe=False)
-
-
-def toggle_notification_objects(request) -> JsonResponse:
-    monitor_name = request.GET.get('monitor_name', None)
-    if monitor_name is None:
-        raise Exception("'monitor_name' of a Monitor is a required parameter.")
-
-    objects = request.GET.get('objects', None)
-    if objects is None:
-        raise Exception("'objects' is a required parameter.")
-    objects = [o.strip() for o in request.GET.get('objects', None).split(",")]
-
-    rv = MonitorServiceManager().toggle_notification_objects(monitor_name=monitor_name,
-                                                             toggle_objects=objects)
-
-    return JsonResponse(rv, safe=False)
-
-
-def _set_objects(request, set_type: str) -> JsonResponse:
+def toggle_objects(request, _type: str = None) -> JsonResponse:
     monitor_name = request.GET.get('monitor_name', None)
     if monitor_name is None:
         return JsonResponse({"success": False, "message": "'monitor_name' of a Monitor is a required parameter."})
@@ -268,22 +232,46 @@ def _set_objects(request, set_type: str) -> JsonResponse:
     if objects is None:
         return JsonResponse({"success": False, "message": "A comma separated list of 'objects' is required."})
 
-    if set_type == 'log':
-        return JsonResponse(MonitorServiceManager().set_log_objects(monitor_name=monitor_name, set_objects=objects),
-                            safe=False)
-    elif set_type == 'notify':
-        return JsonResponse(
-            MonitorServiceManager().set_notification_objects(monitor_name=monitor_name, set_objects=objects), safe=False)
-    else:
-        return JsonResponse([], safe=False)
+    _type = request.GET.get('type', _type)
+    if _type is None:
+        return JsonResponse({"success": False, "message": "A 'type' is required. ('log', 'notification')"})
+
+    return JsonResponse(MonitorServiceManager().toggle_objects(monitor_name=monitor_name, objects=objects, _type=_type),
+                        safe=False)
+
+
+def toggle_log_objects(request) -> JsonResponse:
+    return toggle_objects(request=request, _type='log')
+
+
+def toggle_notification_objects(request) -> JsonResponse:
+    return toggle_objects(request=request, _type='notification')
+
+
+def _set_objects(request, _type: str) -> JsonResponse:
+    monitor_name = request.GET.get('monitor_name', None)
+    if monitor_name is None:
+        return JsonResponse({"success": False, "message": "'monitor_name' of a Monitor is a required parameter."})
+
+    objects = [o.strip() for o in request.GET.get('objects', None).split(",")]
+    if objects is None:
+        return JsonResponse({"success": False, "message": "A comma separated list of 'objects' is required."})
+
+    return JsonResponse(MonitorServiceManager().set_objects(monitor_name=monitor_name, objects=objects, _type=_type),
+                        safe=False)
+    # elif set_type == 'notify':
+    #     return JsonResponse(
+    #         MonitorServiceManager().set_notification_objects(monitor_name=monitor_name, objects=objects), safe=False)
+    # else:
+    #     return JsonResponse([], safe=False)
 
 
 def set_log_objects(request) -> JsonResponse:
-    return _set_objects(request=request, set_type='log')
+    return _set_objects(request=request, _type='log')
 
 
 def set_notification_objects(request) -> JsonResponse:
-    return _set_objects(request=request, set_type='notify')
+    return _set_objects(request=request, _type='notification')
 
 
 def start_monitor(request):
@@ -313,11 +301,6 @@ def stop_monitor(request):
     return JsonResponse(rv, safe=False)
 
 
-
-
-
 def get_chart(request, monitor_id: int, interval: int = 0):
     rv = chart_views.get_chart(monitor_id=monitor_id, interval=interval)
     return rv
-
-

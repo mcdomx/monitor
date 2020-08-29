@@ -28,31 +28,26 @@ class LogService(ServiceAbstract):
 
     def __init__(self, **kwargs):
         super().__init__()
-        # threading.Thread.__init__(self)
-        # Subject.__init__(self)
         self.subject_name = f"logservice__{kwargs.get('monitor_name')}"
         self.running = False
         self.monitor_name = kwargs.get('monitor_name')
         self.time_zone = kwargs.get('time_zone')
-        self.logged_objects = kwargs.get('logged_objects')
-        self.queue_dets_log = kwargs.get('queue_dets_log') # ref to queue in Monitor where detections are stored for logging
+        self.log_objects = kwargs.get('log_objects')
+        self.queue_dets_log = kwargs.get('queue_dets_log')  # ref to queue in Monitor where detections are stored for logging
         self.log_interval = kwargs.get('log_interval')  # freq (in sec) in detections are logged
 
-    @staticmethod
-    def _get_monitor_info(subject_info):
-        for s in subject_info:
-            if type(s) == tuple:
-                if s[0] == 'Monitor':
-                    return s[1]
-                else:
-                    return LogService._get_monitor_info(s[1])
+    def set_log_objects(self, objects: list):
+        self.log_objects = objects
+        return self.log_objects
 
     def update(self, subject_info: tuple):
-        logger.info(f"[{__name__}] UPDATE: {subject_info}")
-        monitor_info = LogService._get_monitor_info(subject_info)
-
-        if monitor_info.get('logged_objects', False):
-            self.logged_objects = monitor_info.get('logged_objects')
+        # updating objects is handled by the monitor service
+        pass
+    #     logger.info(f"[{__name__}] UPDATE: {subject_info}")
+    #     monitor_info = LogService._get_monitor_info(subject_info)
+    #
+    #     if monitor_info.get('logged_objects', False):
+    #         self.logged_objects = monitor_info.get('logged_objects')
 
     def start(self):
         self.running = True
@@ -84,7 +79,7 @@ class LogService(ServiceAbstract):
                 # Only count items that are on the logged_objects list
                 objs_unique = set(log_interval_detections)
                 minute_counts_dict = {obj: round(log_interval_detections.count(obj) / capture_count, 3) for obj in
-                                      objs_unique if obj in self.logged_objects}
+                                      objs_unique if obj in self.log_objects}
                 timestamp = datetime.datetime.now(tz=pytz.timezone(self.time_zone))
 
                 # add observations to database

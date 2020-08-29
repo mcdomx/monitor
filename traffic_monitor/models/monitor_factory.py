@@ -2,8 +2,7 @@ import logging
 
 from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.models.feed_factory import FeedFactory
-
-from traffic_monitor.services.observer import Subject, Observer
+from traffic_monitor.services.observer import Subject
 
 
 class MonitorFactory:
@@ -92,49 +91,21 @@ class MonitorFactory:
             except Monitor.DoesNotExist:
                 raise Exception(f"Monitor with name '{monitor_name}' does not exist.")
 
-        # @staticmethod
-        # def toggle_logged_objects(monitor_name: str, objects: list) -> list:
-        #     try:
-        #         monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-        #         logged_objects = monitor.toggle_logged_objects(objects=objects)
-        #         MonitorFactory().publish({'logged_objects': logged_objects})
-        #         return logged_objects
-        #     except Monitor.DoesNotExist as e:
-        #         raise Exception({'error': e.args, 'message': "monitor_factory.py toggle_logged_objects", 'arguments': {monitor_name, objects} })
-        #
-        # @staticmethod
-        # def toggle_notification_objects(monitor_name: str, objects: list) -> list:
-        #     monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-        #     return monitor.toggle_notification_objects(objects=objects)
-
-        @staticmethod
-        def set_logged_objects(monitor_name: str, set_objects: list):
-            monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            objects = monitor.set_log_objects(set_objects=set_objects)
-            MonitorFactory().publish({'logged_objects': objects})
-            return objects
-
-        @staticmethod
-        def set_notification_objects(monitor_name: str, set_objects: list):
-            monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            objects = monitor.set_notification_objects(set_objects=set_objects)
-            MonitorFactory().publish({'notification_objects': objects})
-            return objects
-
         @staticmethod
         def get_detector_name(monitor_name: str) -> str:
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
             return monitor.get_detector_name()
 
         @staticmethod
-        def get_logged_objects(monitor_name: str) -> list:
+        def get_objects(monitor_name: str, _type: str) -> list:
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            return monitor.get_logged_objects()
+            return monitor.get_objects(_type=_type)
 
         @staticmethod
-        def get_notification_objects(monitor_name: str) -> list:
+        def set_objects(monitor_name: str, objects: list, _type: str) -> list:
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            return monitor.get_notification_objects()
+            MonitorFactory().publish({f'set_{_type}_objects': objects})
+            return monitor.set_objects(objects, _type)
 
         @staticmethod
         def get_monitor_configuration(monitor_name: str) -> dict:
@@ -145,7 +116,7 @@ class MonitorFactory:
                     'detector_name': monitor.detector.name,
                     'detector_model': monitor.detector.model,
                     'feed_id': monitor.feed.cam,
-                    'feed_url': monitor.feed.url,
+                    # 'feed_url': monitor.feed.url,
                     'time_zone': monitor.feed.time_zone,
                     'logged_objects': monitor.log_objects,
                     'notified_objects': monitor.notification_objects,

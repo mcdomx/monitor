@@ -10,7 +10,6 @@ import logging
 
 import cv2 as cv
 
-# from traffic_monitor.services.observer import Observer, Subject
 from traffic_monitor.detector_machines.detetor_machine_factory import DetectorMachineFactory
 from traffic_monitor.services.service_abstract import ServiceAbstract
 
@@ -19,7 +18,6 @@ BUFFER_SIZE = 512
 logger = logging.getLogger('monitor_service')
 
 
-# class MonitorService(threading.Thread, Observer, Subject):
 class MonitorService(ServiceAbstract):
     """
     A Monitor is defined as a Detector and a URL video feed.
@@ -54,8 +52,6 @@ class MonitorService(ServiceAbstract):
                  log_interval: int, detection_interval: int, charting_interval: int):
         """ Requires existing monitor.  1:1 relationship with a monitor but this is not
         enforced when creating the Monitor Service. """
-        # threading.Thread.__init__(self)
-        # Observer.__init__(self)
         ServiceAbstract.__init__(self)
         self.id = id(self)
 
@@ -90,14 +86,16 @@ class MonitorService(ServiceAbstract):
 
         # Monitor Service Parameters
         self.notified_objects: list = monitor_config.get('notified_objects')
-        self.logged_objects: list = monitor_config.get('logged_objects')
+        self.log_objects: list = monitor_config.get('log_objects')
         self.log_interval: int = log_interval
         self.log_channel_url: str = '/ws/traffic_monitor/log/'
         self.detection_interval: int = detection_interval
 
+        self.active_services = []
+
         self.subject_name = f"monitor_service__{self.monitor_name}"
 
-        # start detector machine
+        # set arguments used to start monitor
         self.service_kwargs = {
             'monitor_name': self.monitor_name,
             'time_zone': self.time_zone,
@@ -109,7 +107,7 @@ class MonitorService(ServiceAbstract):
             'queue_dets_log': self.queue_dets_log,
             'queue_dets_mon': self.queue_dets_not,
             'notified_objects': self.notified_objects,
-            'logged_objects': self.logged_objects,
+            'log_objects': self.log_objects,
             'log_interval': self.log_interval,
             'detection_interval': self.detection_interval,
             'charting_interval': self.charting_interval
@@ -123,22 +121,16 @@ class MonitorService(ServiceAbstract):
 
         return f"{str_rv}"
 
-    def get_config(self) -> dict:
-        config_dict = {
-            'thread_name': self.name,
-            'monitor_name': self.monitor_name,
-            'detector_name': self.detector_name,
-            'detector_model': self.detector_model,
-            'feed_id': self.feed_id,
-            'logging': self.logging_on,
-            'logged_objects': self.logged_objects,
-            'notifications': self.notifications_on,
-            'notified_objects': self.notified_objects,
-            'charting': self.charting_on,
-            'services': [f"{s.__name__}" for s in self.services]
-        }
+    @staticmethod
+    def _get_message_info(subject_name, subject_info):
+        if subject_info[0] == subject_name:
+            return subject_info[1]
+        else:
+            for s in subject_info:
+                if type(s) == tuple:
+                    return MonitorService._get_message_info(subject_name, s[1])
 
-        return config_dict
+        return {}
 
     def update(self, subject_info: tuple):
         """
@@ -149,13 +141,45 @@ class MonitorService(ServiceAbstract):
         :return: None
         """
         logger.info(f"{[{__name__}]} :UPDATED WITH: {subject_info}")
-        self.publish(subject_info)
+        # messages include the function name and parameter that should be
+        # applied to each service that implements the function.
+
+        # get the subject info
+        # the result is a k, v entry where the key is a function name
+        # and the value is a parameter value to apply to the function
+        subject_info: dict = MonitorService._get_message_info('Monitor', subject_info)
+
+        # for each service, apply function with attribute if the function
+        # is supported by the service
+        try:
+            for f_name, a_value in subject_info.items():
+                if hasattr(self, f_name) and callable(getattr(self, f_name)):
+                    func = getattr(self, f_name)
+                    rv = func(a_value)
+                    logger.info(f"'{self.__class__.__name__}' :UPDATED WITH: {f_name}({a_value}) RV: {rv}")
+        except Exception as e:
+            logger.error(f"[{self.__class__.__name__}]: {e}")
+
+    def set_objects(self, objects: list, _type: str):
+        pass
+
+    def set_log_objects(self, objects: list):
+        self.log_objects = objects
+        f_name = 'set_log_objects'
+        try:
+            for s in self.active_services:
+                if hasattr(s, f_name) and callable(getattr(s, f_name)):
+                    func = getattr(s, f_name)
+                    rv = func(objects)
+                    logger.info(f"'{s.__class__.__name__}' :UPDATED WITH: {f_name}({objects}) RV: {rv}")
+        except Exception as e:
+            logger.error(f"[{self.__class__.__name__}]: {e}")
 
     def get_next_frame(self):
         q = self.queue_refframe.get()
         return q.get()
 
-    def start(self) -> str:
+    def start(self) -> dict:
         """
         Overriding Threading.start() so that we can test if a monitor service  is already active for
         the monitor and set the 'running' variable.
@@ -164,7 +188,8 @@ class MonitorService(ServiceAbstract):
         try:
             self.running = True
             threading.Thread.start(self)
-            return f"[{__name__}] Service started for:  {self.monitor_name}"
+            message = {'message': f"[{__name__}] Service started for: {self.monitor_name}"}
+            return message
         except Exception as e:
             raise Exception(f"[{__name__}] Could not start '{self.monitor_name}': {e}")
 
@@ -188,33 +213,12 @@ class MonitorService(ServiceAbstract):
         self.detector.start()
 
         # start services and register the monitor as observer of the service
-        active_services = []
+        # active_services = []
         for service in self.services:
             s: ServiceAbstract = service(**self.service_kwargs)
             self.register(s)  # register the service as an observer with the monitor service
             s.start()
-            active_services.append(s)
-
-        # # start a logging service and register as observer
-        # if self.logging_on:
-        #     log = LogService(monitor_name=self.monitor_name,
-        #                      queue_dets_log=self.queue_dets_log,
-        #                      log_interval=self.log_interval,
-        #                      time_zone=self.time_zone)
-        #     log.register(self)  # register with the log service to get log updates
-        #     log.start()
-        #
-        # # start a charting service and register as observer
-        # if self.charting_on:
-        #     chart = ChartService(monitor_name=self.monitor_name,
-        #                          charting_interval=self.log_interval)
-        #     chart.register(self)
-        #     chart.start()
-
-        # # start notification service and register as observer
-        # if self.notifications_on:
-        #     """Future release functionality"""
-        #     pass
+            self.active_services.append(s)
 
         logger.info(f"Starting monitoring service for id: {self.monitor_name}")
         logger.info(f"Monitor Service Running for {self.monitor_name}: {self.running}")
@@ -260,23 +264,14 @@ class MonitorService(ServiceAbstract):
         # stop the services
         self.detector.stop()
 
-        for s in active_services:
+        for s in self.active_services:
             s: ServiceAbstract = s
             s.stop()
             s.join()
 
-        # if self.logging_on:
-        #     log.stop()
-        #     log.join()
-        #
-        # if self.charting_on:
-        #     chart.stop()
-        #     chart.join()
-
         self.detector.join()
 
         logger.info(f"Monitor Service, Detector and Log are stopped!")
-
 
     @staticmethod
     def get_trained_objects(detector_name) -> list:
