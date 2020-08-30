@@ -102,8 +102,19 @@ class MonitorFactory:
 
         @staticmethod
         def set_objects(monitor_name: str, objects: list, _type: str) -> list:
+            """
+            The logged objects and notified object variables are updated with new objects.
+            Changes are published to any classes that are registered with this Subject.
+
+            :param monitor_name: Name of the monitor to update
+            :param objects: The new list of objects
+            :param _type: 'log' or 'notification' to reflect the type to update
+            :return: The new list of objects for the respective type
+            """
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            MonitorFactory().publish({f'set_{_type}_objects': objects})
+            # the key is the function name of the observer to call
+            # the value is the argument to that function that should be passed
+            MonitorFactory().publish({'set_objects': {'objects': objects, '_type': _type}})
             return monitor.set_objects(objects, _type)
 
         @staticmethod

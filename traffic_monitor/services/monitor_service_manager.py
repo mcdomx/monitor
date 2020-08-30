@@ -234,8 +234,15 @@ class MonitorServiceManager:
                 rv = ms.start()
                 self.active_monitors.update({monitor_name: ms})
 
-                # register the monitor service with the MonitorFactory to get configuration updates
+                # As observer, register the created monitor service with the MonitorFactory so
+                # the monitor service can get configuration updates to monitor values
+                # like the list of logged objects and notified objects.
                 MonitorFactory().register(ms)
+
+                # register the sub-services with the MonitorFactory to get updates
+                for s in ms.active_services:
+                    print(s.subject_name)
+                    MonitorFactory().register(s)
 
                 return {**rv, **monitor_config}
             except Exception as e:

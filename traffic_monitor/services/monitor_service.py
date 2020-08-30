@@ -121,19 +121,6 @@ class MonitorService(ServiceAbstract):
 
         return f"{str_rv}"
 
-    @staticmethod
-    def _get_message_info(subject_name, subject_info):
-        if len(subject_info) == 1:
-            return {}  # keyword not found
-        elif subject_info[0] == subject_name:
-            return subject_info[1]
-        else:
-            for s in subject_info:
-                if type(s) == tuple:
-                    return MonitorService._get_message_info(subject_name, s[1])
-
-        return {}
-
     def update(self, subject_info: tuple):
         """
         Calling update() with a subject_info tuple, will send the tuple of data to
@@ -143,42 +130,7 @@ class MonitorService(ServiceAbstract):
         :return: None
         """
         logger.info(f"{[{__name__}]} :UPDATED WITH: {subject_info}")
-        # messages include the function name and parameter that should be
-        # applied to each service that implements the function.
-
-        # get the subject info
-        # the result is a k, v entry where the key is a function name
-        # and the value is a parameter value to apply to the function
-        subject_info: dict = MonitorService._get_message_info('Monitor', subject_info)
-
-        # for each service, apply function with attribute if the function
-        # is supported by the service
-        try:
-            for f_name, a_value in subject_info.items():
-                if hasattr(self, f_name) and callable(getattr(self, f_name)):
-                    func = getattr(self, f_name)
-                    if a_value:
-                        rv = func(a_value)
-                    else:
-                        rv = func()
-                    logger.info(f"'{self.__class__.__name__}' :UPDATED WITH: {f_name}({a_value}) RV: {rv}")
-        except Exception as e:
-            logger.error(f"[{self.__class__.__name__}]: {e}")
-
-    def set_objects(self, objects: list, _type: str):
-        pass
-
-    def set_log_objects(self, objects: list):
-        self.log_objects = objects
-        f_name = 'set_log_objects'
-        try:
-            for s in self.active_services:
-                if hasattr(s, f_name) and callable(getattr(s, f_name)):
-                    func = getattr(s, f_name)
-                    rv = func(objects)
-                    logger.info(f"'{s.__class__.__name__}' :UPDATED WITH: {f_name}({objects}) RV: {rv}")
-        except Exception as e:
-            logger.error(f"[{self.__class__.__name__}]: {e}")
+        self._handle_update('Monitor', subject_info)
 
     def get_next_frame(self):
         q = self.queue_refframe.get()
@@ -224,7 +176,7 @@ class MonitorService(ServiceAbstract):
         # active_services = []
         for service in self.services:
             s: ServiceAbstract = service(**self.service_kwargs)
-            self.register(s)  # register the service as an observer with the monitor service
+            # self.register(s)  # register the service as an observer with the monitor service
             s.start()
             self.active_services.append(s)
 

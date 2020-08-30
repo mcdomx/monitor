@@ -36,18 +36,16 @@ class LogService(ServiceAbstract):
         self.queue_dets_log = kwargs.get('queue_dets_log')  # ref to queue in Monitor where detections are stored for logging
         self.log_interval = kwargs.get('log_interval')  # freq (in sec) in detections are logged
 
-    def set_log_objects(self, objects: list):
-        self.log_objects = objects
-        return self.log_objects
-
     def update(self, subject_info: tuple):
-        # updating objects is handled by the monitor service
-        pass
-    #     logger.info(f"[{__name__}] UPDATE: {subject_info}")
-    #     monitor_info = LogService._get_monitor_info(subject_info)
-    #
-    #     if monitor_info.get('logged_objects', False):
-    #         self.logged_objects = monitor_info.get('logged_objects')
+        """
+        Calling update() with a subject_info tuple, will send the tuple of data to
+        any observers that are registered with the Monitor.
+
+        :param subject_info:
+        :return: None
+        """
+        logger.info(f"{[{__name__}]} :UPDATED WITH: {subject_info}")
+        self._handle_update('Monitor', subject_info)
 
     def start(self):
         self.running = True
