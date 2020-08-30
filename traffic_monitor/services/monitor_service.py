@@ -130,7 +130,8 @@ class MonitorService(ServiceAbstract):
         :return: None
         """
         logger.info(f"{[{__name__}]} :UPDATED WITH: {subject_info}")
-        self._handle_update('Monitor', subject_info)
+        # self._handle_update('Monitor', subject_info)
+        self.handle_update('Monitor', subject_info)
 
     def get_next_frame(self):
         q = self.queue_refframe.get()

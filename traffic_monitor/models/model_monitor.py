@@ -71,6 +71,12 @@ class Monitor(models.Model):
         else:
             raise Exception(f"Object type '{_type}' not supported.")
 
+    def set_value(self, field: str, value):
+        setattr(self, field, value)
+        self.save(update_fields={field})
+        print(f"Saved update to {self.name}: {field}: {getattr(self, field)}")
+        return getattr(self, field)
+
     def get_detector_name(self):
         return self.detector.name
 

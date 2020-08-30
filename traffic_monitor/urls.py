@@ -38,6 +38,8 @@ urlpatterns = [
     re_path(r"stop_monitor[\/|\?].*", api.stop_monitor, name="stop_monitor"),
     path("get_active_monitors", api.get_active_monitors, name="get_active_monitors"),
 
+    re_path(r"toggle_service[\/|\?].*", api.toggle_service, name="toggle_service"),
+
     # re_path(r"create_monitor_service[\/|\?].*", api.create_monitor_service, name='create_monitor_service'),
     # path("get_monitor_services", api.get_monitor_services, name="get_monitor_services"),
     # re_path(r"get_monitor_service[\/|\?].*", api.get_monitor_service, name='get_monitor_service'),

@@ -118,6 +118,21 @@ class MonitorFactory:
             return monitor.set_objects(objects, _type)
 
         @staticmethod
+        def set_value(monitor_name: str, field: str, value):
+            """
+            Set the value of model objects
+            :param monitor_name:
+            :param field:
+            :param value:
+            :return:
+            """
+            monitor: Monitor = Monitor.objects.get(pk=monitor_name)
+            MonitorFactory().publish({'subject': 'monitor_config',
+                                      'function': 'set_value',
+                                      'kwargs': {field: value}})
+            return monitor.set_value(field, value)
+
+        @staticmethod
         def get_monitor_configuration(monitor_name: str) -> dict:
             monitor: Monitor = Monitor.get(monitor_name=monitor_name)
 
@@ -125,6 +140,7 @@ class MonitorFactory:
                     'detector_id': monitor.detector.detector_id,
                     'detector_name': monitor.detector.name,
                     'detector_model': monitor.detector.model,
+                    'feed_description': monitor.feed.description,
                     'feed_id': monitor.feed.cam,
                     'feed_url': monitor.feed.url,
                     'time_zone': monitor.feed.time_zone,

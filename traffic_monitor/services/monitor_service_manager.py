@@ -54,7 +54,7 @@ class MonitorServiceManager:
             return rv
 
         @staticmethod
-        def toggle_objects(monitor_name: str, objects: list, _type: str) -> dict:
+        def toggle_objects(monitor_name: str, objects, _type: str) -> dict:
             """
             Build a new list of objects based on a list of objects to toggle, turning current
             items off and not current items on.  Validation of objects is handled when
@@ -72,13 +72,14 @@ class MonitorServiceManager:
             return MonitorServiceManager().set_objects(monitor_name, toggled_objects, _type)
 
         @staticmethod
-        def _validate_objects(objects: list, detector_name: str) -> (list, list):
+        def validate_objects(objects: list, monitor_name: str) -> (list, list):
             """
             Determine items that are trained objects
 
             :param objects: A list that should be split between valid and invalid objects
             :return: Tuple: A list of valid objects and invalid objects
             """
+            detector_name = MonitorFactory().get_detector_name(monitor_name)
             trained_objects = MonitorService.get_trained_objects(detector_name)
 
             invalid_objects = set(objects) - set(trained_objects)
@@ -102,9 +103,10 @@ class MonitorServiceManager:
         def all_detectors() -> list:
             return MonitorFactory().all_detectors()
 
-        @staticmethod
-        def get_monitor(name: str) -> dict:
-            return MonitorFactory().get(monitor_name=name)
+        def get_monitor(self, name: str) -> dict:
+            rv = MonitorFactory().get_monitor_configuration(monitor_name=name)
+            rv.update({'is_active': self.is_active(monitor_name=name)})
+            return rv
 
         @staticmethod
         def create_feed(cam: str, time_zone: str, description: str) -> dict:
@@ -200,6 +202,11 @@ class MonitorServiceManager:
             return rv
 
         @staticmethod
+        def set_value(monitor_name, field, value):
+            value = MonitorFactory().set_value(monitor_name, field, value)
+            return {field: value}
+
+        @staticmethod
         def _get_services_from_config(monitor_config: dict) -> list:
             services = []
             if monitor_config['logging_on']:
@@ -266,6 +273,31 @@ class MonitorServiceManager:
                 return f"Service stopped for {monitor_name}"
             except Exception as e:
                 logger.error(f"{__name__}: {e}")
+
+        def toggle_service(self, monitor_name: str, service: str) -> dict:
+            """
+            Toggle a service on or off.
+            :param monitor_name:
+            :param service:
+            :return:
+            """
+            services = {'log': 'logging_on',
+                        'notification': 'notifications_on',
+                        'chart': 'charting_on'}
+
+            if service not in services.keys():
+                message = f"'{service}' is not supported.  'service' must be one of {services.keys()}"
+                logger.error(message)
+                return {'error': message}
+
+            # determine status from Monitor model
+            mon = MonitorFactory().get(monitor_name)
+            field = services.get(service)
+            is_on = bool(mon.get(field))
+
+            new_value = MonitorFactory().set_value(monitor_name, services.get(service), not is_on)
+
+            return new_value
 
         def get_active_monitors(self) -> {}:
             return {m: self.get_monitor_configuration(m) for m in self.active_monitors}

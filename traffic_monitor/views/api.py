@@ -255,25 +255,33 @@ def toggle_notification_objects(request) -> JsonResponse:
     return toggle_objects(request=request, _type='notification')
 
 
-def _set_objects(request, _type: str) -> JsonResponse:
-    monitor_name = request.GET.get('monitor_name', None)
-    if monitor_name is None:
-        return JsonResponse({"success": False, "message": "'monitor_name' of a Monitor is a required parameter."})
+def _set_objects(request, field: str) -> JsonResponse:
 
-    objects = [o.strip() for o in request.GET.get('objects', None).split(",")]
-    if objects is None:
-        return JsonResponse({"success": False, "message": "A comma separated list of 'objects' is required."})
+    kwargs = _parse_args(request, 'monitor_name', 'objects')
+    monitor_name = kwargs.get('monitor_name')
+    objects = [o.strip() for o in kwargs.get('objects').split(',')]
 
-    return JsonResponse(MonitorServiceManager().set_objects(monitor_name=monitor_name, objects=objects, _type=_type),
-                        safe=False)
+    # validate the objects
+    valid_objects, invalid_objects = MonitorServiceManager().validate_objects(objects=objects,
+                                                                              monitor_name=monitor_name)
+
+    rv = MonitorServiceManager().set_value(monitor_name, field, valid_objects)
+
+    if invalid_objects:
+        message = {'message': f"Untrained objects are not considered: {invalid_objects}"}
+        rv = {**message, **rv}
+
+    return rv
 
 
 def set_log_objects(request) -> JsonResponse:
-    return _set_objects(request=request, _type='log')
+    rv = _set_objects(request, 'log_objects')
+    return JsonResponse(rv, safe=False)
 
 
 def set_notification_objects(request) -> JsonResponse:
-    return _set_objects(request=request, _type='notification')
+    rv = _set_objects(request=request, field='notification_objects')
+    return JsonResponse(rv, safe=False)
 
 
 def start_monitor(request):
@@ -297,6 +305,14 @@ def stop_monitor(request):
     kwargs = _parse_args(request, 'monitor_name')
 
     rv = MonitorServiceManager().stop_monitor(**kwargs)
+
+    return JsonResponse(rv, safe=False)
+
+
+def toggle_service(request):
+    kwargs = _parse_args(request, 'monitor_name', 'service')
+
+    rv = MonitorServiceManager().toggle_service(**kwargs)
 
     return JsonResponse(rv, safe=False)
 

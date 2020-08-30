@@ -73,6 +73,39 @@ class ServiceAbstract(threading.Thread, Subject, Observer, metaclass=ABCMeta):
         except Exception as e:
             logger.error(f"[{self.__class__.__name__}]: {e}")
 
+    def handle_update(self, subject_name: str, subject_info: tuple):
+        subject_info: dict = self._get_message_info(subject_name, subject_info)
+
+        # subject_info = {'subject': 'monitor_config',
+        #                 'function': 'set_value',
+        #                 'kwargs': {field: value}}
+
+        print(subject_info)
+
+        subject_name = subject_info.get('subject')
+        function_name = subject_info.get('function')
+
+        kwargs = subject_info.get('kwargs')
+
+        try:
+            f = getattr(self, function_name)
+            if subject_name is None or function_name is None or not callable(f):
+                # The published message can't be handled by this observer
+                print(f"function not implemented or subject name not given: {function_name} {subject_name}")
+                return
+            return f(kwargs)
+        except AttributeError as e:
+            logger.error(e)
+            return {'error': e.args}
+
+    def set_value(self, kwargs):
+        for field, value in kwargs.items():
+            print(f"set_value({field},{value})")
+            setattr(self, field, value)
+        return
+
+
+
     def set_objects(self, kwargs):
         """
         This only gets called from _handle_update() and is based on values
