@@ -101,6 +101,11 @@ class MonitorFactory:
             return monitor.get_objects(_type=_type)
 
         @staticmethod
+        def get_value(monitor_name: str, field: str):
+            monitor: Monitor = Monitor.objects.get(pk=monitor_name)
+            return getattr(monitor, field)
+
+        @staticmethod
         def set_objects(monitor_name: str, objects: list, _type: str) -> list:
             """
             The logged objects and notified object variables are updated with new objects.

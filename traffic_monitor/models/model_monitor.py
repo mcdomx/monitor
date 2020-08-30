@@ -74,7 +74,6 @@ class Monitor(models.Model):
     def set_value(self, field: str, value):
         setattr(self, field, value)
         self.save(update_fields={field})
-        print(f"Saved update to {self.name}: {field}: {getattr(self, field)}")
         return getattr(self, field)
 
     def get_detector_name(self):

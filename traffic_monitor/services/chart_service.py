@@ -17,11 +17,8 @@ class ChartService(ServiceAbstract):
     and publish updated chart data based on the results.
     """
 
-    # def __init__(self, monitor_name: str, charting_interval: int = 60):
     def __init__(self, **kwargs):
         super().__init__()
-        # threading.Thread.__init__(self)
-        # Subject.__init__(self)
         self.name = "Chart_Service_Thread"
         self.subject_name = f"chartservice__{kwargs.get('monitor_name')}"
         self.charting_interval = kwargs.get('charting_interval')
@@ -30,7 +27,6 @@ class ChartService(ServiceAbstract):
 
     def start(self):
         self.running = True
-        # threading.Thread.start(self)
         ServiceAbstract.start(self)
 
     def stop(self):

@@ -121,17 +121,17 @@ class MonitorService(ServiceAbstract):
 
         return f"{str_rv}"
 
-    def update(self, subject_info: tuple):
-        """
-        Calling update() with a subject_info tuple, will send the tuple of data to
-        any observers that are registered with the Monitor.
-
-        :param subject_info:
-        :return: None
-        """
-        logger.info(f"{[{__name__}]} :UPDATED WITH: {subject_info}")
-        # self._handle_update('Monitor', subject_info)
-        self.handle_update('Monitor', subject_info)
+    # def update(self, context: dict):
+    #     """
+    #     Calling update() with a subject_info tuple, will send the tuple of data to
+    #     any observers that are registered with the Monitor.
+    #
+    #     :param context:
+    #     :param subject_info:
+    #     :return: None
+    #     """
+    #     logger.info(f"{[{__name__}]} :UPDATED WITH: {context}")
+    #     self.handle_update(context)
 
     def get_next_frame(self):
         q = self.queue_refframe.get()

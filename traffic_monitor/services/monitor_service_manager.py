@@ -46,40 +46,61 @@ class MonitorServiceManager:
             return {'success': True, 'monitor_name': monitor_name}
 
         @staticmethod
-        def _get_toggled_objects(monitor_name: str, toggle_objects: list, _type: str) -> list:
+        def _get_toggled_objects(monitor_name: str, field: str, toggle_objects: list) -> list:
             # Helper function to toggle items on or off from a current list of objects
-            current_objects = MonitorFactory().get_objects(monitor_name, _type)
+            current_objects = MonitorFactory().get_value(monitor_name, field)
             remove_these = set(current_objects).intersection(set(toggle_objects))
             rv: list = list(set(current_objects).union(toggle_objects).difference(remove_these))
             return rv
 
         @staticmethod
-        def toggle_objects(monitor_name: str, objects, _type: str) -> dict:
+        def toggle_objects(monitor_name: str, field: str, objects) -> dict:
             """
-            Build a new list of objects based on a list of objects to toggle, turning current
-            items off and not current items on.  Validation of objects is handled when
-            objects are set using set_objects.
+            Build a new list of objects based on a list of objects to toggle, removing current
+            items or adding them as necessary.  The list of objects is expected to be validated
+            before being called in this function.
             :param monitor_name: Name of monitor
             :param objects: list objects to toggle
-            :param _type: 'log' or 'notification'
+            :param field: The string name of the Monitor field to toggle
             :return:
             """
             # use helper function to determine a new list of objects after toggling
             if type(objects) == str:
                 objects = [o.strip() for o in objects.split(",")]
 
-            toggled_objects: list = MonitorServiceManager()._get_toggled_objects(monitor_name, objects, _type=_type)
-            return MonitorServiceManager().set_objects(monitor_name, toggled_objects, _type)
+            toggled_objects: list = MonitorServiceManager()._get_toggled_objects(monitor_name=monitor_name,
+                                                                                 field=field, toggle_objects=objects)
+
+            toggled_objects, invalid_objects = MonitorServiceManager().validate_objects(objects=toggled_objects,
+                                                                                        monitor_name=monitor_name)
+
+            rv = MonitorServiceManager().set_value(monitor_name, field, toggled_objects)
+
+            if len(invalid_objects) > 0:
+                message = {'message': f"Untrained objects are ignored: {invalid_objects}"}
+                rv = {**message, **rv}
+
+            return rv
 
         @staticmethod
-        def validate_objects(objects: list, monitor_name: str) -> (list, list):
+        def validate_objects(objects: list, monitor_name: str = None, detector_name: str = None) -> (list, list):
             """
-            Determine items that are trained objects
+            Determine items that are trained objects.  One of either the monitor_name or detector_name must be specified.
+            If the 'monitor_name' is specified, it will be used to determine the valid objects.
 
+            :param detector_name: OPTIONAL - The name of the detector to use which holds the list of trained objects
+            :param monitor_name: OPTIONAL - The monitor name which has a detector which holds the list of trained objects
             :param objects: A list that should be split between valid and invalid objects
             :return: Tuple: A list of valid objects and invalid objects
             """
-            detector_name = MonitorFactory().get_detector_name(monitor_name)
+            if monitor_name:
+                detector_name = MonitorFactory().get_detector_name(monitor_name)
+
+            if not detector_name:
+                message = f"[__name__] validate_objects requires a 'monitor_name' or a 'detector_name'"
+                logger.error(message)
+                return {'error': message}
+
             trained_objects = MonitorService.get_trained_objects(detector_name)
 
             invalid_objects = set(objects) - set(trained_objects)
@@ -135,17 +156,18 @@ class MonitorServiceManager:
             if kwargs.get('log_objects'):
                 if type(kwargs.get('log_objects')) == str:
                     kwargs.update({'log_objects': [o.strip() for o in kwargs.get('log_objects').split(",")]})
-                log_objects, invalid_log_objects = MonitorServiceManager()._validate_objects(kwargs.get('log_objects'),
-                                                                                             kwargs.get(
-                                                                                                 'detector_name'))
+                log_objects, invalid_log_objects = MonitorServiceManager().validate_objects(
+                    objects=kwargs.get('log_objects'),
+                    detector_name=kwargs.get(
+                        'detector_name'))
                 kwargs.update({'log_objects': log_objects})
 
             if kwargs.get('notification_objects'):
                 if type(kwargs.get('notification_objects')) == str:
                     kwargs.update(
                         {'notification_objects': [o.strip() for o in kwargs.get('notification_objects').split(",")]})
-                notification_objects, invalid_not_objects = MonitorServiceManager()._validate_objects(
-                    kwargs.get('notification_objects'), kwargs.get('detector_name'))
+                notification_objects, invalid_not_objects = MonitorServiceManager().validate_objects(
+                    objects=kwargs.get('notification_objects'), detector_name=kwargs.get('detector_name'))
                 kwargs.update({'notification_objects': notification_objects})
 
             rv = MonitorFactory().create(**kwargs)
@@ -185,21 +207,21 @@ class MonitorServiceManager:
         def get_objects(monitor_name: str, _type: str) -> list:
             return MonitorFactory().get_objects(monitor_name, _type)
 
-        @staticmethod
-        def set_objects(monitor_name: str, objects: list, _type: str):
-            # validate objects
-            detector_name = MonitorFactory().get_detector_name(monitor_name)
-            valid_objects, invalid_objects = MonitorServiceManager()._validate_objects(objects, detector_name)
-
-            objects = MonitorFactory().set_objects(monitor_name, valid_objects, _type)
-
-            rv = {'objects': objects}
-
-            if invalid_objects:
-                message = {'message': f"Untrained objects are not considered: {invalid_objects}"}
-                rv = {**message, **rv}
-
-            return rv
+        # @staticmethod
+        # def set_objects(monitor_name: str, objects: list, _type: str):
+        #     # validate objects
+        #     # detector_name = MonitorFactory().get_detector_name(monitor_name)
+        #     valid_objects, invalid_objects = MonitorServiceManager().validate_objects(objects, monitor_name)
+        #
+        #     objects = MonitorFactory().set_objects(monitor_name, valid_objects, _type)
+        #
+        #     rv = {'objects': objects}
+        #
+        #     if invalid_objects:
+        #         message = {'message': f"Untrained objects are not considered: {invalid_objects}"}
+        #         rv = {**message, **rv}
+        #
+        #     return rv
 
         @staticmethod
         def set_value(monitor_name, field, value):
@@ -248,7 +270,6 @@ class MonitorServiceManager:
 
                 # register the sub-services with the MonitorFactory to get updates
                 for s in ms.active_services:
-                    print(s.subject_name)
                     MonitorFactory().register(s)
 
                 return {**rv, **monitor_config}

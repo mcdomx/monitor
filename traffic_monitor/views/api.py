@@ -22,11 +22,8 @@ def toggle_box(request):
     action = divid.get('action')
     class_id = divid.get('class_id')
     monitor_id = int(divid.get('monitor_id'))
-    print(action, class_id, monitor_id)
 
     rv = video_views.toggle_box(action, class_id, monitor_id)
-
-    print(rv)
 
     return HttpResponse(rv)
 
@@ -180,6 +177,7 @@ def create_monitor(request) -> JsonResponse:
     """
     try:
         kwargs = _parse_args(request, 'name', 'detector_name', 'detector_model', 'feed_id')
+
         mon = MonitorServiceManager().create_monitor(**kwargs)
 
         # only return values that are Json serializable
@@ -231,28 +229,18 @@ def get_notification_objects(request) -> JsonResponse:
         return JsonResponse({'error': e.args}, safe=False)
 
 
-def toggle_objects(request, _type: str = None) -> JsonResponse:
+def toggle_objects(request, field) -> JsonResponse:
     kwargs = _parse_args(request, 'monitor_name', 'objects')
-
-    # the type parameter needs special handling since type is a reserved word
-    if 'type' not in kwargs.keys():
-        if _type is None:
-            return JsonResponse({"success": False, "message": "A 'type' is required. ('log', 'notification')"})
-        else:
-            kwargs.update({'_type': _type})
-    else:
-        kwargs.update({'_type': kwargs.get('type')})
-        kwargs.pop('type')
-
+    kwargs.update({'field': field})
     return JsonResponse(MonitorServiceManager().toggle_objects(**kwargs), safe=False)
 
 
 def toggle_log_objects(request) -> JsonResponse:
-    return toggle_objects(request=request, _type='log')
+    return toggle_objects(request=request, field='log_objects')
 
 
 def toggle_notification_objects(request) -> JsonResponse:
-    return toggle_objects(request=request, _type='notification')
+    return toggle_objects(request=request, field='notification_objects')
 
 
 def _set_objects(request, field: str) -> JsonResponse:
