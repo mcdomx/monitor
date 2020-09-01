@@ -8,7 +8,7 @@ import logging
 # from traffic_monitor.services.observer import Subject
 from traffic_monitor.services.service_abstract import ServiceAbstract
 
-logger = logging.getLogger('log_service')
+logger = logging.getLogger('chart_service')
 
 
 class ChartService(ServiceAbstract):
@@ -17,13 +17,14 @@ class ChartService(ServiceAbstract):
     and publish updated chart data based on the results.
     """
 
-    def __init__(self, **kwargs):
-        super().__init__()
-        self.name = "Chart_Service_Thread"
-        self.subject_name = f"chartservice__{kwargs.get('monitor_name')}"
-        self.charting_interval = kwargs.get('charting_interval')
+    def __init__(self,
+                 monitor_config: dict,
+                 output_data_topic: str,
+                 ):
+        ServiceAbstract.__init__(self, monitor_config=monitor_config)
+        self.subject_name = f"chartservice__{self.monitor_name}"
+        self.charting_interval: int = 60
         self.running = False
-        self.monitor_name = kwargs.get('monitor_name')
 
     def start(self):
         self.running = True
@@ -34,13 +35,14 @@ class ChartService(ServiceAbstract):
 
     def run(self):
 
-        i = 0
         logger.info("Starting chart service ...")
         while self.running:
 
             time.sleep(self.charting_interval)
 
-            self.publish({'monitor_name': self.monitor_name})
+            try:
+                logger.info("Hi! I am charting. (Please implement me!) -> charting_service.py")
+            except Exception as e:
+                continue
 
-            i += 1
-
+        logger.info("Stopped chart service.")

@@ -132,7 +132,7 @@ class MonitorFactory:
             :return:
             """
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            MonitorFactory().publish({'subject': 'monitor_config',
+            MonitorFactory().publish({'subject': monitor_name,
                                       'function': 'set_value',
                                       'kwargs': {field: value}})
             return monitor.set_value(field, value)

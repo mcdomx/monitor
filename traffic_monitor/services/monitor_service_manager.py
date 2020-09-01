@@ -4,6 +4,8 @@ from traffic_monitor.models.monitor_factory import MonitorFactory
 from traffic_monitor.services.monitor_service import MonitorService
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.chart_service import ChartService
+from traffic_monitor.services.notification_service import NotificationService
+from traffic_monitor.services.observer import Observer
 
 logger = logging.getLogger('monitor_service_manager')
 
@@ -16,11 +18,15 @@ class MonitorServiceManager:
             cls.singleton = cls._Singleton()
         return cls.singleton
 
-    class _Singleton:
+    class _Singleton(Observer):
         def __init__(self):
+            Observer.__init__(self)
             self.logger = logging.getLogger('detector')
             self.active_monitors = {}
             self.viewing_monitor: str = ''
+
+        def update(self, context: dict):
+            pass
 
         def is_active(self, monitor_name) -> bool:
             """
@@ -189,7 +195,7 @@ class MonitorServiceManager:
         def get_trained_objects(monitor_name: str = None, detector_name: str = None) -> list:
             """
             Retrieve a set of objects that the named detector or monitor has been
-            trained to detect. Either the monitor name or detecror name must be provided.
+            trained to detect. Either the monitor name or detector name must be provided.
             If both are provided, the monitor name is used.
             :param detector_name: Name of detector
             :param monitor_name: String name of the monitor.
@@ -207,22 +213,6 @@ class MonitorServiceManager:
         def get_objects(monitor_name: str, _type: str) -> list:
             return MonitorFactory().get_objects(monitor_name, _type)
 
-        # @staticmethod
-        # def set_objects(monitor_name: str, objects: list, _type: str):
-        #     # validate objects
-        #     # detector_name = MonitorFactory().get_detector_name(monitor_name)
-        #     valid_objects, invalid_objects = MonitorServiceManager().validate_objects(objects, monitor_name)
-        #
-        #     objects = MonitorFactory().set_objects(monitor_name, valid_objects, _type)
-        #
-        #     rv = {'objects': objects}
-        #
-        #     if invalid_objects:
-        #         message = {'message': f"Untrained objects are not considered: {invalid_objects}"}
-        #         rv = {**message, **rv}
-        #
-        #     return rv
-
         @staticmethod
         def set_value(monitor_name, field, value):
             value = MonitorFactory().set_value(monitor_name, field, value)
@@ -236,15 +226,13 @@ class MonitorServiceManager:
             if monitor_config['charting_on']:
                 services.append(ChartService)
             if monitor_config['notifications_on']:
-                pass
+                services.append(NotificationService)
 
             return services
 
         def start_monitor(self,
                           monitor_name: str,
-                          log_interval: int,
-                          detection_interval: int,
-                          charting_interval: int) -> dict:
+                          ) -> dict:
 
             try:
                 monitor_config = MonitorFactory().get_monitor_configuration(monitor_name)
@@ -254,12 +242,7 @@ class MonitorServiceManager:
                     message = {'message': f"[{__name__}] '{monitor_config.get('monitor_name')}' is already active."}
                     return {**message, **monitor_config}
 
-                ms = MonitorService(monitor_config=monitor_config,
-                                    services=self._get_services_from_config(monitor_config),
-                                    log_interval=log_interval,
-                                    detection_interval=detection_interval,
-                                    charting_interval=charting_interval)
-
+                ms = MonitorService(monitor_config=monitor_config)
                 rv = ms.start()
                 self.active_monitors.update({monitor_name: ms})
 
@@ -269,8 +252,8 @@ class MonitorServiceManager:
                 MonitorFactory().register(ms)
 
                 # register the sub-services with the MonitorFactory to get updates
-                for s in ms.active_services:
-                    MonitorFactory().register(s)
+                # for s in ms.active_services:
+                #     MonitorFactory().register(s)
 
                 return {**rv, **monitor_config}
             except Exception as e:

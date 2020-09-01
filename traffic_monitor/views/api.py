@@ -277,14 +277,12 @@ def start_monitor(request):
     if monitor_name is None:
         return JsonResponse({"success": False, "message": "'monitor_name' of a Monitor is a required parameter."})
 
-    log_interval = request.GET.get('log_interval', 60)
-    detection_interval = request.GET.get('detection_interval', 5)
-    charting_interval = request.GET.get('detection_interval', 60)
+    # log_interval = request.GET.get('log_interval', 60)
+    # detection_interval = request.GET.get('detection_interval', 5)
+    # charting_interval = request.GET.get('charting_interval', 60)
+    # notification_interval = request.GET.get('notification_interval', 60)
 
-    rv = MonitorServiceManager().start_monitor(monitor_name=monitor_name,
-                                               log_interval=log_interval,
-                                               detection_interval=detection_interval,
-                                               charting_interval=charting_interval)
+    rv = MonitorServiceManager().start_monitor(monitor_name=monitor_name)
 
     return JsonResponse(rv, safe=False)
 

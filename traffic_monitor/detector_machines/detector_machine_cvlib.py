@@ -1,3 +1,4 @@
+import queue
 import numpy as np
 
 from cvlib.object_detection import populate_class_labels, draw_bbox, detect_common_objects
@@ -17,13 +18,25 @@ class DetectorMachineCVlib(DetectorMachineAbstract):
     Requires that .cfg file and .weights files are in ~/.cvlib/object_detection/yolo/yolov3
     """
 
-    def __init__(self, **kwargs):
-        DetectorMachineAbstract.__init__(self, **kwargs)
+    def __init__(self,
+                 monitor_name: str,
+                 detector_name: str,
+                 detector_model: str,
+                 input_image_queue: queue.Queue,
+                 output_image_queue: queue.Queue,
+                 output_data_topic: str):
+        DetectorMachineAbstract.__init__(self,
+                                         monitor_name,
+                                         detector_name,
+                                         detector_model,
+                                         input_image_queue,
+                                         output_image_queue,
+                                         output_data_topic)
         self.observers = []
         self.subject_name = 'detector_cvlib'
 
-    def detect(self, frame: np.array) -> (int, np.array, list):
-        bbox, labels, conf = detect_common_objects(frame, confidence=.5, model=self.model)
+    def detect(self, frame: np.array) -> (np.array, list):
+        bbox, labels, conf = detect_common_objects(frame, confidence=.5, model=self.detector_model)
 
         # # only log detections that are being logged
         # log_idxs = [i for i, l in enumerate(labels) if l in self.logged_objects]
@@ -39,7 +52,7 @@ class DetectorMachineCVlib(DetectorMachineAbstract):
         frame = draw_bbox(img=frame, bbox=bbox, labels=labels, confidence=conf, write_conf=False, )
 
         # return 0, frame, log_labels, mon_labels
-        return 0, frame, labels
+        return frame, labels
 
     @classmethod
     def get_trained_objects(cls) -> list:

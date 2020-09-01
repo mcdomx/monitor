@@ -1,11 +1,12 @@
 import logging
+import queue
 
 from traffic_monitor.detector_machines.detector_machine_abstract import DetectorMachineAbstract
 from traffic_monitor.detector_machines.detector_machines import *
 
 # This dictionary must be updated with new detector name and class
 # Any new class must also be imported into the traffic_monitor.detector_machines.detector_machines module
-detectors = {'cvlib': DetectorMachineCVlib}
+DETECTORS = {'cvlib': DetectorMachineCVlib}
 
 
 class DetectorMachineFactory:
@@ -21,10 +22,21 @@ class DetectorMachineFactory:
             self.logger = logging.getLogger('detector')
 
         @staticmethod
-        def get_detector_machine(**kwargs) -> DetectorMachineAbstract:
+        def get_detector_machine(monitor_name: str,
+                                 detector_name: str,
+                                 detector_model: str,
+                                 input_image_queue: queue.Queue,
+                                 output_image_queue: queue.Queue,
+                                 output_data_topic: str) -> DetectorMachineAbstract:
             """
             Determine the implemented detector class based on the detector name.
             Update this function to add new detection models which implement DetectorAbstract.
+            :param output_data_topic:
+            :param monitor_name:
+            :param input_image_queue:
+            :param output_image_queue:
+            :param output_data_queue:
+            :param detector_model:
             :param detector_name: Name of the detector for which the corresponding class is requested
             :param detector_name:
             :param kwargs:
@@ -41,9 +53,15 @@ class DetectorMachineFactory:
             :return: An implemented instance of a detector machine that is ready to be started with .start()
             """
 
-            detector_class = DetectorMachineFactory()._get_detector_class(kwargs.get('detector_name'))
+            detector_class: DetectorMachineAbstract.__class__ = DetectorMachineFactory()._get_detector_class(
+                detector_name)
 
-            return detector_class(**kwargs)
+            return detector_class(monitor_name=monitor_name,
+                                  detector_name=detector_name,
+                                  detector_model=detector_model,
+                                  input_image_queue=input_image_queue,
+                                  output_image_queue=output_image_queue,
+                                  output_data_topic=output_data_topic)
 
         @staticmethod
         def _get_detector_class(detector_name) -> DetectorMachineAbstract.__class__:
@@ -54,10 +72,11 @@ class DetectorMachineFactory:
             :return: An unimplemented class reference to the detector
             """
 
-            detector_class = detectors.get(detector_name)
+            detector_class = DETECTORS.get(detector_name)
 
             if detector_class is None:
-                raise Exception(f"Detector with name '{detector_name}' does not exist. Available detectors: {list(detectors.keys())}")
+                raise Exception(
+                    f"Detector with name '{detector_name}' does not exist. Available detectors: {list(detectors.keys())}")
             else:
                 return detector_class
 
@@ -65,6 +84,3 @@ class DetectorMachineFactory:
         def get_trained_objects(detector_name):
 
             return DetectorMachineFactory()._get_detector_class(detector_name).get_trained_objects()
-
-
-

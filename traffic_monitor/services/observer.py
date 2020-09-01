@@ -6,7 +6,7 @@ class Observer(ABC):
         self.slug = None
 
     @abstractmethod
-    def update(self, subject_info: tuple):
+    def update(self, context: dict):
         ...
 
 
