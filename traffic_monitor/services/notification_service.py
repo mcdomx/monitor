@@ -14,7 +14,7 @@ class NotificationService(ServiceAbstract):
 
     def __init__(self, monitor_config: dict,
                  output_data_topic: str):
-        ServiceAbstract.__init__(self, monitor_config=monitor_config)
+        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
         self.subject_name = f"notificationservice__{self.monitor_name}"
         self.running = False
         self.id = id
@@ -27,6 +27,9 @@ class NotificationService(ServiceAbstract):
 
     def stop(self):
         self.running = False
+
+    def handle_message(self, msg):
+        pass
 
     def run(self):
 

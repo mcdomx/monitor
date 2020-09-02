@@ -170,7 +170,6 @@ def get_monitor(request) -> JsonResponse:
 
 def create_monitor(request) -> JsonResponse:
     """
-
     :param request: The HTML request
     See the parameter descriptions below for constraints and defaults for each parameter.
     :return:

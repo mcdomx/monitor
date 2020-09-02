@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "531b5cf22246e19a5e162f72693afb97a666b6e8d3dc3a638cd4c44ec5aaad63"
+            "sha256": "ab2690f08edf6843a1a59cee5e4764be876fce012bc83670e00f65662ac09493"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -137,10 +137,10 @@
         },
         "bokeh": {
             "hashes": [
-                "sha256:d790551db111a2cb43804987bc4da5d5d83124790c30ee4e9e88d4520325e13e"
+                "sha256:a82e9eebd7a1e2ebb7f8fc1ead802fefd10a84daef8ec4bfc986121323948555"
             ],
             "index": "pypi",
-            "version": "==2.2.0"
+            "version": "==2.2.1"
         },
         "cachetools": {
             "hashes": [
@@ -311,19 +311,19 @@
         },
         "django": {
             "hashes": [
-                "sha256:1a63f5bb6ff4d7c42f62a519edc2adbb37f9b78068a5a862beff858b68e3dc8b",
-                "sha256:2d390268a13c655c97e0e2ede9d117007996db692c1bb93eabebd4fb7ea7012b"
+                "sha256:59c8125ca873ed3bdae9c12b146fbbd6ed8d0f743e4cf5f5817af50c51f1fc2f",
+                "sha256:b5fbb818e751f660fa2d576d9f40c34a4c615c8b48dd383f5216e609f383371f"
             ],
             "index": "pypi",
-            "version": "==3.1"
+            "version": "==3.1.1"
         },
         "django-extensions": {
             "hashes": [
-                "sha256:40d4b7aec7bbe66dda8704fbfaf2e1b7e04ec4aea6b10dcbd78d8af7c37bfddb",
-                "sha256:6306175ae8c78c18ea7aff794f5fa3a47de7d128666e6668bd40596895da7f84"
+                "sha256:0ede618f3d933317737406c979753bb91436c3b3e93a452638a1483b624aa89d",
+                "sha256:b49388a943368417d4c203d51866ca4ffe3011bb240679558521762c4b452b8a"
             ],
             "index": "pypi",
-            "version": "==3.0.5"
+            "version": "==3.0.7"
         },
         "docutils": {
             "hashes": [
@@ -340,6 +340,29 @@
             ],
             "markers": "python_version >= '2.7'",
             "version": "==0.3"
+        },
+        "fastavro": {
+            "hashes": [
+                "sha256:07a4fa3ea767dbdaeb827b144c8620212cf2e31bd573e31a5508e2a6757a1f17",
+                "sha256:22f3501913116e81d6f323dc70ec9ac117728a168d54d7b9efd5256217e49c2a",
+                "sha256:2f4f521e31a4fe1da1807da696181e3dcb984b9ca8a64bad4816724974d11bf8",
+                "sha256:34384e2409a44791bab60730378cd82a2e6f2e60fc8373a802fc5004793d6f0a",
+                "sha256:40ea33e099da96abeee3ab0110c5865b220e71b03aa1c1b90135bd40c21e6f23",
+                "sha256:4316fbcab83d745313210e5df3b033392c7ce0f33731a7da3708a135e08065c5",
+                "sha256:6e2e3688597c8556ca0c60a130c4fabbb4d603806c6b5f95f3744d5dbb9e51b6",
+                "sha256:77e21bdcefc278df1d4c12e7bf787dcf767870478870a6e9e334a2cd486f1820",
+                "sha256:7871df79df6349f1c4de55b57dfb1f663f2f9736ce915604a1667d8655fa076c",
+                "sha256:7c9ebc6d030d99ec5213291b4caf94071aa1f47f1ec4356dfec878921333111a",
+                "sha256:844985b80e331013ce5d341d41a21fe876ed8aa2badeeac6c1cf0592a5db26c5",
+                "sha256:904c897857550325a9a88802ee3fdeaf77f1dc15ab77072da803f0d69f2667f4",
+                "sha256:b2cfe2ee4c4c9ee4d782ab5b8e3f6c427f7774d9061e31209e29d9d7071127ff",
+                "sha256:d389f54f7086c8e8400b9a0a7db1d2f9a94c144f3747e43bc3bf3a8b3eb6603d",
+                "sha256:d419396c4fde2696449f333d14381a43efaa98ba6e4a0c2ccafd560e6d8ed26f",
+                "sha256:e713127a9faec87767137c93d01e7c60ac000b440a7f331b718f34e32c451797",
+                "sha256:f69ae43180e89ffbf6feb8569fe5573f8f37214a9e4705ef2f00e279d3641971"
+            ],
+            "index": "pypi",
+            "version": "==1.0.0.post1"
         },
         "future": {
             "hashes": [
@@ -1429,10 +1452,11 @@
         },
         "traitlets": {
             "hashes": [
-                "sha256:70b4c6a1d9019d7b4f6846832288f86998aa3b9207c6821f3578a6a6a467fe44",
-                "sha256:d023ee369ddd2763310e4c3eae1ff649689440d4ae59d7485eb4cfbbe3e359f7"
+                "sha256:0d9c4005506b306b0a99551e96174b8bedc675c2dd048f92b3bbbb7d86ac93a9",
+                "sha256:62a037f12ccb823fb05823afbe35fe0273bc18fa3202d0cf0ea8f24e97e464be"
             ],
-            "version": "==4.3.3"
+            "markers": "python_version >= '3.7'",
+            "version": "==5.0.0"
         },
         "twisted": {
             "extras": [

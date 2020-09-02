@@ -1,6 +1,6 @@
 import threading
 import queue
-# import time
+import json
 import logging
 import numpy as np
 from abc import abstractmethod, ABCMeta
@@ -8,6 +8,7 @@ from abc import abstractmethod, ABCMeta
 from confluent_kafka import Producer
 
 from traffic_monitor.services.service_abstract import ServiceAbstract
+
 # from traffic_monitor.services.elapsed_time import ElapsedTime
 
 logger = logging.getLogger('detector')
@@ -70,10 +71,14 @@ class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
     def stop(self):
         self.running = False
         # in case the detector stops from a local error
-        self.publish({'subject': 'detector_action',
-                      'message': f"{self.detector_name} was stopped.",
-                      'function': 'stop',
-                      'kwargs': None})
+
+        self.publish({
+            'monitor_name': self.monitor_name,
+            'subject': 'detector_detection',
+            'message': f"{self.detector_name} was stopped.",
+            'function': 'stop',
+            'kwargs': None
+        })
         logger.info(f"Stopping detector '{self.name}' ...")
 
     def delivery_report(self, err, msg):
@@ -84,10 +89,13 @@ class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
         else:
             logger.info(f'{self.detector_model}: Message delivered to {msg.topic()} [{msg.partition()}]')
 
+    def handle_message(self, msg):
+        pass
+
     def run(self):
         logger.info(f"Started {self.name}")
         # timer = ElapsedTime()
-        producer = Producer({'bootstrap.servers': '127.0.0.1'})
+        producer = Producer({'bootstrap.servers': '127.0.0.1:9092'})
         while self.running:
             try:
                 # frame = self.queue_detready.get(block=False)
@@ -126,9 +134,15 @@ class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
                 detections = [d.replace(' ', '_') for d in detections]
 
                 # publish detections using kafka
+                # msg = {
+                #     'monitor_name': self.monitor_name,
+                #     'subject': 'detector_detection',
+                #     'function': 'set_value',
+                #     'kwargs': {field: value}
+                # }
                 producer.produce(topic=self.monitor_name,
-                                 key='detections',
-                                 value=' '.join(detections).encode('utf-8'),
+                                 key='detector_detection',
+                                 value=json.JSONEncoder().encode(detections),  # ' '.join(detections).encode('utf-8'),
                                  callback=self.delivery_report,
                                  )
                 producer.flush()

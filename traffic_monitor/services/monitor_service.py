@@ -6,13 +6,14 @@ a feed, display the feed and log its data.
 
 import queue
 import logging
-
-# import cv2 as cv
+import threading
+import json
 
 from confluent_kafka.admin import AdminClient, NewTopic, KafkaException
+from confluent_kafka import Consumer, TopicPartition
 
 from traffic_monitor.detector_machines.detetor_machine_factory import DetectorMachineFactory
-# from traffic_monitor.services.service_abstract import ServiceAbstract
+from traffic_monitor.services.service_abstract import ServiceAbstract
 from traffic_monitor.services.videodetection_service import VideoDetectionService
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.notification_service import NotificationService
@@ -23,8 +24,14 @@ BUFFER_SIZE = 512
 
 logger = logging.getLogger('monitor_service')
 
+SERVICES = {
+            'logging_on': LogService,
+            'notifications_on': NotificationService,
+            'charting_on': ChartService,
+        }
 
-class MonitorService(Observer):
+
+class MonitorService(Observer, threading.Thread):
     """
     A Monitor is defined as a Detector and a URL video feed.
     The class is a thread that will continually run and log
@@ -59,31 +66,24 @@ class MonitorService(Observer):
         """ Requires existing monitor.  1:1 relationship with a monitor but this is not
         enforced when creating the Monitor Service. """
         Observer.__init__(self)
+        threading.Thread.__init__(self)
         self.id = id(self)
+
         self.monitor_config: dict = monitor_config
-
         self.monitor_name: str = monitor_config.get('monitor_name')
-        # # self.name = f"MonitorServiceThread-{self.monitor_name}"
-        # # self.detector_id = monitor_config.get('detector_id')
-        # self.detector_name: str = monitor_config.get('detector_name')
-        # self.detector_model: str = monitor_config.get('detector_model')
-        # self.feed_url: str = monitor_config.get('feed_url')
-        # self.feed_id: str = monitor_config.get('feed_id')
-        # self.time_zone: str = monitor_config.get('time_zone')
         self.output_data_topic: str = self.monitor_name
-        # # self.detection_interval: int = detection_interval
-        # self.charting_on: bool = monitor_config.get('charting_on')
-        # # self.charting_interval: int = charting_interval
-        # self.logging_on: bool = monitor_config.get('logging_on')
-        # self.log_objects: list = monitor_config.get('log_objects')
-        # # self.log_interval: int = log_interval
-        # self.notifications_on: bool = monitor_config.get('notifications_on')
-        # self.notified_objects: list = monitor_config.get('notified_objects')
-        # # self.notification_interval = notification_interval
-        #
-        # # self.services: list = services
+        self.name = f"{self.monitor_name}_thread"
 
-        # DETECTOR STATES
+        # Kafka settings
+        self.consumer = Consumer({
+            'bootstrap.servers': '127.0.0.1:9092',
+            'group.id': 'monitorgroup',
+            'auto.offset.reset': 'earliest'
+        })
+        self.consumer.subscribe([self.monitor_config.get('monitor_name')])
+        self.consumer.assign([TopicPartition(self.monitor_name, p) for p in range(3)])
+
+        # STATES
         self.running = False
         self.show_full_stream = False
         self.display = False
@@ -91,42 +91,9 @@ class MonitorService(Observer):
         # QUEUES
         self.output_image_queue = queue.Queue(BUFFER_SIZE)
 
-        # self.queue_rawframe = queue.Queue(BUFFER_SIZE)
-        # self.queue_detframe = queue.Queue(BUFFER_SIZE)
-        # self.queue_detready = queue.Queue(BUFFER_SIZE)
-        # self.queue_refframe = queue.Queue(BUFFER_SIZE)
-        # self.queue_dets_not = queue.Queue(BUFFER_SIZE)
-        # self.queue_dets_log = queue.Queue(BUFFER_SIZE)
-
-        # Monitor Service Parameters
-
         # self.log_channel_url: str = '/ws/traffic_monitor/log/'
 
-        self.active_services = []
-
-        # self.subject_name = f"monitor_service__{self.monitor_name}"
-
-        # set arguments used to start monitor
-        # self.service_kwargs = {
-        #     'monitor_name': self.monitor_name,
-        #     'time_zone': self.time_zone,
-        #     'detector_id': self.detector_id,
-        #     'detector_name': self.detector_name,
-        #     'detector_model': self.detector_model,
-        #     'queue_detready': self.queue_detready,
-        #     'queue_detframe': self.queue_detframe,
-        #     'queue_dets_log': self.queue_dets_log,
-        #     'queue_dets_mon': self.queue_dets_not,
-        #     # 'notified_objects': self.notified_objects,
-        #     'log_objects': self.log_objects,
-        #     'log_interval': self.log_interval,
-        #     'detection_interval': self.detection_interval,
-        #     'charting_interval': self.charting_interval
-        # }
-
-        # the detector is handled separately from the sub-services because
-        # it is a required element of the monitor service to function properly
-        # self.detector = DetectorMachineFactory().get_detector_machine(**self.service_kwargs)
+        self.active_services = {}
 
         # SETUP KAFKA TOPIC
         # Create a dedicated Kafka topic for this monitor service.
@@ -176,6 +143,20 @@ class MonitorService(Observer):
 
                 logger.info(f"[{__name__}] Put image on queue: {self.monitor_name}")
 
+    def start_service(self, service_class: ServiceAbstract.__class__):
+        s: ServiceAbstract = self.active_services.get(service_class)
+        if s is None:
+            s = service_class(monitor_config=self.monitor_config,
+                              output_data_topic=self.output_data_topic)
+        s.start()
+        self.active_services.update({s.__class__.__name__: s})
+
+    def stop_service(self, service_class: ServiceAbstract.__class__):
+        s: ServiceAbstract = self.active_services.get(service_class.__name__)
+        if s is not None:
+            s.stop()
+            s.join()
+
     def start(self) -> dict:
         """
         Overriding Threading.start() so that we can test if a monitor service  is already active for
@@ -187,40 +168,23 @@ class MonitorService(Observer):
             return message
         try:
             # Start Services
-            vds = VideoDetectionService(monitor_config=self.monitor_config,
-                                        output_data_topic=self.output_data_topic)
-            self.active_services.append(vds)
+            self.start_service(VideoDetectionService)
 
-            ls = LogService(monitor_config=self.monitor_config,
-                            output_data_topic=self.output_data_topic)
-            self.active_services.append(ls)
-
-            ns = NotificationService(monitor_config=self.monitor_config,
-                                     output_data_topic=self.output_data_topic)
-            self.active_services.append(ns)
-
-            cs = ChartService(monitor_config=self.monitor_config,
-                              output_data_topic=self.output_data_topic)
-            self.active_services.append(cs)
-
-            # start sub-services
-            for s in self.active_services:
-                s.start()
+            for s, c in SERVICES.items():
+                if self.monitor_config.get(s):
+                    self.start_service(c)
 
             self.running = True
-            # threading.Thread.start(self)
-            # ServiceAbstract.start(self)
-            return {'message': f"[{__name__}] Service started for: {self.monitor_name}"}
+            threading.Thread.start(self)
 
         except Exception as e:
             raise Exception(f"[{__name__}] Could not start '{self.monitor_name}': {e}")
 
     def stop(self) -> dict:
-        for s in self.active_services:
-            s.stop()
 
+        # stop all sub-services
         for s in self.active_services:
-            s.join()
+            self.stop_service(s)
 
         message = {'message': f"[{__name__}] Stopped."}
 
@@ -228,75 +192,81 @@ class MonitorService(Observer):
         logger.info(message.get('message'))
         return message
 
-    # def start_service(self, s):
-    #     # s: ServiceAbstract = service_class(**self.service_kwargs)
-    #     s.start()
-    #     self.active_services.append(s)
+    def toggle_service(self, kwargs):
+        """
+        :param service:
+        :param kwargs: 'field'=service  'value'=True or False (for on/start or off/stop)
+        :return:
+        """
+        service = kwargs.get('field')
+        new_status = kwargs.get('value')
 
-    # def run(self):
-    #     """
-    #     This will start the service by calling threading.Thread.start()
-    #     Frames will be placed in respective queues.
-    #     """
-    #     # # set source of video stream
-    #     # try:
-    #     #     cap = cv.VideoCapture(self.feed_url)
-    #     # except Exception as e:
-    #     #     logger.error(f"[{__name__}] Failed to create a video stream.")
-    #     #     logger.error(e)
-    #     #     return
-    #
-    #
-    #
-    #     # # The detector is handled separately from the other sub-services
-    #     # # start the detector machine
-    #     # self.detector.start()
-    #     # # register monitor_service with detector to get detector updates
-    #     # # TODO: This may be better handled with kafka messaging
-    #     # self.detector.register(self)
-    #
-    #
-    #
-    #     logger.info(f"Starting monitoring service for id: {self.monitor_name}")
-    #     logger.info(f"Monitor Service Running for {self.monitor_name}: {self.running}")
-    #     # logger.info(f"Video Capture Opened: {cap.isOpened()}")
-    #     while self.running:
-    #
-    #         cap.grab()  # only read every other frame
-    #         success, frame = cap.read()
-    #
-    #         # if detector is ready, place frame in queue for the
-    #         # detector to pick up, else put in raw frame queue.
-    #         if success:
-    #
-    #             # if detector is ready, perform frame detection
-    #             if self.detector.is_ready:
-    #                 try:
-    #                     self.queue_detready.put(frame, block=False)
-    #                     target_queue = self.queue_detframe
-    #                 except queue.Full:
-    #                     continue  # if queue is full skip
-    #
-    #             elif self.show_full_stream:  # just use the raw frame from feed without detection
-    #                 try:
-    #                     self.queue_rawframe.put({'frame': frame}, block=False)
-    #                     target_queue = self.queue_rawframe
-    #                 except queue.Full:
-    #                     continue  # if queue is full skip
-    #             else:
-    #                 continue
-    #
-    #             # Now, update the reference queue with the type of frame
-    #             if self.display:
-    #                 try:
-    #                     self.queue_refframe.put(target_queue, block=False)
-    #                 except queue.Full:
-    #                     # if q is full, remove next item to make room
-    #                     logger.info("Ref Queue Full!  Making room.")
-    #                     _ = self.get_next_frame()
-    #                     self.queue_refframe.put(target_queue, block=False)
-    #
-    #     logger.info(f"[{self.monitor_name}] Stopped monitor service")
+        logger.info(f"I am toggling a service: {service} {new_status}")
+
+        if service not in SERVICES.keys():
+            raise Exception(f"'{service}' is not a supported service: {SERVICES.keys()}")
+
+        # update the configuration setting locally
+        self.monitor_config.update({service: new_status})
+
+        # start or stop
+        if new_status:
+            self.start_service(SERVICES.get(service))
+        else:
+            self.stop_service(SERVICES.get(service))
+
+    def handle_message(self, msg):
+        msg_key = msg.key().decode('utf-8')
+
+        if msg_key == 'toggle_service':
+
+            msg_value = json.JSONDecoder().decode(msg.value().decode('utf-8'))
+            function_name = msg_value.get('function')
+
+            # kwargs is a list of two-element dicts with 'field' and 'value' keys.
+            # These are converted into a single dict to be used as a kwargs parameter
+            # when calling the respective function named in the message.
+            kwargs: dict = msg_value.get('kwargs')
+
+            try:
+                f = getattr(self, function_name)
+                if function_name is None or not callable(f):
+                    # The published message can't be handled by this observer
+                    logger.info(f"function not implemented or subject name not given: {function_name}")
+                    return
+                # execute function with or without kwargs
+                if kwargs:
+                    f(kwargs)
+                else:
+                    f()
+
+            except AttributeError as e:
+                logger.error(e)
+
+    def run(self):
+        """
+        This will start the service by calling threading.Thread.start()
+        Frames will be placed in respective queues.
+        """
+        logger.info(f"[{__name__}] Service started for: {self.monitor_name}")
+
+        while self.running:
+
+            # poll kafka for messages that control the state of services
+            msg = self.consumer.poll(0)
+
+            # key = msg.key().decode('utf-8')
+            # msg = msg.value().decode('utf-8')
+
+            if msg is None:
+                continue
+            if msg.error():
+                logger.info(f"[{__name__}] Consumer error: {msg.error()}")
+                continue
+
+            self.handle_message(msg)
+
+        logger.info("MONITOR SERVICE HAS STOPPED!")
 
     # # stop the services
     # self.detector.stop()

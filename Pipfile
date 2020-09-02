@@ -27,6 +27,7 @@ sphinx-rtd-theme = "*"
 python-dotenv = "*"
 numpy = "*"
 confluent-kafka = "*"
+fastavro = "*"
 
 [requires]
 python_version = "3.7"

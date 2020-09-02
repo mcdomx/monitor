@@ -1,8 +1,13 @@
 import logging
+import json
+
+from confluent_kafka import Producer
 
 from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.models.feed_factory import FeedFactory
 from traffic_monitor.services.observer import Subject
+
+logger = logging.getLogger('monitor_factory')
 
 
 class MonitorFactory:
@@ -18,6 +23,7 @@ class MonitorFactory:
             Subject.__init__(self)
             self.logger = logging.getLogger('monitor_factory')
             self.subject_name = 'Monitor'
+            self.producer = Producer({'bootstrap.servers': '127.0.0.1:9092'})
 
         @staticmethod
         def create_feed(cam: str, time_zone: str, description: str) -> dict:
@@ -105,25 +111,55 @@ class MonitorFactory:
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
             return getattr(monitor, field)
 
-        @staticmethod
-        def set_objects(monitor_name: str, objects: list, _type: str) -> list:
-            """
-            The logged objects and notified object variables are updated with new objects.
-            Changes are published to any classes that are registered with this Subject.
+        def delivery_report(self, err, msg):
+            """ Kafka support function.  Called once for each message produced to indicate delivery result.
+                Triggered by poll() or flush(). """
+            if err is not None:
+                logger.info(f'{__name__}: Message delivery failed: {err}')
+            else:
+                logger.info(f'{__name__}: Message delivered to {msg.topic()} [{msg.partition()}]')
 
-            :param monitor_name: Name of the monitor to update
-            :param objects: The new list of objects
-            :param _type: 'log' or 'notification' to reflect the type to update
-            :return: The new list of objects for the respective type
+        def toggle_service(self, monitor_name: str, service: str):
             """
+
+            :param monitor_name:
+            :param service:
+            :return:
+            """
+            services = {'log': 'logging_on',
+                        'notification': 'notifications_on',
+                        'chart': 'charting_on'}
+
+            if service not in services.keys():
+                message = f"'{service}' is not supported.  'service' must be one of {services.keys()}"
+                logger.error(message)
+                return {'error': message}
+
+            field = services.get(service)
+
+            # first, change the monitor record
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            # the key is the function name of the observer to call
-            # the value is the argument to that function that should be passed
-            MonitorFactory().publish({'set_objects': {'objects': objects, '_type': _type}})
-            return monitor.set_objects(objects, _type)
+            new_val = self.set_value(monitor_name, field, not getattr(monitor, field))
 
-        @staticmethod
-        def set_value(monitor_name: str, field: str, value):
+            # prepare data for serialization
+            msg = {
+                'message': f"toggle '{service}' for '{monitor_name}'",
+                'function': 'toggle_service',
+                'kwargs': {'field': field, 'value': new_val}
+            }
+
+            # publish detections using kafka
+            self.producer.poll(0)
+            self.producer.produce(topic=monitor_name,
+                                  key='toggle_service',
+                                  value=json.JSONEncoder().encode(msg),
+                                  callback=self.delivery_report,
+                                  )
+            self.producer.flush()
+
+            return monitor.set_value(field, new_val)
+
+        def set_value(self, monitor_name: str, field: str, value):
             """
             Set the value of model objects
             :param monitor_name:
@@ -135,6 +171,23 @@ class MonitorFactory:
             MonitorFactory().publish({'subject': monitor_name,
                                       'function': 'set_value',
                                       'kwargs': {field: value}})
+
+            self.producer.poll(0)
+            # prepare data for serialization
+            msg = {
+                'message': f'configuration change for {monitor_name}',
+                'function': 'set_value',
+                'kwargs': [{'field': field, 'value': value, 'value_type': f'{type(value).__name__}'}]
+            }
+
+            # publish detections using kafka
+            self.producer.produce(topic=monitor_name,
+                                  key='config_change',
+                                  value=json.JSONEncoder().encode(msg),
+                                  callback=self.delivery_report,
+                                  )
+            self.producer.flush()
+
             return monitor.set_value(field, value)
 
         @staticmethod
@@ -149,8 +202,8 @@ class MonitorFactory:
                     'feed_id': monitor.feed.cam,
                     'feed_url': monitor.feed.url,
                     'time_zone': monitor.feed.time_zone,
-                    'logged_objects': monitor.log_objects,
-                    'notified_objects': monitor.notification_objects,
+                    'log_objects': monitor.log_objects,
+                    'notification_objects': monitor.notification_objects,
                     'logging_on': monitor.logging_on,
                     'notifications_on': monitor.notifications_on,
                     'charting_on': monitor.charting_on}

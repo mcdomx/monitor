@@ -216,7 +216,7 @@ class MonitorServiceManager:
         @staticmethod
         def set_value(monitor_name, field, value):
             value = MonitorFactory().set_value(monitor_name, field, value)
-            return {field: value}
+            return {'monitor_name': monitor_name, field: value}
 
         @staticmethod
         def _get_services_from_config(monitor_config: dict) -> list:
@@ -278,28 +278,16 @@ class MonitorServiceManager:
             except Exception as e:
                 logger.error(f"{__name__}: {e}")
 
-        def toggle_service(self, monitor_name: str, service: str) -> dict:
+        @staticmethod
+        def toggle_service(monitor_name: str, service: str) -> dict:
             """
             Toggle a service on or off.
             :param monitor_name:
             :param service:
             :return:
             """
-            services = {'log': 'logging_on',
-                        'notification': 'notifications_on',
-                        'chart': 'charting_on'}
 
-            if service not in services.keys():
-                message = f"'{service}' is not supported.  'service' must be one of {services.keys()}"
-                logger.error(message)
-                return {'error': message}
-
-            # determine status from Monitor model
-            mon = MonitorFactory().get(monitor_name)
-            field = services.get(service)
-            is_on = bool(mon.get(field))
-
-            new_value = MonitorFactory().set_value(monitor_name, services.get(service), not is_on)
+            new_value = MonitorFactory().toggle_service(monitor_name, service)
 
             return new_value
 

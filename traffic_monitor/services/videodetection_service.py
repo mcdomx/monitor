@@ -46,12 +46,11 @@ class VideoDetectionService(ServiceAbstract):
                  ):
         """ Requires existing monitor.  1:1 relationship with a monitor but this is not
         enforced when creating the Monitor Service. """
-        ServiceAbstract.__init__(self, monitor_config=monitor_config)
+        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
         self.id = id(self)
         self.monitor_name: str = monitor_config.get('monitor_name')
         self.name = f"VideoDetectionService-{self.monitor_name}"
         self.input_image_queue: queue.Queue = queue.Queue(BUFFER_SIZE)
-        self.output_data_topic: str = output_data_topic
         self.output_image_queue: queue.Queue = queue.Queue(BUFFER_SIZE)
         self.detector_name = monitor_config.get('detector_name')
         self.detector_model = monitor_config.get('monitor_name')
@@ -106,6 +105,9 @@ class VideoDetectionService(ServiceAbstract):
     def stop(self):
         self.running = False
         logger.info(f"[{__name__}] Stopped.  Set running to False.")
+
+    def handle_message(self, msg):
+        pass
 
     def run(self):
         """
