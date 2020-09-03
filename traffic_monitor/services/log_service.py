@@ -8,10 +8,10 @@ time interval and save the entries to database.
 import logging
 import json
 import datetime
-import pytz
-import time
+# import pytz
+# import time
 
-from confluent_kafka import Consumer
+# from confluent_kafka import Consumer
 
 from traffic_monitor.models.model_logentry import LogEntry
 from traffic_monitor.services.service_abstract import ServiceAbstract

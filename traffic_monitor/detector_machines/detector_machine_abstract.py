@@ -72,14 +72,14 @@ class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
         self.running = False
         # in case the detector stops from a local error
 
-        self.publish({
-            'monitor_name': self.monitor_name,
-            'subject': 'detector_detection',
-            'message': f"{self.detector_name} was stopped.",
-            'function': 'stop',
-            'kwargs': None
-        })
-        logger.info(f"Stopping detector '{self.name}' ...")
+        # self.publish({
+        #     'monitor_name': self.monitor_name,
+        #     'subject': 'detector_detection',
+        #     'message': f"{self.detector_name} was stopped.",
+        #     'function': 'stop',
+        #     'kwargs': None
+        # })
+        # logger.info(f"Stopping detector '{self.name}' ...")
 
     def delivery_report(self, err, msg):
         """ Kafka support function.  Called once for each message produced to indicate delivery result.
@@ -87,7 +87,7 @@ class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
         if err is not None:
             logger.info(f'{self.detector_model}: Message delivery failed: {err}')
         else:
-            logger.info(f'{self.detector_model}: Message delivered to {msg.topic()} [{msg.partition()}]')
+            logger.info(f'{self.detector_model}: Message delivered to {msg.topic()} partition:[{msg.partition()}]')
 
     def handle_message(self, msg):
         pass
@@ -101,7 +101,7 @@ class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
                 # frame = self.queue_detready.get(block=False)
                 frame = self.input_image_queue.get(block=False)
 
-            except queue.Empty as e:
+            except queue.Empty:
                 # no frames available to perform detection on
                 continue
 
@@ -181,5 +181,5 @@ class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
         """
         ...
 
-    def update(self, subject_info: tuple):
-        logger.info(f"[{self.__name__}] UPDATED: {subject_info}")
+    # def update(self, subject_info: tuple):
+    #     logger.info(f"[{self.__name__}] UPDATED: {subject_info}")

@@ -1,7 +1,7 @@
 import threading
 import logging
 import json
-from traffic_monitor.services.observer import Subject, Observer
+# from traffic_monitor.services.observer import Subject, Observer
 from abc import ABCMeta, abstractmethod
 
 from confluent_kafka import Consumer, TopicPartition
@@ -9,12 +9,12 @@ from confluent_kafka import Consumer, TopicPartition
 logger = logging.getLogger('service')
 
 
-class ServiceAbstract(threading.Thread, Subject, Observer, metaclass=ABCMeta):
+class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
 
     def __init__(self, monitor_config, output_data_topic):
         threading.Thread.__init__(self)
-        Subject.__init__(self)
-        Observer.__init__(self)
+        # Subject.__init__(self)
+        # Observer.__init__(self)
         self.monitor_config = monitor_config
         self.output_data_topic = output_data_topic
         self.monitor_name = monitor_config.get('monitor_name')
@@ -79,7 +79,7 @@ class ServiceAbstract(threading.Thread, Subject, Observer, metaclass=ABCMeta):
             msg_value = json.JSONDecoder().decode(msg.value().decode('utf-8'))
             function_name = msg_value.get('function')
 
-            logger.info(f"ServiceAbstract handling: {msg_value}")
+            logger.info(f"'{self.__class__.__name__}' handling: {msg_value}")
 
             # kwargs is a list of two-element dicts with 'field' and 'value' keys.
             # These are converted into a single dict to be used as a kwargs parameter
@@ -103,39 +103,39 @@ class ServiceAbstract(threading.Thread, Subject, Observer, metaclass=ABCMeta):
             except AttributeError as e:
                 logger.error(e)
 
-    def handle_update(self, context: dict):
+    # def handle_update(self, context: dict):
+    #
+    #     subject_name = context.get('subject')
+    #     function_name = context.get('function')
+    #     kwargs = context.get('kwargs')
+    #
+    #     try:
+    #         f = getattr(self, function_name)
+    #         if subject_name is None or function_name is None or not callable(f):
+    #             # The published message can't be handled by this observer
+    #             logger.info(f"function not implemented or subject name not given: {function_name} {subject_name}")
+    #             return
+    #         if kwargs:
+    #             return f(kwargs)
+    #         else:
+    #             return f()
+    #     except AttributeError as e:
+    #         logger.error(e)
+    #         return {'error': e.args}
 
-        subject_name = context.get('subject')
-        function_name = context.get('function')
-        kwargs = context.get('kwargs')
-
-        try:
-            f = getattr(self, function_name)
-            if subject_name is None or function_name is None or not callable(f):
-                # The published message can't be handled by this observer
-                logger.info(f"function not implemented or subject name not given: {function_name} {subject_name}")
-                return
-            if kwargs:
-                return f(kwargs)
-            else:
-                return f()
-        except AttributeError as e:
-            logger.error(e)
-            return {'error': e.args}
-
-    def update(self, context: dict):
-        """
-        Any context dictionary received will be handled by the handle_update function.
-
-        :param context: {'subject': 'monitor_config',
-                         'function': 'set_value',
-                         'kwargs': {field: value}}
-        :return: None
-        """
-        logger.info(f"{[{__name__}]} :UPDATED WITH: {context}")
-        rv = self.handle_update(context)
-        if rv:
-            logger.info(f"{rv}")
+    # def update(self, context: dict):
+    #     """
+    #     Any context dictionary received will be handled by the handle_update function.
+    #
+    #     :param context: {'subject': 'monitor_config',
+    #                      'function': 'set_value',
+    #                      'kwargs': {field: value}}
+    #     :return: None
+    #     """
+    #     logger.info(f"{[{__name__}]} :UPDATED WITH: {context}")
+    #     rv = self.handle_update(context)
+    #     if rv:
+    #         logger.info(f"{rv}")
 
     def set_value(self, kwargs):
         logger.info(f"Setting value: {kwargs}")
@@ -143,5 +143,3 @@ class ServiceAbstract(threading.Thread, Subject, Observer, metaclass=ABCMeta):
             self.monitor_config.update({field: value})
             # setattr(self, field, value)
         return
-
-

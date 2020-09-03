@@ -53,7 +53,7 @@ class VideoDetectionService(ServiceAbstract):
         self.input_image_queue: queue.Queue = queue.Queue(BUFFER_SIZE)
         self.output_image_queue: queue.Queue = queue.Queue(BUFFER_SIZE)
         self.detector_name = monitor_config.get('detector_name')
-        self.detector_model = monitor_config.get('monitor_name')
+        self.detector_model = monitor_config.get('detector_model')
         self.feed_url = monitor_config.get('feed_url')
         self.feed_id = monitor_config.get('feed_id')
         self.time_zone = monitor_config.get('time_zone')
@@ -80,9 +80,9 @@ class VideoDetectionService(ServiceAbstract):
         q = self.output_image_queue.get()
         return q.get()
 
-    def update(self, context: dict):
-        # do something here
-        ServiceAbstract.update(self, context)
+    # def update(self, context: dict):
+    #     # do something here
+    #     ServiceAbstract.update(self, context)
 
     def start(self) -> dict:
         """

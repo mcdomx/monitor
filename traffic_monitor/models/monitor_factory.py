@@ -5,7 +5,7 @@ from confluent_kafka import Producer
 
 from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.models.feed_factory import FeedFactory
-from traffic_monitor.services.observer import Subject
+# from traffic_monitor.services.observer import Subject
 
 logger = logging.getLogger('monitor_factory')
 
@@ -18,9 +18,9 @@ class MonitorFactory:
             cls.singleton = cls._Singleton()
         return cls.singleton
 
-    class _Singleton(Subject):
+    class _Singleton:
         def __init__(self):
-            Subject.__init__(self)
+            # Subject.__init__(self)
             self.logger = logging.getLogger('monitor_factory')
             self.subject_name = 'Monitor'
             self.producer = Producer({'bootstrap.servers': '127.0.0.1:9092'})
@@ -117,7 +117,7 @@ class MonitorFactory:
             if err is not None:
                 logger.info(f'{__name__}: Message delivery failed: {err}')
             else:
-                logger.info(f'{__name__}: Message delivered to {msg.topic()} [{msg.partition()}]')
+                logger.info(f'{__name__}: Message delivered to {msg.topic()} partition:[{msg.partition()}]')
 
         def toggle_service(self, monitor_name: str, service: str):
             """
@@ -142,6 +142,7 @@ class MonitorFactory:
             new_val = self.set_value(monitor_name, field, not getattr(monitor, field))
 
             # prepare data for serialization
+            key = 'toggle_service'
             msg = {
                 'message': f"toggle '{service}' for '{monitor_name}'",
                 'function': 'toggle_service',
@@ -151,7 +152,7 @@ class MonitorFactory:
             # publish detections using kafka
             self.producer.poll(0)
             self.producer.produce(topic=monitor_name,
-                                  key='toggle_service',
+                                  key=key,
                                   value=json.JSONEncoder().encode(msg),
                                   callback=self.delivery_report,
                                   )
@@ -167,13 +168,17 @@ class MonitorFactory:
             :param value:
             :return:
             """
+            # update value
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            MonitorFactory().publish({'subject': monitor_name,
-                                      'function': 'set_value',
-                                      'kwargs': {field: value}})
+            rv = monitor.set_value(field, value)
+            # MonitorFactory().publish({'subject': monitor_name,
+            #                           'function': 'set_value',
+            #                           'kwargs': {field: value}})
 
+            # create message
             self.producer.poll(0)
             # prepare data for serialization
+            key = 'config_change'
             msg = {
                 'message': f'configuration change for {monitor_name}',
                 'function': 'set_value',
@@ -182,13 +187,13 @@ class MonitorFactory:
 
             # publish detections using kafka
             self.producer.produce(topic=monitor_name,
-                                  key='config_change',
+                                  key=key,
                                   value=json.JSONEncoder().encode(msg),
                                   callback=self.delivery_report,
                                   )
             self.producer.flush()
 
-            return monitor.set_value(field, value)
+            return rv
 
         @staticmethod
         def get_monitor_configuration(monitor_name: str) -> dict:
