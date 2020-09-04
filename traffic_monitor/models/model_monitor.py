@@ -38,7 +38,7 @@ class Monitor(models.Model):
             FeedFactory().refresh_url(monitor.feed_id)
             return Monitor.objects.get(pk=monitor_name)
         except Monitor.DoesNotExist as e:
-            logger.error(f"[{__name__}]: {monitor_name} {e}")
+            logger.error(f"Monitor Does not Exist: {monitor_name} {e}")
 
     @staticmethod
     def create(**kwargs):

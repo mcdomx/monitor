@@ -4,14 +4,12 @@ logged. The service will summarize entries after a specified
 time interval and save the entries to database.
 """
 
-# import threading
 import logging
 import json
 import datetime
-# import pytz
-# import time
+import time
 
-# from confluent_kafka import Consumer
+from abc import ABC
 
 from traffic_monitor.models.model_logentry import LogEntry
 from traffic_monitor.services.service_abstract import ServiceAbstract
@@ -20,7 +18,7 @@ from traffic_monitor.services.elapsed_time import ElapsedTime
 logger = logging.getLogger('log_service')
 
 
-class LogService(ServiceAbstract):
+class LogService(ServiceAbstract, ABC):
     """
     An instance of a log service will create entries into the database on a specified interval.
     The LogService operates as a thread and sleeps until the logging interval is complete.
@@ -35,20 +33,7 @@ class LogService(ServiceAbstract):
                  ):
         ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
         self.subject_name = f"logservice__{monitor_config.get('monitor_name')}"
-        self.running = False
         self.log_interval = 60  # freq (in sec) in detections are logged
-        # self.log_objects = monitor_config.get('log_objects')
-        # self.time_zone = monitor_config.get('time_zone')
-
-    def start(self):
-        if self.running:
-            return
-
-        self.running = True
-        ServiceAbstract.start(self)  # start thread
-
-    def stop(self):
-        self.running = False
 
     def handle_message(self, msg) -> (str, object):
         msg_key = msg.key().decode('utf-8')
@@ -63,7 +48,7 @@ class LogService(ServiceAbstract):
         capture_count = 0
         log_interval_detections = []
 
-        logger.info("Starting log service .. ")
+        logger.info(f"Starting log service for {self.monitor_name} .. ")
         while self.running:
 
             msg = self.poll_kafka()
@@ -77,7 +62,7 @@ class LogService(ServiceAbstract):
 
             msg_key, msg_value = key_msg
 
-            logger.info("Logger is handling message:")
+            logger.info(f"Logger is handling message for {self.monitor_name}:")
             logger.info(f"\tKEY: {msg_key}")
             logger.info(f"\tMSG: {msg_value}")
 
@@ -110,5 +95,7 @@ class LogService(ServiceAbstract):
                 capture_count = 0
                 timer.reset()
 
+            # time.sleep(self.pulse)
+
         self.consumer.close()
-        logger.info(f"[{__name__}] Stopped log service.")
+        logger.info(f"[{self.monitor_name}] Stopped log service.")

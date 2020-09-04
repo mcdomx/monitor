@@ -5,7 +5,6 @@ from traffic_monitor.services.monitor_service import MonitorService
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.chart_service import ChartService
 from traffic_monitor.services.notification_service import NotificationService
-from traffic_monitor.services.observer import Observer
 
 logger = logging.getLogger('monitor_service_manager')
 
@@ -18,9 +17,8 @@ class MonitorServiceManager:
             cls.singleton = cls._Singleton()
         return cls.singleton
 
-    class _Singleton(Observer):
+    class _Singleton:
         def __init__(self):
-            Observer.__init__(self)
             self.logger = logging.getLogger('detector')
             self.active_monitors = {}
             self.viewing_monitor: str = ''
@@ -103,7 +101,7 @@ class MonitorServiceManager:
                 detector_name = MonitorFactory().get_detector_name(monitor_name)
 
             if not detector_name:
-                message = f"[__name__] validate_objects requires a 'monitor_name' or a 'detector_name'"
+                message = f"[{monitor_name}] validate_objects requires a 'monitor_name' or a 'detector_name'"
                 logger.error(message)
                 return {'error': message}
 
@@ -234,34 +232,32 @@ class MonitorServiceManager:
                           monitor_name: str,
                           ) -> dict:
 
+            # One one active monitor at a time can be supported
+            # Check if a monitor is already active
+            if len(self.active_monitors) > 0:
+                message = f"'{monitor_name}' is already active. Stop it to start another monitor."
+                logger.info(message)
+                return {'message': message}
+
             try:
-                monitor_config = MonitorFactory().get_monitor_configuration(monitor_name)
+                monitor_config: dict = MonitorFactory().get_monitor_configuration(monitor_name)
 
                 # check if the monitor is already active
                 if self.is_active(monitor_config.get('monitor_name')):
-                    message = {'message': f"[{__name__}] '{monitor_config.get('monitor_name')}' is already active."}
+                    message = {'message': f"'{monitor_config.get('monitor_name')}' is already active."}
                     return {**message, **monitor_config}
 
                 ms = MonitorService(monitor_config=monitor_config)
-                rv = ms.start()
+                ms.start()
                 self.active_monitors.update({monitor_name: ms})
 
-                # As observer, register the created monitor service with the MonitorFactory so
-                # the monitor service can get configuration updates to monitor values
-                # like the list of logged objects and notified objects.
-                MonitorFactory().register(ms)
-
-                # register the sub-services with the MonitorFactory to get updates
-                # for s in ms.active_services:
-                #     MonitorFactory().register(s)
-
-                return {**rv, **monitor_config}
+                return monitor_config
             except Exception as e:
-                logger.error(f"{__name__}: {e}")
+                logger.error(f"{monitor_name}: Starting Error: {e}")
 
         def stop_monitor(self, monitor_name) -> str:
             try:
-                ms: MonitorService = self.active_monitors.pop(monitor_name, None)
+                ms: MonitorService = self.active_monitors.get(monitor_name, None)
 
                 # check if the monitor is already active
                 if ms is None:
@@ -274,9 +270,11 @@ class MonitorServiceManager:
                         self.viewing_monitor = None
 
                 ms.stop()
+                ms.join()
+                self.active_monitors.pop(monitor_name)
                 return f"Service stopped for {monitor_name}"
             except Exception as e:
-                logger.error(f"{__name__}: {e}")
+                logger.error(f"{monitor_name}: Stopping Error: {e}")
 
         @staticmethod
         def toggle_service(monitor_name: str, service: str) -> dict:

@@ -22,9 +22,7 @@ class DetectorMachineFactory:
             self.logger = logging.getLogger('detector')
 
         @staticmethod
-        def get_detector_machine(monitor_name: str,
-                                 detector_name: str,
-                                 detector_model: str,
+        def get_detector_machine(monitor_config: dict,
                                  input_image_queue: queue.Queue,
                                  output_image_queue: queue.Queue,
                                  output_data_topic: str) -> DetectorMachineAbstract:
@@ -32,33 +30,17 @@ class DetectorMachineFactory:
             Determine the implemented detector class based on the detector name.
             Update this function to add new detection models which implement DetectorAbstract.
             :param output_data_topic:
-            :param monitor_name:
+            :param monitor_config:
             :param input_image_queue:
             :param output_image_queue:
-            :param output_data_queue:
-            :param detector_model:
-            :param detector_name: Name of the detector for which the corresponding class is requested
-            :param detector_name:
-            :param kwargs:
-                        detector_id
-                        detector_name
-                        detector_model
-                        queue_detready
-                        queue_detframe
-                        queue_dets_log
-                        queue_dets_mon
-                        notified_objects
-                        logged_objects
-                        detection_interval
+
             :return: An implemented instance of a detector machine that is ready to be started with .start()
             """
 
             detector_class: DetectorMachineAbstract.__class__ = DetectorMachineFactory()._get_detector_class(
-                detector_name)
+                monitor_config.get('detector_name'))
 
-            return detector_class(monitor_name=monitor_name,
-                                  detector_name=detector_name,
-                                  detector_model=detector_model,
+            return detector_class(monitor_config=monitor_config,
                                   input_image_queue=input_image_queue,
                                   output_image_queue=output_image_queue,
                                   output_data_topic=output_data_topic)

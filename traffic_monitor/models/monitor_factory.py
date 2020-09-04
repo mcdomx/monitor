@@ -5,6 +5,7 @@ from confluent_kafka import Producer
 
 from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.models.feed_factory import FeedFactory
+
 # from traffic_monitor.services.observer import Subject
 
 logger = logging.getLogger('monitor_factory')
@@ -21,9 +22,10 @@ class MonitorFactory:
     class _Singleton:
         def __init__(self):
             # Subject.__init__(self)
-            self.logger = logging.getLogger('monitor_factory')
+            # self.logger = logging.getLogger('monitor_factory')
             self.subject_name = 'Monitor'
-            self.producer = Producer({'bootstrap.servers': '127.0.0.1:9092'})
+            self.producer = Producer({'bootstrap.servers': '127.0.0.1:9092',
+                                      'group.id': 'monitorgroup'})
 
         @staticmethod
         def create_feed(cam: str, time_zone: str, description: str) -> dict:
@@ -115,9 +117,10 @@ class MonitorFactory:
             """ Kafka support function.  Called once for each message produced to indicate delivery result.
                 Triggered by poll() or flush(). """
             if err is not None:
-                logger.info(f'{__name__}: Message delivery failed: {err}')
+                logger.info(f'{self.__class__.__name__}: Message delivery failed: {err}')
             else:
-                logger.info(f'{__name__}: Message delivered to {msg.topic()} partition:[{msg.partition()}]')
+                logger.info(
+                    f'{self.__class__.__name__}: Message delivered to {msg.topic()} partition:[{msg.partition()}]')
 
         def toggle_service(self, monitor_name: str, service: str):
             """
@@ -182,7 +185,7 @@ class MonitorFactory:
             msg = {
                 'message': f'configuration change for {monitor_name}',
                 'function': 'set_value',
-                'kwargs': [{'field': field, 'value': value, 'value_type': f'{type(value).__name__}'}]
+                'kwargs': [{'field': field, 'value': value}]
             }
 
             # publish detections using kafka

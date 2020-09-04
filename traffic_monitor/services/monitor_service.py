@@ -8,6 +8,7 @@ import queue
 import logging
 import threading
 import json
+import time
 
 from confluent_kafka.admin import AdminClient, NewTopic, KafkaException
 from confluent_kafka import Consumer, TopicPartition
@@ -18,7 +19,7 @@ from traffic_monitor.services.videodetection_service import VideoDetectionServic
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.notification_service import NotificationService
 from traffic_monitor.services.chart_service import ChartService
-from traffic_monitor.services.observer import Observer
+# from traffic_monitor.services.observer import Observer
 
 BUFFER_SIZE = 512
 
@@ -31,7 +32,7 @@ SERVICES = {
         }
 
 
-class MonitorService(Observer, threading.Thread):
+class MonitorService(threading.Thread):
     """
     A Monitor is defined as a Detector and a URL video feed.
     The class is a thread that will continually run and log
@@ -65,7 +66,7 @@ class MonitorService(Observer, threading.Thread):
                  ):
         """ Requires existing monitor.  1:1 relationship with a monitor but this is not
         enforced when creating the Monitor Service. """
-        Observer.__init__(self)
+        # Observer.__init__(self)
         threading.Thread.__init__(self)
         self.id = id(self)
 
@@ -100,7 +101,8 @@ class MonitorService(Observer, threading.Thread):
         # This topic is used by the sub-services of this monitor
         # to communicate with each other.
         # https://github.com/confluentinc/confluent-kafka-python
-        a = AdminClient({'bootstrap.servers': '127.0.0.1'})
+        a = AdminClient({'bootstrap.servers': '127.0.0.1',
+                         'group.id': 'monitorgroup'})
         topic = NewTopic(self.monitor_name, num_partitions=3, replication_factor=1)
 
         # Call create_topics to asynchronously create topics. {topic,future} is returned.
@@ -126,23 +128,6 @@ class MonitorService(Observer, threading.Thread):
         q = self.output_image_queue.get()
         return q.get()
 
-    def update(self, context):
-        # {
-        #  'subject': 'monitor_name',
-        #  'function': 'set_value',
-        #  'kwargs': {field: value}}
-        # looking for published images
-        if context.get('subject') == self.monitor_name:
-            if context.get('function') == 'detected_image':
-                try:
-                    self.output_image_queue.put(context.get('kwargs').get('image'), block=False)
-                except queue.Full:
-                    # make room
-                    _ = self.output_image_queue.get(block=False)
-                    self.output_image_queue.put(context.get('kwargs').get('image'), block=False)
-
-                logger.info(f"[{__name__}] Put image on queue: {self.monitor_name}")
-
     def start_service(self, service_class: ServiceAbstract.__class__):
         s: ServiceAbstract = self.active_services.get(service_class)
         if s is None:
@@ -152,7 +137,7 @@ class MonitorService(Observer, threading.Thread):
         self.active_services.update({s.__class__.__name__: s})
 
     def stop_service(self, service_class: ServiceAbstract.__class__):
-        s: ServiceAbstract = self.active_services.get(service_class.__name__)
+        s: ServiceAbstract = self.active_services.get(service_class)
         if s is not None:
             s.stop()
             s.join()
@@ -164,7 +149,7 @@ class MonitorService(Observer, threading.Thread):
         :return: A dict with bool 'success' and string 'message' describing result.
         """
         if self.running:
-            message = {'message': f"[{__name__}] Service is already running: {self.monitor_name}"}
+            message = {'message': f"[{self.__class__.__name__}] Service is already running: {self.monitor_name}"}
             return message
         try:
             # Start Services
@@ -178,7 +163,7 @@ class MonitorService(Observer, threading.Thread):
             threading.Thread.start(self)
 
         except Exception as e:
-            raise Exception(f"[{__name__}] Could not start '{self.monitor_name}': {e}")
+            raise Exception(f"[{self.__class__.__name__}] Could not start '{self.monitor_name}': {e}")
 
     def stop(self) -> dict:
 
@@ -186,7 +171,7 @@ class MonitorService(Observer, threading.Thread):
         for s in self.active_services:
             self.stop_service(s)
 
-        message = {'message': f"[{__name__}] Stopped."}
+        message = {'message': f"[{self.__class__.__name__}] Stopped."}
 
         self.running = False
         logger.info(message.get('message'))
@@ -194,7 +179,6 @@ class MonitorService(Observer, threading.Thread):
 
     def toggle_service(self, kwargs):
         """
-        :param service:
         :param kwargs: 'field'=service  'value'=True or False (for on/start or off/stop)
         :return:
         """
@@ -248,7 +232,7 @@ class MonitorService(Observer, threading.Thread):
         This will start the service by calling threading.Thread.start()
         Frames will be placed in respective queues.
         """
-        logger.info(f"[{__name__}] Service started for: {self.monitor_name}")
+        logger.info(f"[{self.__class__.__name__}] Service started for: {self.monitor_name}")
 
         while self.running:
 
@@ -261,29 +245,15 @@ class MonitorService(Observer, threading.Thread):
             if msg is None:
                 continue
             if msg.error():
-                logger.info(f"[{__name__}] Consumer error: {msg.error()}")
+                logger.info(f"[{self.__class__.__name__}] Consumer error: {msg.error()}")
                 continue
 
             self.handle_message(msg)
 
-        logger.info("MONITOR SERVICE HAS STOPPED!")
+            time.sleep(1)
 
-    # # stop the services
-    # self.detector.stop()
-    #
-    # for s in self.active_services:
-    #     s: ServiceAbstract = s
-    #     s.stop()
-    #
-    # for s in self.active_services:
-    #     s: ServiceAbstract = s
-    #     s.join()
-    #
-    # self.active_services = []
-    #
-    # self.detector.join()
-    #
-    # logger.info(f"[{self.monitor_name}] Monitor Service and its services are all stopped!")
+        self.consumer.close()
+        logger.info("MONITOR SERVICE HAS STOPPED!")
 
     @staticmethod
     def get_trained_objects(detector_name) -> list:

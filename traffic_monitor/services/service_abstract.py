@@ -1,7 +1,6 @@
 import threading
 import logging
 import json
-# from traffic_monitor.services.observer import Subject, Observer
 from abc import ABCMeta, abstractmethod
 
 from confluent_kafka import Consumer, TopicPartition
@@ -13,11 +12,11 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
 
     def __init__(self, monitor_config, output_data_topic):
         threading.Thread.__init__(self)
-        # Subject.__init__(self)
-        # Observer.__init__(self)
         self.monitor_config = monitor_config
         self.output_data_topic = output_data_topic
         self.monitor_name = monitor_config.get('monitor_name')
+        self.pulse = 1
+        self.running = False
 
         # Kafka settings
         self.consumer = Consumer({
@@ -31,9 +30,25 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
     def update_monitor_config(self, monitor_config):
         self.monitor_config = monitor_config
 
-    @abstractmethod
+    def start(self) -> dict:
+        """
+        Overriding Threading.start() so that we can test if thr service is
+        already active and set the 'running' variable.
+        :return: A dict with bool 'success' and string 'message' describing result.
+        """
+        if self.running:
+            message = {'message': f"[{self.__class__.__name__}] Service is already running: {self.monitor_name}"}
+            return message
+        try:
+            self.running = True
+            threading.Thread.start(self)
+            message = {'message': f"[{self.__class__.__name__}] Service started for: {self.monitor_name}"}
+            return message
+        except Exception as e:
+            raise Exception(f"[{self.__class__.__name__}] Could not start '{self.monitor_name}': {e}")
+
     def stop(self):
-        ...
+        self.running = False
 
     def poll_kafka(self):
         msg = self.consumer.poll(0)
@@ -44,7 +59,7 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
         if msg is None:
             return None
         if msg.error():
-            logger.info(f"[{__name__}] Consumer error: {msg.error()}")
+            logger.info(f"[{self.__class__.__name__}] Consumer error: {msg.error()}")
             return None
 
         # the abstract class handles configuration changes

@@ -2,19 +2,19 @@ import threading
 import queue
 import json
 import logging
+import traceback
 import numpy as np
-from abc import abstractmethod, ABCMeta
+from abc import abstractmethod
 
 from confluent_kafka import Producer
 
 from traffic_monitor.services.service_abstract import ServiceAbstract
-
-# from traffic_monitor.services.elapsed_time import ElapsedTime
+from traffic_monitor.services.elapsed_time import ElapsedTime
 
 logger = logging.getLogger('detector')
 
 
-class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
+class DetectorMachineAbstract(ServiceAbstract):
     """
     Abstract class for a detector.
     required methods:
@@ -35,70 +35,56 @@ class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
     """
 
     def __init__(self,
-                 monitor_name: str,
-                 detector_name: str,
-                 detector_model: str,
+                 monitor_config: dict,
+                 output_data_topic: str,
                  input_image_queue: queue.Queue,
-                 output_image_queue: queue.Queue,
-                 output_data_topic: str):
+                 output_image_queue: queue.Queue):
 
-        threading.Thread.__init__(self)
-        self.monitor_name: str = monitor_name
-        self.detector_name: str = detector_name
-        self.detector_model: str = detector_model
-        self.name: str = f"{detector_name}:{detector_model}:"
+        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
+        self.monitor_name: str = monitor_config.get('monitor_name')
+        self.detector_name: str = monitor_config.get('detector_name')
+        self.detector_model: str = monitor_config.get('detector_model')
+        self.name: str = f"{self.detector_name}:{self.detector_model}:"
         self.input_image_queue: queue.Queue = input_image_queue
         self.output_image_queue: queue.Queue = output_image_queue
         self.output_data_topic: str = output_data_topic
-
         self.is_ready = True
-        self.running = False
-        # self.queue_detready = kwargs.get('queue_detready')
-        # self.queue_detframe = kwargs.get('queue_detframe')
-        # self.queue_dets_log = kwargs.get('queue_dets_log')
-        # self.queue_dets_mon = kwargs.get('queue_dets_mon')
-        # self.detection_interval = kwargs.get('detection_interval')
+        self.producer = Producer({'bootstrap.servers': '127.0.0.1:9092',
+                                  'group.id': 'monitorgroup'})
+
+        # # This service does not use the consumer that is setup by the
+        # # serviceabstract class.  If we don't close it, Kafka will close
+        # # the group when it sees that a consumer is no longer consuming.
+        # self.consumer.close()
 
     def __str__(self):
         return f"Detector: {self.name}"
-
-    def start(self):
-        logger.info(f"Starting detector '{self.name}' ...")
-        self.running = True
-        self.is_ready = True
-        ServiceAbstract.start(self)
-
-    def stop(self):
-        self.running = False
-        # in case the detector stops from a local error
-
-        # self.publish({
-        #     'monitor_name': self.monitor_name,
-        #     'subject': 'detector_detection',
-        #     'message': f"{self.detector_name} was stopped.",
-        #     'function': 'stop',
-        #     'kwargs': None
-        # })
-        # logger.info(f"Stopping detector '{self.name}' ...")
 
     def delivery_report(self, err, msg):
         """ Kafka support function.  Called once for each message produced to indicate delivery result.
             Triggered by poll() or flush(). """
         if err is not None:
-            logger.info(f'{self.detector_model}: Message delivery failed: {err}')
+            logger.info(f'{self.__class__.__name__}: Message delivery failed: {err}')
         else:
-            logger.info(f'{self.detector_model}: Message delivered to {msg.topic()} partition:[{msg.partition()}]')
+            logger.info(f'{self.__class__.__name__}: Message delivered to {msg.topic()} partition:[{msg.partition()}]')
 
     def handle_message(self, msg):
-        pass
+        return None
 
     def run(self):
         logger.info(f"Started {self.name}")
-        # timer = ElapsedTime()
-        producer = Producer({'bootstrap.servers': '127.0.0.1:9092'})
+
+        timer = ElapsedTime()
+
         while self.running:
+
+            # make sure the the consumer polls the producer at least once
+            # every 4 minutes
+            if timer.get() > 240:
+                _ = self.poll_kafka()
+                timer.reset()
+
             try:
-                # frame = self.queue_detready.get(block=False)
                 frame = self.input_image_queue.get(block=False)
 
             except queue.Empty:
@@ -115,11 +101,7 @@ class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
             # put detected frame on queue
             try:
                 self.output_image_queue.put({'frame': frame})
-                # self.publish({
-                #     'subject': self.monitor_name,
-                #     'function': 'detected_image',
-                #     'kwargs': {'image': frame}
-                # })
+
             except queue.Full:
                 logger.info(f"[{self.name}] Detected frame queue was full.  Purging oldest item to make room.")
                 _ = self.output_image_queue.get()
@@ -129,37 +111,29 @@ class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
 
             # publish the data to kafka topic
             try:
-                producer.poll(0)
+                self.producer.poll(0)
                 # prepare data for serialization
                 detections = [d.replace(' ', '_') for d in detections]
 
-                # publish detections using kafka
-                # msg = {
-                #     'monitor_name': self.monitor_name,
-                #     'subject': 'detector_detection',
-                #     'function': 'set_value',
-                #     'kwargs': {field: value}
-                # }
-                producer.produce(topic=self.monitor_name,
-                                 key='detector_detection',
-                                 value=json.JSONEncoder().encode(detections),  # ' '.join(detections).encode('utf-8'),
-                                 callback=self.delivery_report,
-                                 )
-                producer.flush()
-                # self.output_data_queue.put(detections)
-            # except queue.Full:
-            #     logger.info(f"[{self.name}] Detections data queue was full.  Purging oldest item to make room.")
-            #     _ = self.output_data_queue.get()
-            #     self.output_data_queue.put(detections)
+                self.producer.produce(topic=self.monitor_name,
+                                      key='detector_detection',
+                                      value=json.JSONEncoder().encode(detections),
+                                      # ' '.join(detections).encode('utf-8'),
+                                      callback=self.delivery_report,
+                                      )
+                self.producer.flush()
+
             except Exception as e:
                 logger.info(f"[{self.name}] Unhandled Exception publishing detection data: {e.args}")
+                logger.info(traceback.print_stack())
 
             # # sleep to let the timer expire
             # time.sleep(max(0, self.detection_interval - timer.get()))
             # timer.reset()
             self.is_ready = True
 
-        logger.info(f"'{self.name}' thread stopped!")
+        self.is_ready = True  # if this stopped with is_ready as false, we make sure it will start again as ready
+        logger.info(f"'{self.monitor_name}' '{self.detector_name}:{self.detector_model}' thread stopped!")
 
     @abstractmethod
     def detect(self, frame: np.array) -> (np.array, list):
@@ -180,6 +154,3 @@ class DetectorMachineAbstract(ServiceAbstract, metaclass=ABCMeta):
         must be represented with an underscore, '_'.
         """
         ...
-
-    # def update(self, subject_info: tuple):
-    #     logger.info(f"[{self.__name__}] UPDATED: {subject_info}")

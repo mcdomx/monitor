@@ -17,18 +17,20 @@ service has been configured to process.
 
 import queue
 import logging
+from abc import ABC
 
 import cv2 as cv
 
 from traffic_monitor.detector_machines.detetor_machine_factory import DetectorMachineFactory
 from traffic_monitor.services.service_abstract import ServiceAbstract
+from traffic_monitor.services.elapsed_time import ElapsedTime
 
 BUFFER_SIZE = 512
 
 logger = logging.getLogger('videodetection_service')
 
 
-class VideoDetectionService(ServiceAbstract):
+class VideoDetectionService(ServiceAbstract, ABC):
     """
 
 
@@ -36,39 +38,29 @@ class VideoDetectionService(ServiceAbstract):
 
     def __init__(self,
                  monitor_config: dict,
-                 # feed_id: str,
-                 # feed_url: str,
-                 # time_zone: str,
                  output_data_topic: str,  # Kafka topic to produce data to
-                 # output_image_queue: queue.Queue,  # this is where the service will place detected images
-                 # detector_name: str,
-                 # detector_model: str,
                  ):
         """ Requires existing monitor.  1:1 relationship with a monitor but this is not
         enforced when creating the Monitor Service. """
         ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
-        self.id = id(self)
         self.monitor_name: str = monitor_config.get('monitor_name')
         self.name = f"VideoDetectionService-{self.monitor_name}"
         self.input_image_queue: queue.Queue = queue.Queue(BUFFER_SIZE)
         self.output_image_queue: queue.Queue = queue.Queue(BUFFER_SIZE)
-        self.detector_name = monitor_config.get('detector_name')
-        self.detector_model = monitor_config.get('detector_model')
-        self.feed_url = monitor_config.get('feed_url')
-        self.feed_id = monitor_config.get('feed_id')
-        self.time_zone = monitor_config.get('time_zone')
 
         # DETECTOR STATES
-        self.running = False
         self.show_full_stream = False
 
         # Create a detector
-        self.detector = DetectorMachineFactory().get_detector_machine(monitor_name=self.monitor_name,
-                                                                      detector_name=self.detector_name,
-                                                                      detector_model=self.detector_model,
+        self.detector = DetectorMachineFactory().get_detector_machine(monitor_config=monitor_config,
                                                                       input_image_queue=self.input_image_queue,
                                                                       output_image_queue=self.output_image_queue,
                                                                       output_data_topic=self.output_data_topic)
+
+        # # This service does not use the consumer that is setup by the
+        # # serviceabstract class.  If we don't close it, Kafka will close
+        # # the group when it sees that a consumer is no longer consuming.
+        # self.consumer.close()
 
     def __str__(self):
         rv = self.__dict__
@@ -80,34 +72,8 @@ class VideoDetectionService(ServiceAbstract):
         q = self.output_image_queue.get()
         return q.get()
 
-    # def update(self, context: dict):
-    #     # do something here
-    #     ServiceAbstract.update(self, context)
-
-    def start(self) -> dict:
-        """
-        Overriding Threading.start() so that we can test if a monitor service  is already active for
-        the monitor and set the 'running' variable.
-        :return: A dict with bool 'success' and string 'message' describing result.
-        """
-        if self.running:
-            message = {'message': f"[{__name__}] Service is already running: {self.monitor_name}"}
-            return message
-        try:
-            self.running = True
-            # threading.Thread.start(self)
-            ServiceAbstract.start(self)
-            message = {'message': f"[{__name__}] Service started for: {self.monitor_name}"}
-            return message
-        except Exception as e:
-            raise Exception(f"[{__name__}] Could not start '{self.monitor_name}': {e}")
-
-    def stop(self):
-        self.running = False
-        logger.info(f"[{__name__}] Stopped.  Set running to False.")
-
     def handle_message(self, msg):
-        pass
+        return None
 
     def run(self):
         """
@@ -116,21 +82,29 @@ class VideoDetectionService(ServiceAbstract):
         """
         # set source of video stream
         try:
-            cap = cv.VideoCapture(self.feed_url)
+            cap = cv.VideoCapture(self.monitor_config.get('feed_url'))
+
+            # start the detector machine
+            self.detector.start()
+
         except Exception as e:
-            logger.error(f"[{__name__}] Failed to create a video stream.")
+            logger.error(f"[{self.__class__.__name__}] Failed to create a video stream.")
             logger.error(e)
             return
-
-        # The detector is handled separately from the other sub-services
-        # start the detector machine
-        self.detector.start()
-        # register monitor_service with detector to get detector updates
 
         logger.info(f"Starting video detection service for id: {self.monitor_name}")
         logger.info(f"Video detection service running for {self.monitor_name}: {self.running}")
         logger.info(f"Video Capture Opened: {cap.isOpened()}")
+
+        timer = ElapsedTime()
+
         while self.running and cap.isOpened():
+
+            # make sure the the consumer polls the producer at least once
+            # every 4 minutes
+            if timer.get() > 240:
+                _ = self.poll_kafka()
+                timer.reset()
 
             cap.grab()  # only read every other frame
             success, frame = cap.read()
@@ -138,6 +112,15 @@ class VideoDetectionService(ServiceAbstract):
             # if detector is ready, place frame in
             # queue for the detector to pick up
             if success:
+
+                # if the detector stopped for some reason, create a new thread
+                if not self.detector.is_alive():
+                    logger.info(f"Restarting {self.monitor_config.get('detector_name')}:{self.monitor_config.get('detector_model')} for {self.monitor_name}")
+                    self.detector = DetectorMachineFactory().get_detector_machine(monitor_config=self.monitor_config,
+                                                                                  input_image_queue=self.input_image_queue,
+                                                                                  output_image_queue=self.output_image_queue,
+                                                                                  output_data_topic=self.output_data_topic)
+                    self.detector.start()
 
                 # if detector is ready, perform frame detection
                 if self.detector.is_ready:
@@ -148,50 +131,16 @@ class VideoDetectionService(ServiceAbstract):
                         # output_data_queue
                         self.input_image_queue.put(frame, block=False)
 
-                        # target_queue = self.queue_detframe
                     except queue.Full:
                         # if queue is full skip, drop an image to make room
                         _ = self.input_image_queue.get()
                         self.input_image_queue.put(frame, block=False)
                         continue
 
-                # elif self.show_full_stream:  # just use the raw frame from feed without detection
-                #     try:
-                #         self.queue_rawframe.put({'frame': frame}, block=False)
-                #         target_queue = self.queue_rawframe
-                #     except queue.Full:
-                #         continue  # if queue is full skip
-                # else:
-                #     continue
-                #
-                # # Now, update the reference queue with the type of frame
-                # if self.display:
-                #     try:
-                #         self.queue_refframe.put(target_queue, block=False)
-                #     except queue.Full:
-                #         # if q is full, remove next item to make room
-                #         logger.info("Ref Queue Full!  Making room.")
-                #         _ = self.get_next_frame()
-                #         self.queue_refframe.put(target_queue, block=False)
-
-        logger.info(f"[{self.monitor_name}] Stopped monitor service")
-
-        # stop the services
+        # stop the detector service
         self.detector.stop()
-
-        # for s in self.active_services:
-        #     s: ServiceAbstract = s
-        #     s.stop()
-        #
-        # for s in self.active_services:
-        #     s: ServiceAbstract = s
-        #     s.join()
-        #
-        # self.active_services = []
-
         self.detector.join()
-
-        logger.info(f"[{self.monitor_name}] Video Service and its detector are stopped!")
+        logger.info(f"[{self.monitor_name}] Stopped video detection service.")
 
     @staticmethod
     def get_trained_objects(detector_name) -> list:

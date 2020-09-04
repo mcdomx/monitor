@@ -1,12 +1,13 @@
 import logging
 import time
+from abc import ABC
 
 from traffic_monitor.services.service_abstract import ServiceAbstract
 
 logger = logging.getLogger('notification_service')
 
 
-class NotificationService(ServiceAbstract):
+class NotificationService(ServiceAbstract, ABC):
     """
     A notification service will perform notification actions based on the existence
     of a condition in a stream of data.
@@ -16,17 +17,8 @@ class NotificationService(ServiceAbstract):
                  output_data_topic: str):
         ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
         self.subject_name = f"notificationservice__{self.monitor_name}"
-        self.running = False
-        self.id = id
         self.notification_interval = 60
         self.notification_objects = self.monitor_config.get('notification_objects')
-
-    def start(self):
-        self.running = True
-        ServiceAbstract.start(self)  # start thread
-
-    def stop(self):
-        self.running = False
 
     def handle_message(self, msg):
         pass
@@ -34,7 +26,10 @@ class NotificationService(ServiceAbstract):
     def run(self):
 
         logger.info("Starting notification service .. ")
+
         while self.running:
+
+            _ = self.poll_kafka()
 
             # sleep for log interval time
             time.sleep(self.notification_interval)
@@ -44,6 +39,7 @@ class NotificationService(ServiceAbstract):
             except Exception as e:
                 continue
 
-        logger.info("Stopped notification service.")
+        self.consumer.close()
+        logger.info(f"[{self.monitor_name}] Stopped log service.")
 
 
