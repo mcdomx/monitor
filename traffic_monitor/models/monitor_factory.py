@@ -21,9 +21,6 @@ class MonitorFactory:
 
     class _Singleton:
         def __init__(self):
-            # Subject.__init__(self)
-            # self.logger = logging.getLogger('monitor_factory')
-            self.subject_name = 'Monitor'
             self.producer = Producer({'bootstrap.servers': '127.0.0.1:9092',
                                       'group.id': 'monitorgroup'})
 
@@ -174,9 +171,6 @@ class MonitorFactory:
             # update value
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
             rv = monitor.set_value(field, value)
-            # MonitorFactory().publish({'subject': monitor_name,
-            #                           'function': 'set_value',
-            #                           'kwargs': {field: value}})
 
             # create message
             self.producer.poll(0)

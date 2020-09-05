@@ -29,7 +29,8 @@ class NotificationService(ServiceAbstract, ABC):
 
         while self.running:
 
-            _ = self.poll_kafka()
+            msg = self.poll_kafka(0)
+            self.handle_message(msg)
 
             # sleep for log interval time
             time.sleep(self.notification_interval)

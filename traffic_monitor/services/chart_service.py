@@ -28,14 +28,15 @@ class ChartService(ServiceAbstract, ABC):
         self.charting_interval: int = 60
 
     def handle_message(self, msg):
-        return None
+        pass
 
     def run(self):
 
         logger.info("Starting chart service ...")
         while self.running:
 
-            _ = self.poll_kafka()
+            msg = self.poll_kafka(0)
+            self.handle_message(msg)
 
             time.sleep(self.charting_interval)
 

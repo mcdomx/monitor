@@ -51,7 +51,7 @@ class LogService(ServiceAbstract, ABC):
         logger.info(f"Starting log service for {self.monitor_name} .. ")
         while self.running:
 
-            msg = self.poll_kafka()
+            msg = self.poll_kafka(0)
             if msg is None:
                 continue
 
@@ -66,6 +66,7 @@ class LogService(ServiceAbstract, ABC):
             logger.info(f"\tKEY: {msg_key}")
             logger.info(f"\tMSG: {msg_value}")
 
+            # the log service only listens for detector_detection messages
             if msg_key != 'detector_detection':
                 continue
 
@@ -95,7 +96,7 @@ class LogService(ServiceAbstract, ABC):
                 capture_count = 0
                 timer.reset()
 
-            # time.sleep(self.pulse)
+            time.sleep(1)
 
         self.consumer.close()
         logger.info(f"[{self.monitor_name}] Stopped log service.")

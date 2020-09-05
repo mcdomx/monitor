@@ -52,9 +52,14 @@ class MonitorServiceManager:
         @staticmethod
         def _get_toggled_objects(monitor_name: str, field: str, toggle_objects: list) -> list:
             # Helper function to toggle items on or off from a current list of objects
+            # logger.info("Toggling Objects: ")
             current_objects = MonitorFactory().get_value(monitor_name, field)
+            # logger.info(f"\tOriginal: {current_objects}")
+            # logger.info(f"\tItems to toggle: {toggle_objects}")
             remove_these = set(current_objects).intersection(set(toggle_objects))
+            # logger.info(f"\tRemove: {remove_these}")
             rv: list = list(set(current_objects).union(toggle_objects).difference(remove_these))
+            # logger.info(f"\tNew List: {rv}")
             return rv
 
         @staticmethod

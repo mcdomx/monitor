@@ -24,11 +24,26 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
             'group.id': 'monitorgroup',
             'auto.offset.reset': 'earliest'
         })
-        self.consumer.subscribe([self.monitor_config.get('monitor_name')])
-        self.consumer.assign([TopicPartition(self.monitor_config.get('monitor_name'), p) for p in range(3)])
+        self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self.on_revoke)
+        partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p) for p in range(3)]
+        self.consumer.assign(partitions)
 
     def update_monitor_config(self, monitor_config):
         self.monitor_config = monitor_config
+
+    def on_revoke(self, consumer, partitions) -> (Consumer, list):
+        if not self.running:
+            return
+        logger.info(f"ServiceAbstract subscriber on_revoke triggered.  Resetting consumer.")
+        consumer = Consumer({
+            'bootstrap.servers': '127.0.0.1:9092',
+            'group.id': 'monitorgroup',
+            'auto.offset.reset': 'earliest'
+        })
+        self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self.on_revoke)
+        partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p) for p in range(3)]
+        self.consumer.assign(partitions)
+        return consumer, partitions
 
     def start(self) -> dict:
         """
@@ -50,8 +65,8 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
     def stop(self):
         self.running = False
 
-    def poll_kafka(self):
-        msg = self.consumer.poll(0)
+    def poll_kafka(self, timeout=0):
+        msg = self.consumer.poll(timeout)
 
         # key = msg.key().decode('utf-8')
         # msg = msg.value().decode('utf-8')

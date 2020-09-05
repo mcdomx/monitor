@@ -19,7 +19,6 @@ from traffic_monitor.services.videodetection_service import VideoDetectionServic
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.notification_service import NotificationService
 from traffic_monitor.services.chart_service import ChartService
-# from traffic_monitor.services.observer import Observer
 
 BUFFER_SIZE = 512
 
@@ -75,15 +74,6 @@ class MonitorService(threading.Thread):
         self.output_data_topic: str = self.monitor_name
         self.name = f"{self.monitor_name}_thread"
 
-        # Kafka settings
-        self.consumer = Consumer({
-            'bootstrap.servers': '127.0.0.1:9092',
-            'group.id': 'monitorgroup',
-            'auto.offset.reset': 'earliest'
-        })
-        self.consumer.subscribe([self.monitor_config.get('monitor_name')])
-        self.consumer.assign([TopicPartition(self.monitor_name, p) for p in range(3)])
-
         # STATES
         self.running = False
         self.show_full_stream = False
@@ -101,7 +91,7 @@ class MonitorService(threading.Thread):
         # This topic is used by the sub-services of this monitor
         # to communicate with each other.
         # https://github.com/confluentinc/confluent-kafka-python
-        a = AdminClient({'bootstrap.servers': '127.0.0.1',
+        a = AdminClient({'bootstrap.servers': '127.0.0.1:9092',
                          'group.id': 'monitorgroup'})
         topic = NewTopic(self.monitor_name, num_partitions=3, replication_factor=1)
 
@@ -118,11 +108,35 @@ class MonitorService(threading.Thread):
             except Exception as e:
                 logger.info("Unhandled error when creating topic {}: {}".format(t, e))
 
+        # Kafka settings
+        self.consumer = Consumer({
+            'bootstrap.servers': '127.0.0.1:9092',
+            'group.id': 'monitorgroup',
+            'auto.offset.reset': 'earliest'
+        })
+        self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self.on_revoke)
+        partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p) for p in range(3)]
+        self.consumer.assign(partitions)
+
     def __str__(self):
         rv = self.__dict__
         str_rv = {k: f"{v}" for k, v in rv.items()}
 
         return f"{str_rv}"
+
+    def on_revoke(self, consumer, partitions) -> (Consumer, list):
+        if not self.running:
+            return
+        logger.info(f"Monitor_Service subscriber on_revoke triggered.  Resetting consumer.")
+        consumer = Consumer({
+            'bootstrap.servers': '127.0.0.1:9092',
+            'group.id': 'monitorgroup',
+            'auto.offset.reset': 'earliest'
+        })
+        self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self.on_revoke)
+        partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p) for p in range(3)]
+        self.consumer.assign(partitions)
+        return consumer, partitions
 
     def get_next_frame(self):
         q = self.output_image_queue.get()

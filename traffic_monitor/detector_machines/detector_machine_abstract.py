@@ -78,10 +78,9 @@ class DetectorMachineAbstract(ServiceAbstract):
 
         while self.running:
 
-            # make sure the the consumer polls the producer at least once
-            # every 4 minutes
-            if timer.get() > 240:
-                _ = self.poll_kafka()
+            # keep the consumer alive by regular polling
+            if timer.get() > 5:
+                _ = self.poll_kafka(0)
                 timer.reset()
 
             try:
@@ -118,7 +117,6 @@ class DetectorMachineAbstract(ServiceAbstract):
                 self.producer.produce(topic=self.monitor_name,
                                       key='detector_detection',
                                       value=json.JSONEncoder().encode(detections),
-                                      # ' '.join(detections).encode('utf-8'),
                                       callback=self.delivery_report,
                                       )
                 self.producer.flush()
@@ -133,6 +131,7 @@ class DetectorMachineAbstract(ServiceAbstract):
             self.is_ready = True
 
         self.is_ready = True  # if this stopped with is_ready as false, we make sure it will start again as ready
+        self.consumer.close()
         logger.info(f"'{self.monitor_name}' '{self.detector_name}:{self.detector_model}' thread stopped!")
 
     @abstractmethod

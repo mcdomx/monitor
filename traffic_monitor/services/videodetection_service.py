@@ -100,10 +100,9 @@ class VideoDetectionService(ServiceAbstract, ABC):
 
         while self.running and cap.isOpened():
 
-            # make sure the the consumer polls the producer at least once
-            # every 4 minutes
-            if timer.get() > 240:
-                _ = self.poll_kafka()
+            # keep the consumer alive by regular polling
+            if timer.get() > 5:
+                _ = self.poll_kafka(0)
                 timer.reset()
 
             cap.grab()  # only read every other frame
@@ -140,6 +139,8 @@ class VideoDetectionService(ServiceAbstract, ABC):
         # stop the detector service
         self.detector.stop()
         self.detector.join()
+
+        self.consumer.close()
         logger.info(f"[{self.monitor_name}] Stopped video detection service.")
 
     @staticmethod
