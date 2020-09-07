@@ -11,7 +11,7 @@ import json
 import time
 
 from confluent_kafka.admin import AdminClient, NewTopic, KafkaException
-from confluent_kafka import Consumer, TopicPartition
+from confluent_kafka import Consumer, TopicPartition, OFFSET_END
 
 from traffic_monitor.detector_machines.detetor_machine_factory import DetectorMachineFactory
 from traffic_monitor.services.service_abstract import ServiceAbstract
@@ -115,7 +115,7 @@ class MonitorService(threading.Thread):
             'auto.offset.reset': 'earliest'
         })
         self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self.on_revoke)
-        partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p) for p in range(3)]
+        partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p, OFFSET_END) for p in range(3)]
         self.consumer.assign(partitions)
 
     def __str__(self):

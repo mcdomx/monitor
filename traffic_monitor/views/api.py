@@ -120,7 +120,10 @@ def get_detectors(request) -> JsonResponse:
 
 def get_monitors(request) -> JsonResponse:
     try:
-        rv = MonitorServiceManager().all_monitors()
+        monitors = MonitorServiceManager().all_monitors()
+        rv = []
+        for m in monitors:
+            rv.append(_filter_serializable(m))
         return JsonResponse(rv, safe=False)
     except Exception as e:
         logger.error(e)

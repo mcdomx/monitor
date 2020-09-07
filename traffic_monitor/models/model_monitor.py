@@ -31,11 +31,14 @@ class Monitor(models.Model):
         # rv = self.__dict__
         # return f"{rv}"
 
+    def refresh_url(self):
+        # monitor: Monitor = Monitor.objects.get(pk=monitor_name)
+        FeedFactory().refresh_url(self.feed_id)
+        return self
+
     @staticmethod
     def get(monitor_name: str):
         try:
-            monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            FeedFactory().refresh_url(monitor.feed_id)
             return Monitor.objects.get(pk=monitor_name)
         except Monitor.DoesNotExist as e:
             logger.error(f"Monitor Does not Exist: {monitor_name} {e}")

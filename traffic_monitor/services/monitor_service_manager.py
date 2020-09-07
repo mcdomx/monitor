@@ -117,9 +117,17 @@ class MonitorServiceManager:
 
             return list(valid_objects), list(invalid_objects)
 
-        @staticmethod
-        def all_monitors() -> list:
-            return MonitorFactory().all_monitors()
+        def all_monitors(self) -> list:
+            monitors = MonitorFactory().all_monitors()
+            rv = []
+            for m in monitors:
+                rv.append(self.get_monitor(m.get('name')))
+            return rv
+
+        def get_monitor(self, name: str) -> dict:
+            rv = MonitorFactory().get_monitor(monitor_name=name)
+            rv.update({'is_active': self.is_active(monitor_name=name)})
+            return rv
 
         @staticmethod
         def all_feeds() -> list:
@@ -133,10 +141,7 @@ class MonitorServiceManager:
         def all_detectors() -> list:
             return MonitorFactory().all_detectors()
 
-        def get_monitor(self, name: str) -> dict:
-            rv = MonitorFactory().get_monitor_configuration(monitor_name=name)
-            rv.update({'is_active': self.is_active(monitor_name=name)})
-            return rv
+
 
         @staticmethod
         def create_feed(cam: str, time_zone: str, description: str) -> dict:

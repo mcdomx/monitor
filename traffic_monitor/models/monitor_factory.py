@@ -193,8 +193,13 @@ class MonitorFactory:
             return rv
 
         @staticmethod
+        def get_monitor(monitor_name: str) -> dict:
+            return Monitor.objects.get(name=monitor_name).__dict__
+
+        @staticmethod
         def get_monitor_configuration(monitor_name: str) -> dict:
-            monitor: Monitor = Monitor.get(monitor_name=monitor_name)
+            monitor: Monitor = Monitor.objects.get(name=monitor_name)
+            monitor = monitor.refresh_url()  # urls can go stale - make sure url is current
 
             return {'monitor_name': monitor.name,
                     'detector_id': monitor.detector.detector_id,
