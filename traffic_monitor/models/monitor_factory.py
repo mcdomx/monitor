@@ -5,6 +5,7 @@ from confluent_kafka import Producer
 
 from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.models.feed_factory import FeedFactory
+from traffic_monitor.websocket_channels import ChannelFactory, ConfigChange
 
 # from traffic_monitor.services.observer import Subject
 
@@ -149,14 +150,15 @@ class MonitorFactory:
                 'kwargs': {'field': field, 'value': new_val}
             }
 
-            # publish detections using kafka
-            self.producer.poll(0)
-            self.producer.produce(topic=monitor_name,
-                                  key=key,
-                                  value=json.JSONEncoder().encode(msg),
-                                  callback=self.delivery_report,
-                                  )
-            self.producer.flush()
+            # publish configuration updates to the backend using kafka
+            self._publish_message(monitor_name, key, msg)
+            # self.producer.poll(0)
+            # self.producer.produce(topic=monitor_name,
+            #                       key=key,
+            #                       value=json.JSONEncoder().encode(msg),
+            #                       callback=self.delivery_report,
+            #                       )
+            # self.producer.flush()
 
             return monitor.set_value(field, new_val)
 
@@ -173,7 +175,7 @@ class MonitorFactory:
             rv = monitor.set_value(field, value)
 
             # create message
-            self.producer.poll(0)
+
             # prepare data for serialization
             key = 'config_change'
             msg = {
@@ -182,15 +184,35 @@ class MonitorFactory:
                 'kwargs': [{'field': field, 'value': value}]
             }
 
+            self._publish_message(monitor_name, key, msg)
+
             # publish detections using kafka
+            # self.producer.poll(0)
+            # self.producer.produce(topic=monitor_name,
+            #                       key=key,
+            #                       value=json.JSONEncoder().encode(msg),
+            #                       callback=self.delivery_report,
+            #                       )
+            # self.producer.flush()
+
+            return rv
+
+        def _publish_message(self, monitor_name, key, message):
+            # Update backend using Kafka
+            self.producer.poll(0)
             self.producer.produce(topic=monitor_name,
                                   key=key,
-                                  value=json.JSONEncoder().encode(msg),
+                                  value=json.JSONEncoder().encode(message),
                                   callback=self.delivery_report,
                                   )
             self.producer.flush()
 
-            return rv
+            # Update front-end using Channels
+            channel: ConfigChange = ChannelFactory.get(f"/ws/traffic_monitor/config_change/{monitor_name}/")
+            # only use the channel if a channel has been created
+            if channel:
+                # send message to front-end
+                channel.update(json.JSONEncoder().encode(message))
 
         @staticmethod
         def get_monitor(monitor_name: str) -> dict:

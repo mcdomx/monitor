@@ -14,6 +14,7 @@ from abc import ABC
 from traffic_monitor.models.model_logentry import LogEntry
 from traffic_monitor.services.service_abstract import ServiceAbstract
 from traffic_monitor.services.elapsed_time import ElapsedTime
+from traffic_monitor.websocket_channels import ChannelFactory, LogChannel
 
 logger = logging.getLogger('log_service')
 
@@ -25,6 +26,9 @@ class LogService(ServiceAbstract, ABC):
     Once ready to create the log entry, the LogService will look for detections in a
     referenced queue, clearing the queue and writing the detections from that queue
     into the database.
+
+    The LogService will use Kafak to communicate across the back-end and Channels to
+    communicate with the front-end.
     """
 
     def __init__(self,
@@ -34,6 +38,7 @@ class LogService(ServiceAbstract, ABC):
         ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
         self.subject_name = f"logservice__{monitor_config.get('monitor_name')}"
         self.log_interval = 60  # freq (in sec) in detections are logged
+        self.channel_url = f"/ws/traffic_monitor/log/{monitor_config.get('monitor_name')}/"  # websocket channel address
 
     def handle_message(self, msg) -> (str, object):
         msg_key = msg.key().decode('utf-8')
@@ -90,6 +95,13 @@ class LogService(ServiceAbstract, ABC):
                              monitor_name=self.monitor_name,
                              count_dict=interval_counts_dict)
                 logger.info(f"Monitor: {self.monitor_name} Logged Detections: {interval_counts_dict}")
+
+                # send web-client updates using the Channels-Redis websocket
+                channel: LogChannel = ChannelFactory.get(self.channel_url)
+                # only use the channel if a channel has been created
+                if channel:
+                    # this sends message to ay front end that has created a WebSocket with the respective channel_url address
+                    channel.update({'monitor_name': self.monitor_name, 'timestamp': timestamp, 'counts': interval_counts_dict})
 
                 # reset variables for next observation
                 log_interval_detections.clear()

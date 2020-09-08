@@ -39,6 +39,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -47,7 +48,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'traffic_monitor.apps.TrafficMonitorConfig',
     'django_extensions',
-    'channels'
 ]
 
 MIDDLEWARE = [
@@ -80,7 +80,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'monitor.wsgi.application'
 
-ASGI_APPLICATION = 'monitor.routing.application'
+# Channels-Redis Configuration
+ASGI_APPLICATION = 'monitor.channel_routing.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases

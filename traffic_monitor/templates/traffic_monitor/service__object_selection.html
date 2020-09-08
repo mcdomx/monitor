@@ -1,0 +1,190 @@
+{%  extends 'traffic_monitor/service_wrapper.html' %}
+
+{% block title %}Log and Notification Settings{% endblock %}
+
+{% block service_content %}
+{#    Include the service html here #}
+    {% csrf_token %}
+
+    <script type="text/javascript">
+        function update_configsocket(monitor_name) {
+            {# A socket is created that will be used to capture messages from #}
+            {# the backend. When updates are received the web page is updated #}
+            {# with the respective log information. #}
+
+            const socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/')
+
+            {# Receive Update #}
+            socket.onmessage = async function(e) {
+                await set_selections('{{ monitor_name }}')
+            }
+
+            socket.onclose = function(e) {
+                console.log("config_change socket closed!")
+            }
+
+            socket.onopen = function(e) {
+                console.log("config_change socket opened!")
+            }
+
+        }
+
+
+        function toggle_box(elemid) {
+            let split_elemid = elemid.split("__");
+            let action = split_elemid[0];
+            let obj = split_elemid[1];
+            let url = null;
+            if (action==='log') {
+                url = 'toggle_log_objects/'
+            }
+            if (action==='not') {
+                url = 'toggle_notification_objects/'
+            }
+            if (url === null) {
+                return
+            }
+
+            url += '?monitor_name={{ monitor_name }}&objects=' + obj.replace('_', ' ')
+
+            fetch(url);
+        }
+
+        async function get_monitor_config(monitor_name) {
+            const url = 'get_monitor?name=' + monitor_name
+            return await fetch(url).then(data => {
+                return data.json();
+            });
+        }
+
+        async function set_selections(monitor_name) {
+
+            {# Turn all off #}
+            let elems = document.getElementsByTagName('input')
+            for (let e in elems) {
+                if (elems[e].type === 'checkbox') {
+                    elems[e].checked = false;
+                }
+            }
+
+            {# Get selected objects to turn on #}
+            let config = await get_monitor_config(monitor_name);
+            let log_objects = config['log_objects'];
+            let notification_objects = config['notification_objects'];
+            for (let l in log_objects) {
+                if (log_objects.hasOwnProperty(l)){
+                    let e = document.getElementById('log__' + log_objects[l].replace(' ', '_'));
+                    if (e != null) {
+                        e.checked = true;
+                    }
+                }
+            }
+
+            for (let n in notification_objects) {
+                if (notification_objects.hasOwnProperty(n)) {
+                    let e = document.getElementById('not__' + notification_objects[n].replace(' ', '_'));
+                    if (e != null) {
+                        e.checked = true;
+                    }
+                }
+            }
+        }
+
+
+        function setup_table(monitor_name) {
+        {#    Get data to put in table #}
+
+            const url = 'get_trained_objects?monitor_name=' + monitor_name
+            fetch(url)
+                .then(response => response.json())
+                .then(data => { make_table(data); })
+                .then( () => set_selections(monitor_name))
+                .catch(function(error) {
+                                    console.log("Could not get data: get_trained_objects() failed. : " + error);
+                                })
+        }
+
+        function make_table(data) {
+            {#Clear the table#}
+            let table = document.querySelector("#notlogtable");
+            table.innerHTML = ''
+            for (let o in data) {
+                let row = make_class_row(data[o]);
+                add_table_row(row);}
+        }
+
+        function make_class_row(o) {
+            {# Create class name column #}
+            let c1 = document.createElement("td");
+            c1.innerHTML = `${o}`;
+            c1.className = 'py-2';
+
+            {# Create monitoring checkbox column #}
+            let not_check_box = document.createElement("input");
+            not_check_box.type = 'checkbox';
+            not_check_box.className = 'not_checkbox';
+            not_check_box.id = 'not__' + o.replace(' ', '_');
+            not_check_box.checked = false;
+            not_check_box.onclick = function() {toggle_box('not__' + o.replace(' ', '_'));}
+
+            let c2 = document.createElement("td");
+            c2.appendChild(not_check_box);
+            c2.className = "text-center py-2";
+
+            {# Create logging checkbox column #}
+            let log_check_box = document.createElement("input");
+            log_check_box.type = 'checkbox';
+            log_check_box.className = 'log_checkbox';
+            log_check_box.id = 'log__' + o.replace(' ', '_');
+            log_check_box.checked = false;
+            log_check_box.onclick = function() {toggle_box('log__' + o.replace(' ', '_'));}
+
+            let c3 = document.createElement("td");
+            c3.appendChild(log_check_box);
+            c3.className = "text-center py-2";
+
+
+            let table_row = document.createElement('tr');
+            table_row.appendChild(c1);
+            table_row.appendChild(c2);
+            table_row.appendChild(c3);
+
+            return table_row
+
+            }
+
+        function add_table_row(table_row) {
+                let table = document.querySelector("#notlogtable");
+                table.appendChild(table_row)
+        }
+
+        {#On load, setup the log and notification selection table #}
+        document.addEventListener('DOMContentLoaded', () => {
+            {#Update the table of elements to monitor and log#}
+            setup_table('{{monitor_name}}');
+            update_configsocket('{{monitor_name}}');
+        })
+    </script>
+
+    <div class="card-body" style="height: 360px; overflow-y: auto">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead style="position: sticky">
+                    <tr>
+                        <th style="position: sticky;">Object</th>
+                        <th style="position: sticky;" class="text-center"><button class="btn btn-primary" id="btn-monitor" type="button" onclick="toggle_all('mon')">Monitor</button></th>
+                        <th style="position: sticky;" class="text-center"><button class="btn btn-primary" id="btn-log" type="button" onclick="toggle_all('log')">&nbsp&nbsp Log &nbsp&nbsp</button></th>
+                    </tr>
+                </thead>
+
+                <tbody id="notlogtable" style="height: 200px; overflow-y: scroll;">
+
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+
+
+
+{% endblock %}

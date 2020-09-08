@@ -1,0 +1,11 @@
+{
+  "name": "monitor",
+  "version": "1.0.0",
+  "dependencies": {
+    "kafka-client": "^3.0.0",
+    "kafkajs": "^1.12.0"
+  },
+  "devDependencies": {
+    "kafka-node": "^5.0.0"
+  }
+}

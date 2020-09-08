@@ -1,0 +1,96 @@
+{% extends 'traffic_monitor/service_wrapper.html' %}
+
+{% block title %}Detection Log{% endblock title %}
+
+{% block service_content %}
+    {% csrf_token %}
+
+    <script type="text/javascript">
+
+        function update_logsocket(monitor_name) {
+            {# A socket is created that will be used to capture messages from #}
+            {# the backend. When updates are received the web page is updated #}
+            {# with the respective log information. #}
+
+            const socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/log/' + monitor_name + '/')
+
+            {# Clear anything already in the detections log #}
+            let logtable = document.getElementById("logtable");
+            logtable.innerHTML = ''
+
+            {# Update Log #}
+            socket.onmessage = function(e) {
+                const data = JSON.parse(e.data).counts;
+                const time_stamp = JSON.parse(e.data).timestamp;
+
+                let logtable = document.getElementById("logtable");
+                let i = 0;
+
+                for (const [k, v] of Object.entries(data)){
+                    console.log(k + ': ' + v);
+                    let logentry = document.createElement("tr");
+
+                    let c1 = document.createElement("td");
+                    c1.className = 'py-2'
+                    if (i === Object.keys(data).length-1) {
+                        c1.innerHTML = time_stamp;
+                    } else {
+                        c1.innerHTML = ''
+                    }
+                    logentry.appendChild(c1);
+
+                    let c2 = document.createElement("td");
+                    c2.className = 'py-2'
+                    c2.innerHTML = k + ': ' + v;
+                    logentry.appendChild(c2);
+
+                    logtable.insertBefore(logentry, logtable.childNodes[0]);
+
+                    i++;
+
+                {#If list is longer than 100, remove oldest item from the bottom of list#}
+                var num_elems = document.getElementById("logtable").childElementCount;
+
+                if (num_elems > 10) {
+                    logtable.removeChild(logtable.childNodes[10]);
+                }
+
+                }
+            }
+
+            socket.onclose = function(e) {
+                console.log("logging socket closed!")
+            }
+
+            socket.onopen = function(e) {
+                console.log("logging socket opened!")
+            }
+
+        }
+
+        {#On load, setup the channel to get communications from the server #}
+        document.addEventListener('DOMContentLoaded', () => {
+            {#Update the table of elements to monitor and log#}
+            update_logsocket('{{monitor_name}}');
+        })
+
+    </script>
+
+    <div class="card-body" style="height: 360px; overflow-y: auto">
+        <div class="table-responsive">
+            <table class="table">
+                <thead style="text-align: left">
+                    <tr>
+                        <th>Time</th>
+                        <th>Obj: Detections/Minute</th>
+                    </tr>
+                </thead>
+
+                <tbody id="logtable">
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+
+{% endblock service_content %}

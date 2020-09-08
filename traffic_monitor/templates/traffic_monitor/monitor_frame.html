@@ -1,0 +1,15 @@
+{# This file lays out the service of  monitor #}
+{# This page expects to be called with a variable called 'monitor_name' #}
+<script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', () => {
+
+        })
+</script>
+
+<div id="monitor_services">
+    {%  include 'traffic_monitor/service__object_selection.html' with monitor_name=monitor_name%}
+    {%  include 'traffic_monitor/service__logging.html' with monitor_name=monitor_name%}
+</div>
+
+
+

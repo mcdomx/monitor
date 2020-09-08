@@ -6,7 +6,7 @@ from django.http import StreamingHttpResponse
 
 from traffic_monitor.services.monitor_service import MonitorService
 from traffic_monitor.services.monitor_service_manager import MonitorServiceManager
-from traffic_monitor.consumers import ConsumerFactory
+from traffic_monitor.websocket_channels import ChannelFactory
 
 from traffic_monitor.services.observer import Observer
 
@@ -33,7 +33,7 @@ class Publisher(Observer):
             # get the channel to publish log data on
             channel = None
             while channel is None:
-                channel = ConsumerFactory.get(self.channel_url)
+                channel = ChannelFactory.get(self.channel_url)
             channel.update(context)
 
 
