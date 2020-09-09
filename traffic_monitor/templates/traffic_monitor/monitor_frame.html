@@ -6,6 +6,10 @@
         })
 </script>
 
+<div id="monitor_config">
+    {%  include 'traffic_monitor/monitor_config.html' with monitor_name=monitor_name%}
+</div>
+
 <div id="monitor_services">
     {%  include 'traffic_monitor/service__object_selection.html' with monitor_name=monitor_name%}
     {%  include 'traffic_monitor/service__logging.html' with monitor_name=monitor_name%}

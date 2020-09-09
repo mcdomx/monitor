@@ -8,13 +8,15 @@ import logging
 import json
 import datetime
 import time
-
 from abc import ABC
+
+from django.core.serializers.json import DjangoJSONEncoder
 
 from traffic_monitor.models.model_logentry import LogEntry
 from traffic_monitor.services.service_abstract import ServiceAbstract
 from traffic_monitor.services.elapsed_time import ElapsedTime
-from traffic_monitor.websocket_channels import ChannelFactory, LogChannel
+from traffic_monitor.websocket_channels import LogChannel
+from traffic_monitor.websocket_channels_factory import ChannelFactory
 
 logger = logging.getLogger('log_service')
 
@@ -39,6 +41,8 @@ class LogService(ServiceAbstract, ABC):
         self.subject_name = f"logservice__{monitor_config.get('monitor_name')}"
         self.log_interval = 60  # freq (in sec) in detections are logged
         self.channel_url = f"/ws/traffic_monitor/log/{monitor_config.get('monitor_name')}/"  # websocket channel address
+        # self.producer = Producer({'bootstrap.servers': '127.0.0.1:9092',
+        #                           'group.id': 'monitorgroup'})
 
     def handle_message(self, msg) -> (str, object):
         msg_key = msg.key().decode('utf-8')
@@ -88,27 +92,31 @@ class LogService(ServiceAbstract, ABC):
                 interval_counts_dict = {obj: round(log_interval_detections.count(obj) / capture_count, 3) for obj in
                                         objs_unique if obj in self.monitor_config.get('log_objects')}
                 # time is saved in UTC
-                timestamp = datetime.datetime.utcfromtimestamp(time_stamp / 1000)
+                time_stamp = datetime.datetime.utcfromtimestamp(time_stamp / 1000)
 
                 # add observations to database
-                LogEntry.add(time_stamp=timestamp,
+                LogEntry.add(time_stamp=time_stamp,
                              monitor_name=self.monitor_name,
                              count_dict=interval_counts_dict)
                 logger.info(f"Monitor: {self.monitor_name} Logged Detections: {interval_counts_dict}")
 
                 # send web-client updates using the Channels-Redis websocket
-                channel: LogChannel = ChannelFactory.get(self.channel_url)
+                channel: LogChannel = ChannelFactory().get(self.channel_url)
                 # only use the channel if a channel has been created
                 if channel:
                     # this sends message to ay front end that has created a WebSocket with the respective channel_url address
-                    channel.update({'monitor_name': self.monitor_name, 'timestamp': timestamp, 'counts': interval_counts_dict})
+                    msg = {'time_stamp': time_stamp,
+                           'monitor_name': self.monitor_name,
+                           'counts': interval_counts_dict}
+
+                    channel.send(text_data=DjangoJSONEncoder().encode(msg))
 
                 # reset variables for next observation
                 log_interval_detections.clear()
                 capture_count = 0
                 timer.reset()
 
-            time.sleep(1)
+            time.sleep(.5)
 
         self.consumer.close()
         logger.info(f"[{self.monitor_name}] Stopped log service.")

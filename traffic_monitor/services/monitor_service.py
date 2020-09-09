@@ -19,6 +19,8 @@ from traffic_monitor.services.videodetection_service import VideoDetectionServic
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.notification_service import NotificationService
 from traffic_monitor.services.chart_service import ChartService
+from traffic_monitor.websocket_channels import ServiceToggle
+from traffic_monitor.websocket_channels_factory import ChannelFactory
 
 BUFFER_SIZE = 512
 
@@ -143,18 +145,19 @@ class MonitorService(threading.Thread):
         return q.get()
 
     def start_service(self, service_class: ServiceAbstract.__class__):
-        s: ServiceAbstract = self.active_services.get(service_class)
+        s: ServiceAbstract = self.active_services.get(service_class.__name__)
         if s is None:
             s = service_class(monitor_config=self.monitor_config,
                               output_data_topic=self.output_data_topic)
         s.start()
         self.active_services.update({s.__class__.__name__: s})
 
-    def stop_service(self, service_class: ServiceAbstract.__class__):
-        s: ServiceAbstract = self.active_services.get(service_class)
+    def stop_service(self, service_name):
+        s: ServiceAbstract = self.active_services.get(service_name)
         if s is not None:
             s.stop()
             s.join()
+            self.active_services.pop(service_name)
 
     def start(self) -> dict:
         """
@@ -182,7 +185,7 @@ class MonitorService(threading.Thread):
     def stop(self) -> dict:
 
         # stop all sub-services
-        for s in self.active_services:
+        for s in self.active_services.copy():
             self.stop_service(s)
 
         message = {'message': f"[{self.__class__.__name__}] Stopped."}
@@ -237,6 +240,15 @@ class MonitorService(threading.Thread):
                     f(kwargs)
                 else:
                     f()
+
+                # Update Front-End using Channels
+                # -------------------------------
+                channel: ServiceToggle = ChannelFactory.get(f"/ws/traffic_monitor/{msg_key}/{self.monitor_name}/")
+                # only update the channel if a channel has been created (i.e. - a front-end is using it)
+                if channel:
+                    # send message to front-end
+                    channel.update(json.JSONEncoder().encode(msg_value))
+                # -------------------------------
 
             except AttributeError as e:
                 logger.error(e)

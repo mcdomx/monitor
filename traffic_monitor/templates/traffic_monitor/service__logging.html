@@ -1,8 +1,8 @@
-{% extends 'traffic_monitor/service_wrapper.html' %}
+{% extends 'traffic_monitor/section_wrapper.html' %}
 
 {% block title %}Detection Log{% endblock title %}
 
-{% block service_content %}
+{% block content %}
     {% csrf_token %}
 
     <script type="text/javascript">
@@ -20,8 +20,11 @@
 
             {# Update Log #}
             socket.onmessage = function(e) {
+                console.log(e.data);
                 const data = JSON.parse(e.data).counts;
-                const time_stamp = JSON.parse(e.data).timestamp;
+                const utctime = new Date(JSON.parse(e.data).time_stamp);
+                let time_stamp = utctime.toLocaleString()
+
 
                 let logtable = document.getElementById("logtable");
                 let i = 0;
@@ -31,7 +34,7 @@
                     let logentry = document.createElement("tr");
 
                     let c1 = document.createElement("td");
-                    c1.className = 'py-2'
+                    c1.className = 'py-1'
                     if (i === Object.keys(data).length-1) {
                         c1.innerHTML = time_stamp;
                     } else {
@@ -40,7 +43,7 @@
                     logentry.appendChild(c1);
 
                     let c2 = document.createElement("td");
-                    c2.className = 'py-2'
+                    c2.className = 'py-1'
                     c2.innerHTML = k + ': ' + v;
                     logentry.appendChild(c2);
 
@@ -93,4 +96,4 @@
         </div>
     </div>
 
-{% endblock service_content %}
+{% endblock content %}

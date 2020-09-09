@@ -199,6 +199,8 @@ LOGGING = {
                                   'level': 'INFO', },
                 'videodetection_service': {'handlers': ['console'],
                                            'level': 'INFO', },
+                'frontend_communication_service': {'handlers': ['console'],
+                                                   'level': 'INFO', },
                 'test': {'handlers': ['console'],
                          'level': 'INFO', },
                 },

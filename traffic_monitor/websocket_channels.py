@@ -14,33 +14,23 @@ Each service below must have a corresponding route in the traffic_monitor/channe
 """
 import json
 import logging
+
 from channels.generic.websocket import WebsocketConsumer
 
-consumers = {}
+from traffic_monitor.websocket_channels_factory import ChannelFactory
 
-
-class ChannelFactory:
-    """
-    Retrieve an existing consumer via the url for the socket.
-    """
-    @staticmethod
-    def get(url):
-        return consumers.get(url)
-
-    @staticmethod
-    def get_all():
-        return consumers
+logger = logging.getLogger('channel')
 
 
 class ConfigChange(WebsocketConsumer):
     def connect(self):
-        consumers.update({self.scope.get('path'): self})
-        self.logger = logging.getLogger('channel')
-        self.logger.info("STARTING CONFIG UPDATE CHANNEL")
+        ChannelFactory().add(url=self.scope.get('path'), consumer=self)
+        logger.info("STARTING CONFIG UPDATE CHANNEL")
         self.accept()
 
     def disconnect(self, code):
-        self.logger.info("Config Update Channel Closed!")
+        ChannelFactory().remove(self.scope.get('path'))
+        logger.info("Config Update Channel Closed!")
 
     def update(self, text_data=None, bytes_data=None, close=False):
         self.send(text_data=json.dumps(text_data))
@@ -48,13 +38,13 @@ class ConfigChange(WebsocketConsumer):
 
 class ServiceToggle(WebsocketConsumer):
     def connect(self):
-        consumers.update({self.scope.get('path'): self})
-        self.logger = logging.getLogger('channel')
-        self.logger.info("STARTING SERVICE TOGGLE CHANNEL")
+        ChannelFactory().add(url=self.scope.get('path'), consumer=self)
+        logger.info("STARTING SERVICE TOGGLE CHANNEL")
         self.accept()
 
     def disconnect(self, code):
-        self.logger.info("Service Toggle Channel Closed!")
+        ChannelFactory().remove(self.scope.get('path'))
+        logger.info("Service Toggle Channel Closed!")
 
     def update(self, text_data=None, bytes_data=None, close=False):
         self.send(text_data=json.dumps(text_data))
@@ -66,7 +56,6 @@ class LogChannel(WebsocketConsumer):
     can send messages by calling update() and the front end
     can connect to this consumer via a WebSocket.
     """
-
     def connect(self):
         """
         connect() is called when the web-client creates a WebSocket object.
@@ -82,37 +71,51 @@ class LogChannel(WebsocketConsumer):
 
         :return:
         """
-        consumers.update({self.scope.get('path'): self})
-        self.logger = logging.getLogger('channel')
-        self.logger.info("STARTING LOG CHANNEL")
+        ChannelFactory().add(url=self.scope.get('path'), consumer=self)
+        logger.info("STARTING LOG CHANNEL")
         self.accept()
 
     def disconnect(self, code):
-        self.logger.info("Log Channel Closed!")
+        ChannelFactory().remove(self.scope.get('path'))
+        logger.info("Log Channel Closed!")
 
-    def update(self, text_data=None, bytes_data=None, close=False):
-        t = text_data.get('timestamp')
-        # tz = t.tzinfo
-        # timestamp = t.strftime(f"%D %T {tz.tzname(t)}")
-        timestamp = t.strftime(f"%D %T")
-        self.send(text_data=json.dumps({'monitor_name': text_data.get('monitor_name'),
-                                        'timestamp': str(timestamp),
-                                        'counts': text_data.get('counts')}))
+    # def update(self, text_data=None, bytes_data=None, close=False):
+    #     t = text_data.get('timestamp')
+    #     # tz = t.tzinfo
+    #     # timestamp = t.strftime(f"%D %T {tz.tzname(t)}")
+    #     timestamp = t.strftime(f"%D %T")
+    #     self.send(text_data=json.dumps({'monitor_name': text_data.get('monitor_name'),
+    #                                     'timestamp': str(timestamp),
+    #                                     'counts': text_data.get('counts')}))
 
 
 class ChartChannel(WebsocketConsumer):
 
     def connect(self):
-        consumers.update({self.scope.get('path'): self})
-        self.logger = logging.getLogger('channel')
+        ChannelFactory().add(url=self.scope.get('path'), consumer=self)
+        logger.info("STARTING CHART CHANNEL")
         self.accept()
 
     def receive(self, text_data=None, bytes_data=None):
-        self.logger.info("Chart Channel got information:")
-        self.logger.info(text_data)
-
-    def update(self, text_data=None, bytes_data=None, close=False):
-        self.send(text_data=json.dumps({'monitor_id': text_data.get('monitor_id')}))
+        logger.info("Chart Channel got information:")
+        logger.info(text_data)
 
     def disconnect(self, code):
-        self.logger.info("Chart Channel Closed!")
+        ChannelFactory().remove(self.scope.get('path'))
+        logger.info("Chart Channel Closed!")
+
+
+class NotificationChannel(WebsocketConsumer):
+
+    def connect(self):
+        ChannelFactory().add(url=self.scope.get('path'), consumer=self)
+        logger.info("STARTING NOTIFICATION CHANNEL")
+        self.accept()
+
+    def receive(self, text_data=None, bytes_data=None):
+        logger.info("Notification Channel got information:")
+        logger.info(text_data)
+
+    def disconnect(self, code):
+        ChannelFactory().remove(self.scope.get('path'))
+        logger.info("Notification Channel Closed!")

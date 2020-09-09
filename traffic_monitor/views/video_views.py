@@ -6,7 +6,7 @@ from django.http import StreamingHttpResponse
 
 from traffic_monitor.services.monitor_service import MonitorService
 from traffic_monitor.services.monitor_service_manager import MonitorServiceManager
-from traffic_monitor.websocket_channels import ChannelFactory
+from traffic_monitor.websocket_channels_factory import ChannelFactory
 
 from traffic_monitor.services.observer import Observer
 

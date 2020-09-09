@@ -160,7 +160,7 @@ def get_monitor(request) -> JsonResponse:
         # if name is None:
         #     raise Exception("'name' parameter is required.")
 
-        mon = MonitorServiceManager().get_monitor(**kwargs)
+        mon = MonitorServiceManager().get_monitor_configuration(**kwargs)
 
         # only return values that are Json serializable
         rv = _filter_serializable(mon)

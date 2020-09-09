@@ -1,0 +1,74 @@
+{% extends 'traffic_monitor/section_wrapper.html' %}
+
+{% block title %}Monitor Configuration{% endblock title %}
+
+{% block content %}
+    {% csrf_token %}
+
+    <script type="text/javascript">
+
+        function update_toggleservicesocket(monitor_name) {
+            {# A socket is created that will be used to capture messages from #}
+            {# the backend. When updates are received the web page is updated #}
+            {# with the respective log information. #}
+
+            const socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/toggle_service/' + monitor_name + '/')
+
+            {# Receive Update #}
+            socket.onmessage = async function (e) {
+                await update_formdata('{{ monitor_name }}')
+            }
+
+            socket.onclose = function (e) {
+                console.log("toggle_service socket closed!")
+            }
+
+            socket.onopen = function (e) {
+                console.log("toggle_service socket opened!")
+            }
+        }
+
+        async function get_monitor_config(monitor_name) {
+            const url = 'get_monitor?name=' + monitor_name
+            return await fetch(url).then(data => {
+                return data.json();
+            });
+        }
+
+        async function update_formdata(monitor_name) {
+            let config = await get_monitor_config(monitor_name);
+            const e_names = ['monitor_name', 'detector_name', 'detector_model', 'feed_description', 'feed_id', 'time_zone', 'logging_on', 'notifications_on', 'charting_on', 'is_active'];
+            for (let e_name in e_names) {
+                {#console.log(e_names[e_name]);#}
+                let e = document.getElementById(e_names[e_name]);
+                e.innerText = config[e_names[e_name]];
+            }
+
+        }
+
+        {#On load, get the monitor configuration data and update the elements #}
+        document.addEventListener('DOMContentLoaded', () => {
+            {#Update the form with current configuration settings #}
+            update_formdata('{{monitor_name}}');
+            update_toggleservicesocket('{{monitor_name}}');
+        })
+
+    </script>
+
+    <div class="card-body" style="height: 360px; overflow-y: auto">
+        <div class="row">
+            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Monitor Name: </span><span id="monitor_name"></span></div>
+            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Detector Name: </span><span id="detector_name"></span></div>
+            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Detector Model: </span><span id="detector_model"></span></div>
+            <div class="col-12 "><span style="font-weight: bold">Feed Description: </span><span id="feed_description"></span></div>
+            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Feed ID: </span><span id="feed_id"></span></div>
+            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Time Zone: </span><span id="time_zone"></span></div>
+            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Logging: </span><span id="logging_on"></span></div>
+            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Notifications: </span><span id="notifications_on"></span></div>
+            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Charting: </span><span id="charting_on"></span></div>
+            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Running: </span><span id="is_active"></span></div>
+        </div>
+
+    </div>
+
+{% endblock content %}

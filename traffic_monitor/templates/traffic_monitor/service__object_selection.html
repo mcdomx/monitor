@@ -1,8 +1,8 @@
-{%  extends 'traffic_monitor/service_wrapper.html' %}
+{%  extends 'traffic_monitor/section_wrapper.html' %}
 
 {% block title %}Log and Notification Settings{% endblock %}
 
-{% block service_content %}
+{% block content %}
 {#    Include the service html here #}
     {% csrf_token %}
 
@@ -59,7 +59,12 @@
 
         async function set_selections(monitor_name) {
 
-            {# Turn all off #}
+            {# Get selected objects to turn on #}
+            let config = await get_monitor_config(monitor_name);
+            let log_objects = config['log_objects'];
+            let notification_objects = config['notification_objects'];
+
+            {# First, Turn all off #}
             let elems = document.getElementsByTagName('input')
             for (let e in elems) {
                 if (elems[e].type === 'checkbox') {
@@ -67,10 +72,6 @@
                 }
             }
 
-            {# Get selected objects to turn on #}
-            let config = await get_monitor_config(monitor_name);
-            let log_objects = config['log_objects'];
-            let notification_objects = config['notification_objects'];
             for (let l in log_objects) {
                 if (log_objects.hasOwnProperty(l)){
                     let e = document.getElementById('log__' + log_objects[l].replace(' ', '_'));
@@ -185,6 +186,4 @@
         </div>
     </div>
 
-
-
-{% endblock %}
+{% endblock content %}

@@ -303,5 +303,7 @@ class MonitorServiceManager:
             return {m: self.get_monitor_configuration(m) for m in self.active_monitors}
 
         @staticmethod
-        def get_monitor_configuration(monitor_name: str) -> dict:
-            return MonitorFactory().get_monitor_configuration(monitor_name)
+        def get_monitor_configuration(name: str) -> dict:
+            rv = MonitorFactory().get_monitor_configuration(name)
+            rv.update({'is_active': MonitorServiceManager().is_active(monitor_name=rv.get('monitor_name'))})
+            return rv
