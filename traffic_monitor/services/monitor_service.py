@@ -30,7 +30,7 @@ SERVICES = {
             'logging_on': LogService,
             'notifications_on': NotificationService,
             'charting_on': ChartService,
-        }
+            }
 
 
 class MonitorService(threading.Thread):

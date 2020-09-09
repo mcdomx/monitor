@@ -98,18 +98,18 @@
             <div class='mx-2' style="font-weight: bolder; width: 150px">Running: </div><div id="is_active" style="width: 50px"></div><button type="button" class="btn btn-success btn-sm" onclick="start_monitor('{{ monitor_name }}')">Start</button><button type="button" class="btn btn-danger btn-sm" onclick="stop_monitor('{{ monitor_name }}')">Stop</button>
         </div>
 
-        <div class="col-12 border border-dark p-3 mt-2">
+        <div class="col-12 border border-secondary rounded bg-light px-3 py-2 mt-2">
             <div class="row">
                 <div style="font-weight: bolder">Services</div>
             </div>
             <div class="row">
-                <div class='mx-2' style="font-weight: bolder; width: 150px">Logging Service: </div><div style="width: 50px" id="logging_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'log')">Toggle</button>
+                <div class='mx-2' style="font-weight: bold; width: 150px">Logging Service: </div><div style="width: 50px" id="logging_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'log')">Toggle</button>
             </div>
             <div class="row">
-                <div class='mx-2' style="font-weight: bolder; width: 150px">Notification Service: </div><div style="width: 50px" id="notifications_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'notification')">Toggle</button>
+                <div class='mx-2' style="font-weight: bold; width: 150px">Notification Service: </div><div style="width: 50px" id="notifications_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'notification')">Toggle</button>
             </div>
             <div class="row">
-                <div class='mx-2' style="font-weight: bolder; width: 150px">Charting Service: </div><div style="width: 50px" id="charting_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'chart')">Toggle</button>
+                <div class='mx-2' style="font-weight: bold; width: 150px">Charting Service: </div><div style="width: 50px" id="charting_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'chart')">Toggle</button>
             </div>
         </div>
 
