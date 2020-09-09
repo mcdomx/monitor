@@ -37,13 +37,27 @@
 
         async function update_formdata(monitor_name) {
             let config = await get_monitor_config(monitor_name);
+            console.log(config);
             const e_names = ['monitor_name', 'detector_name', 'detector_model', 'feed_description', 'feed_id', 'time_zone', 'logging_on', 'notifications_on', 'charting_on', 'is_active'];
+            {# Update the value of each configuration element #}
             for (let e_name in e_names) {
-                {#console.log(e_names[e_name]);#}
                 let e = document.getElementById(e_names[e_name]);
                 e.innerText = config[e_names[e_name]];
             }
 
+        }
+
+        function start_monitor(monitor_name) {
+            fetch("start_monitor?monitor_name="+monitor_name).then( () => update_formdata('{{monitor_name}}'))
+        }
+
+        function stop_monitor(monitor_name) {
+            fetch("stop_monitor?monitor_name="+monitor_name).then( () => update_formdata('{{monitor_name}}'))
+        }
+
+        function toggle_service(monitor_name, service) {
+            fetch("toggle_service?monitor_name="+monitor_name+"&service="+service).then( () => update_formdata('{{monitor_name}}'))
+            update_formdata('{{monitor_name}}');
         }
 
         {#On load, get the monitor configuration data and update the elements #}
@@ -57,16 +71,46 @@
 
     <div class="card-body" style="height: 360px; overflow-y: auto">
         <div class="row">
-            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Monitor Name: </span><span id="monitor_name"></span></div>
-            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Detector Name: </span><span id="detector_name"></span></div>
-            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Detector Model: </span><span id="detector_model"></span></div>
-            <div class="col-12 "><span style="font-weight: bold">Feed Description: </span><span id="feed_description"></span></div>
-            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Feed ID: </span><span id="feed_id"></span></div>
-            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Time Zone: </span><span id="time_zone"></span></div>
-            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Logging: </span><span id="logging_on"></span></div>
-            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Notifications: </span><span id="notifications_on"></span></div>
-            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Charting: </span><span id="charting_on"></span></div>
-            <div class="col-12 col-sm-6"><span style="font-weight: bolder">Running: </span><span id="is_active"></span></div>
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Monitor Name: </div><div id="monitor_name"></div>
+        </div>
+
+        <div class="row">
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Detector Name: </div><div id="detector_name"></div>
+        </div>
+
+        <div class="row">
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Detector Model: </div><div id="detector_model"></div>
+        </div>
+
+        <div class="row">
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Feed Description: </div><div id="feed_description"></div>
+        </div>
+
+        <div class="row">
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Feed ID: </div><div id="feed_id"></div>
+        </div>
+
+        <div class="row">
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Time Zone: </div><div id="time_zone"></div>
+        </div>
+
+        <div class="row">
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Running: </div><div id="is_active" style="width: 50px"></div><button type="button" class="btn btn-success btn-sm" onclick="start_monitor('{{ monitor_name }}')">Start</button><button type="button" class="btn btn-danger btn-sm" onclick="stop_monitor('{{ monitor_name }}')">Stop</button>
+        </div>
+
+        <div class="col-12 border border-dark p-3 mt-2">
+            <div class="row">
+                <div style="font-weight: bolder">Services</div>
+            </div>
+            <div class="row">
+                <div class='mx-2' style="font-weight: bolder; width: 150px">Logging Service: </div><div style="width: 50px" id="logging_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'log')">Toggle</button>
+            </div>
+            <div class="row">
+                <div class='mx-2' style="font-weight: bolder; width: 150px">Notification Service: </div><div style="width: 50px" id="notifications_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'notification')">Toggle</button>
+            </div>
+            <div class="row">
+                <div class='mx-2' style="font-weight: bolder; width: 150px">Charting Service: </div><div style="width: 50px" id="charting_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'chart')">Toggle</button>
+            </div>
         </div>
 
     </div>

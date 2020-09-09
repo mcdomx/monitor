@@ -32,7 +32,9 @@ class MonitorServiceManager:
             :param monitor_name: Name of monitor
             :return: If active, return the monitor, else return False
             """
-            return self.active_monitors.get(monitor_name, False)
+            if self.active_monitors.get(monitor_name):
+                return True
+            return False
 
         def set_view_status(self, monitor_name: str) -> dict:
             is_active = self.is_active(monitor_name)

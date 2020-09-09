@@ -243,7 +243,7 @@ class MonitorService(threading.Thread):
 
                 # Update Front-End using Channels
                 # -------------------------------
-                channel: ServiceToggle = ChannelFactory.get(f"/ws/traffic_monitor/{msg_key}/{self.monitor_name}/")
+                channel: ServiceToggle = ChannelFactory().get(f"/ws/traffic_monitor/{msg_key}/{self.monitor_name}/")
                 # only update the channel if a channel has been created (i.e. - a front-end is using it)
                 if channel:
                     # send message to front-end
