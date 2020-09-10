@@ -2,6 +2,7 @@
 This service will push charts to the web page.
 """
 import pandas as pd
+import threading
 
 from bokeh.embed import json_item
 from bokeh.models import HoverTool, DatetimeTickFormatter
@@ -12,7 +13,7 @@ from pygam import LinearGAM, s
 from traffic_monitor.models.model_logentry import LogEntry
 
 
-
+from datetime import datetime, timezone, timedelta
 import time
 import logging
 import json
@@ -43,19 +44,40 @@ class ChartService(ServiceAbstract, ABC):
         self.channel_url = f"/ws/traffic_monitor/chart/{monitor_config.get('monitor_name')}/"  # websocket channel address
 
     def handle_message(self, msg):
-        msg_key = msg.key().decode('utf-8')
-
-        if msg_key == 'chart_data':
-            msg_value = json.JSONDecoder().decode(msg.value().decode('utf-8'))
-
-            return msg_key, msg_value
-
-    @staticmethod
-    def get_chart(monitor_name: str, interval: str = 'minute'):
         """
+        If the configuration changes, we should redraw the chart
+        :param msg:
+        :return:
+        """
+        msg_key = msg.key().decode('utf-8')
+        if msg_key == 'config_change':
+            channel: ChartChannel = ChannelFactory().get(self.channel_url)
+            if channel:
+                msg = self.get_chart(monitor_name=self.monitor_name)
+                channel.send(text_data=DjangoJSONEncoder().encode(msg))
 
+                return msg_key, msg
+
+
+
+    def get_timedelta(self) -> timedelta:
+        time_horizon = self.monitor_config.get('charting_time_horizon')
+        try:
+            return timedelta(hours=int(time_horizon))
+        except ValueError:
+            if time_horizon == 'year':
+                return timedelta(days=365)
+            if time_horizon == 'month':
+                return timedelta(days=31)
+            if time_horizon == 'week':
+                return timedelta(days=7)
+            if time_horizon == 'day':
+                return timedelta(days=24)
+
+    def get_chart(self, monitor_name: str):
+        """
+        Get a Bokeh chart that shows the trend of detected items recorded in the Log database.
         :param monitor_name: Name of monitor to chart
-        :param interval: 'minute', 'hour', 'day' -> NOT IMPLEMENTED YET
         :return:
         """
         tools = [HoverTool(
@@ -73,13 +95,19 @@ class ChartService(ServiceAbstract, ABC):
         df = pd.DataFrame(rs)
         df.rename(columns={'count': 'counts'}, inplace=True)
 
-        # set timezone
-        df = df.set_index('time_stamp')  # .tz_convert('US/Mountain').tz_localize(None)
+        # get time that matches time horizon
+        df = df[df.time_stamp > datetime.now(tz=timezone.utc) - self.get_timedelta()]
 
+        # set timezone
+        df = df.set_index('time_stamp').tz_convert(self.monitor_config.get('charting_time_zone')).tz_localize(None)
         # get top 5 items
-        top5_classes = df.groupby('class_name').count().sort_values(by='counts', ascending=False).index[0:5].values
-        df = df[df['class_name'].isin(top5_classes)]
-        df.sort_index(inplace=True)
+        # top5_classes = df.groupby('class_name').count().sort_values(by='counts', ascending=False).index[0:5].values
+        # df = df[df['class_name'].isin(top5_classes)]
+        # df.sort_index(inplace=True)
+
+        # get items in the charted_objects list
+        c_obj_len = min(len(self.monitor_config.get('charting_objects')), 11)
+        df = df[df.class_name.isin(self.monitor_config.get('charting_objects')[:11])]
 
         # Define the blank canvas of the Bokeh plot that data will be layered on top of
         fig = figure(
@@ -110,11 +138,11 @@ class ChartService(ServiceAbstract, ABC):
         # create plot lines for each class
         u_class_names = sorted(df.class_name.unique())
         df = df[df.class_name.isin(u_class_names)]
-        colors = brewer['Spectral'][5]
+        colors = brewer['Spectral'][c_obj_len]
         df['fill_color'] = [colors[u_class_names.index(c)] for c in df.class_name]
 
         # Multiple Lines
-        for i, class_name in enumerate(top5_classes):
+        for i, class_name in enumerate(u_class_names):
             _df = df[df.class_name == class_name].sort_index()
             _x = (_df.index - _df.index.min()).astype(int)
 
@@ -140,10 +168,11 @@ class ChartService(ServiceAbstract, ABC):
         logger.info("Starting chart service ...")
         while self.running:
 
-            # msg = self.poll_kafka(0)
-            # if msg is None:
-            #     continue
-            #
+            # config changes are handled by abstract class
+            msg = self.poll_kafka(0)
+            if msg is None:
+                continue
+
             # key_msg = self.handle_message(msg)
             # if key_msg is None:
             #     continue
@@ -151,6 +180,7 @@ class ChartService(ServiceAbstract, ABC):
             try:
                 # send web-client updates using the Channels-Redis websocket
                 channel: ChartChannel = ChannelFactory().get(self.channel_url)
+
                 # only use the channel if a channel has been created
                 if channel:
                     # this sends message to ay front end that has created a WebSocket
@@ -161,14 +191,18 @@ class ChartService(ServiceAbstract, ABC):
                     #        'monitor_name': self.monitor_name,
                     #        'key': msg_key,
                     #        'chart_data': msg_value}
-                    msg = self.get_chart(monitor_name=self.monitor_name, interval='minute')
+                    msg = self.get_chart(monitor_name=self.monitor_name)
                     channel.send(text_data=DjangoJSONEncoder().encode(msg))
                     # channel.send(text_data=msg)
             except Exception as e:
+                logger.info("Unknown exception triggered in chart_service.py run() loop.")
                 logger.info(e)
                 continue
 
-            time.sleep(self.charting_interval)
+            self.condition.acquire()
+            self.condition.wait(self.charting_interval)
+            self.condition.release()
+            # time.sleep(self.charting_interval)
 
         self.consumer.close()
         logger.info(f"[{self.monitor_name}] Stopped charting service.")

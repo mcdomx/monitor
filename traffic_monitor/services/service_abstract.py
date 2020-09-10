@@ -20,6 +20,7 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
         self.monitor_name = monitor_config.get('monitor_name')
         self.pulse = 1
         self.running = False
+        self.condition = threading.Condition()
 
         # Kafka settings
         self.consumer = Consumer({
@@ -30,6 +31,9 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
         self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self.consumer_setup)
         partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p, OFFSET_END) for p in range(3)]
         self.consumer.assign(partitions)
+
+    def get_condition(self) -> threading.Condition:
+        return self.condition
 
     def update_monitor_config(self, monitor_config):
         self.monitor_config = monitor_config

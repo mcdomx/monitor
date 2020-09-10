@@ -245,6 +245,10 @@ def toggle_notification_objects(request) -> JsonResponse:
     return toggle_objects(request=request, field='notification_objects')
 
 
+def toggle_chart_objects(request) -> JsonResponse:
+    return toggle_objects(request=request, field='charting_objects')
+
+
 def _set_objects(request, field: str) -> JsonResponse:
 
     kwargs = _parse_args(request, 'monitor_name', 'objects')
@@ -271,6 +275,23 @@ def set_log_objects(request) -> JsonResponse:
 
 def set_notification_objects(request) -> JsonResponse:
     rv = _set_objects(request=request, field='notification_objects')
+    return JsonResponse(rv, safe=False)
+
+
+def set_chart_objects(request) -> JsonResponse:
+    rv = _set_objects(request=request, field='charting_objects')
+    return JsonResponse(rv, safe=False)
+
+
+def set_chart_time_horizon(request) -> JsonResponse:
+    kwargs = _parse_args(request, 'monitor_name', 'value')
+    rv = MonitorServiceManager().set_value(kwargs.get('monitor_name'), 'charting_time_horizon', kwargs.get('value'))
+    return JsonResponse(rv, safe=False)
+
+
+def set_chart_time_zone(request) -> JsonResponse:
+    kwargs = _parse_args(request, 'monitor_name', 'value')
+    rv = MonitorServiceManager().set_value(kwargs.get('monitor_name'), 'charting_time_zone', kwargs.get('value'))
     return JsonResponse(rv, safe=False)
 
 
@@ -309,3 +330,11 @@ def toggle_service(request):
 #     kwargs = _parse_args(request, 'monitor_name', 'interval')
 #     rv = chart_views.get_chart(monitor_name=kwargs.get('monitor_name'), interval=kwargs.get('interval'))
 #     return rv
+
+def set_charting_options(request):
+
+    kwargs = _parse_args(request, 'monitor_name') #monitor_name, time_horizon, charted_objects, time_zone
+
+    rv = MonitorServiceManager().set_charting_options(**kwargs)
+
+    return JsonResponse(rv, safe=False)

@@ -114,7 +114,10 @@ class LogService(ServiceAbstract, ABC):
                 capture_count = 0
                 timer.reset()
 
-            time.sleep(.5)
+            self.condition.acquire()
+            self.condition.wait(.5)
+            self.condition.release()
+            # time.sleep(.5)
 
         self.consumer.close()
         logger.info(f"[{self.monitor_name}] Stopped log service.")

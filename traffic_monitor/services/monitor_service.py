@@ -84,8 +84,6 @@ class MonitorService(threading.Thread):
         # QUEUES
         self.output_image_queue = queue.Queue(BUFFER_SIZE)
 
-        # self.log_channel_url: str = '/ws/traffic_monitor/log/'
-
         self.active_services = {}
 
         # SETUP KAFKA TOPIC
@@ -145,16 +143,20 @@ class MonitorService(threading.Thread):
         return q.get()
 
     def start_service(self, service_class: ServiceAbstract.__class__):
-        s: ServiceAbstract = self.active_services.get(service_class.__name__)
-        if s is None:
+
+        service: dict = self.active_services.get(service_class.__name__)
+
+        if service is None:
             s = service_class(monitor_config=self.monitor_config,
                               output_data_topic=self.output_data_topic)
-        s.start()
-        self.active_services.update({s.__class__.__name__: s})
+            s.start()
+            self.active_services.update({s.__class__.__name__: {'object': s, 'condition': s.get_condition()}})
 
     def stop_service(self, service_name):
-        s: ServiceAbstract = self.active_services.get(service_name)
-        if s is not None:
+        service: dict = self.active_services.get(service_name)
+
+        if service is not None:
+            s: ServiceAbstract = service.get('object')
             s.stop()
             s.join()
             self.active_services.pop(service_name)
@@ -218,6 +220,17 @@ class MonitorService(threading.Thread):
 
     def handle_message(self, msg):
         msg_key = msg.key().decode('utf-8')
+
+        # If a config_change message is received, get each service's
+        # condition and notify so that the service's run loop
+        # is interrupted and the message is checked
+        if msg_key == 'config_change':
+            for s_dict in self.active_services.values():
+                c: threading.Condition = s_dict.get('condition')
+                if c:
+                    c.acquire()
+                    c.notify()
+                    c.release()
 
         if msg_key == 'toggle_service':
 

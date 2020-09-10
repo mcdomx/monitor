@@ -29,9 +29,13 @@ urlpatterns = [
 
     re_path(r"toggle_log_objects[\/|\?].*", api.toggle_log_objects, name='toggle_log_objects'),
     re_path(r"toggle_notification_objects[\/|\?].*", api.toggle_notification_objects, name='toggle_notification_objects'),
+    re_path(r"toggle_chart_objects[\/|\?].*", api.toggle_chart_objects, name='toggle_chart_objects'),
 
     re_path(r"set_log_objects[\/|\?].*", api.set_log_objects, name='set_log_objects'),
     re_path(r"set_notification_objects[\/|\?].*", api.set_notification_objects, name='set_notification_objects'),
+    re_path(r"set_chart_objects[\/|\?].*", api.set_chart_objects, name='set_chart_objects'),
+    re_path(r"set_chart_time_horizon[\/|\?].*", api.set_chart_time_horizon, name='set_chart_time_horizon'),
+    re_path(r"set_chart_time_zone[\/|\?].*", api.set_chart_time_zone, name='set_chart_time_zone'),
 
 
     re_path(r"start_monitor[\/|\?].*", api.start_monitor, name="start_monitor"),
@@ -51,6 +55,7 @@ urlpatterns = [
 
     # re_path(r"get_chart[\/|\?].*", api.get_chart, name="get_chart"),
     # path("get_chart/<int:monitor_id>", api.get_chart, name="get_chart"),
+
 
 
 ]

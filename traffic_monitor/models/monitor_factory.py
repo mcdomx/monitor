@@ -49,11 +49,17 @@ class MonitorFactory:
                    notification_objects: list = [],
                    logging_on: bool = True,
                    notifications_on: bool = False,
-                   charting_on: bool = False) -> dict:
+                   charting_on: bool = False,
+                   charting_objects: list = None,
+                   charting_time_horizon: str = '6',
+                   charting_time_zone: str = 'UTC') -> dict:
             """
             Create a Monitor entry which is a combination of detector and feed
             as well as the logged and notified objects.
 
+            :param charting_time_zone:
+            :param charting_time_horizon:
+            :param charting_objects:
             :param detector_model:
             :param detector_name:
             :param notification_objects:
@@ -65,11 +71,13 @@ class MonitorFactory:
             :param logging_on: bool(True) - If True, monitor will provide logging service
             :return: The new database entry as a Django object
             """
-            # If the combination already exists, just return the existing object
+            # If the monitor name already exists, raise exception
             try:
                 _ = Monitor.objects.get(pk=name)
                 raise Exception(f"Monitor with name '{name}' already exists.")
             except Monitor.DoesNotExist:
+                if charting_objects is None:
+                    charting_objects = log_objects.copy()
                 monitor: Monitor = Monitor.create(name=name,
                                                   detector_name=detector_name,
                                                   detector_model=detector_model,
@@ -78,7 +86,10 @@ class MonitorFactory:
                                                   notification_objects=notification_objects,
                                                   logging_on=logging_on,
                                                   notifications_on=notifications_on,
-                                                  charting_on=charting_on)
+                                                  charting_on=charting_on,
+                                                  charting_objects=charting_objects,
+                                                  charting_time_zone=charting_time_zone,
+                                                  charting_time_horizon=charting_time_horizon)
 
                 return monitor.__dict__
 
@@ -161,6 +172,12 @@ class MonitorFactory:
             :param value:
             :return:
             """
+            # remove leading and trailing apostrophes, quotes and spaces
+            if type(value) == str:
+                value = value.strip().strip("'").strip("\"").strip()
+            if type(value) == list:
+                value = [v.strip().strip("'").strip("\"").strip() for v in value]
+
             # update value
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
             rv = monitor.set_value(field, value)
@@ -222,4 +239,7 @@ class MonitorFactory:
                     'notification_objects': monitor.notification_objects,
                     'logging_on': monitor.logging_on,
                     'notifications_on': monitor.notifications_on,
-                    'charting_on': monitor.charting_on}
+                    'charting_on': monitor.charting_on,
+                    'charting_time_horizon': monitor.charting_time_horizon,
+                    'charting_objects': monitor.charting_objects,
+                    'charting_time_zone': monitor.charting_time_zone}

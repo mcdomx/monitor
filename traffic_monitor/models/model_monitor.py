@@ -24,6 +24,9 @@ class Monitor(models.Model):
     logging_on = models.BooleanField(default=True)
     notifications_on = models.BooleanField(default=False)
     charting_on = models.BooleanField(default=False)
+    charting_time_horizon = models.CharField(default='6', max_length=8)
+    charting_objects = models.JSONField(default=list)
+    charting_time_zone = models.CharField(max_length=32)
 
     def __str__(self):
         # this is set to self.name so that the admin page shows the monitor name

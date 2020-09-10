@@ -65,7 +65,10 @@ class NotificationService(ServiceAbstract, ABC):
                 logger.info(e)
                 continue
 
-            time.sleep(self.notification_interval)
+            self.condition.acquire()
+            self.condition.wait(self.notification_interval)
+            self.condition.release()
+            # time.sleep(self.notification_interval)
 
         self.consumer.close()
         logger.info(f"[{self.monitor_name}] Stopped notification service.")

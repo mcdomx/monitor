@@ -36,6 +36,15 @@ class MonitorServiceManager:
                 return True
             return False
 
+        def set_charting_options(self, kwargs):
+
+            monitor_name = kwargs.get('monitor_name')
+
+
+
+
+
+
         def set_view_status(self, monitor_name: str) -> dict:
             is_active = self.is_active(monitor_name)
             if not is_active:
@@ -169,6 +178,7 @@ class MonitorServiceManager:
             # validate log and notification lists
             invalid_log_objects = []
             invalid_not_objects = []
+            invalid_chart_objects = []
             if kwargs.get('log_objects'):
                 if type(kwargs.get('log_objects')) == str:
                     kwargs.update({'log_objects': [o.strip() for o in kwargs.get('log_objects').split(",")]})
@@ -186,6 +196,14 @@ class MonitorServiceManager:
                     objects=kwargs.get('notification_objects'), detector_name=kwargs.get('detector_name'))
                 kwargs.update({'notification_objects': notification_objects})
 
+            if kwargs.get('charting_objects'):
+                if type(kwargs.get('charting_objects')) == str:
+                    kwargs.update(
+                        {'charting_objects': [o.strip() for o in kwargs.get('charting_objects').split(",")]})
+                charting_objects, invalid_chart_objects = MonitorServiceManager().validate_objects(
+                    objects=kwargs.get('charting_objects'), detector_name=kwargs.get('detector_name'))
+                kwargs.update({'charting_objects': charting_objects})
+
             rv = MonitorFactory().create(**kwargs)
 
             # create return messages that identify untrained items that were included in lists
@@ -196,6 +214,11 @@ class MonitorServiceManager:
 
             if len(invalid_not_objects) > 0:
                 message = {'message_not': f"Untrained notification objects are not considered: {invalid_not_objects}"}
+                logger.warning(message)
+                rv = {**message, **rv}
+
+            if len(invalid_chart_objects) > 0:
+                message = {'message_chart': f"Untrained charting objects are not considered: {invalid_chart_objects}"}
                 logger.warning(message)
                 rv = {**message, **rv}
 
@@ -261,6 +284,7 @@ class MonitorServiceManager:
 
                 ms = MonitorService(monitor_config=monitor_config)
                 ms.start()
+
                 self.active_monitors.update({monitor_name: ms})
 
                 return monitor_config
