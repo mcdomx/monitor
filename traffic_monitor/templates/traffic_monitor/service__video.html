@@ -16,11 +16,8 @@
 
             {# Receive Update #}
             socket.onmessage = function (e) {
-
                 let image_array = JSON.parse(e.data).image;
-                {#update_image(e.data['image'])#}
                 let elem = document.getElementById('video_feed')
-                {#"data:image/png;base64,<<base64 encoding>>"#}
                 elem.src = "data:image/jpg;base64," + image_array;
             }
 
@@ -33,10 +30,6 @@
             }
         }
 
-        function update_image(image) {
-
-        }
-
         {#On load, setup the channel to get communications from the server #}
         document.addEventListener('DOMContentLoaded', () => {
             {#Update the table of elements to monitor and log#}
@@ -45,8 +38,8 @@
 
     </script>
 
-    <div class="card-body p-0" id="video-stream" style="background-color: black; height: 360px;">
-        <img id='video_feed' style="width: 100%; max-height: 100%" src="">
+    <div class="card-body p-0" id="video-stream" style="background-color: black; height: 360px; text-align: center">
+        <img id='video_feed' style="max-height: 100%" src="">
     </div>
 
 {% endblock content %}

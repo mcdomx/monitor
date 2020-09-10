@@ -113,15 +113,14 @@ class VideoDetectionService(ServiceAbstract, ABC):
             try:
                 detected_image = self.output_image_queue.get_nowait()
                 image_array: np.array = detected_image.get('frame')
-                # print(image_array.shape) = (240,426,3)
-                image = self._convert_imgarray_to_inmem_base64_png(image_array)
+                image = self._convert_imgarray_to_inmem_base64_jpg(image_array)  # convert to in-memory file
+
                 # send web-client updates using the Channels-Redis websocket
                 channel: VideoChannel = ChannelFactory().get(self.channel_url)
-                # only use the channel if a channel has been created
                 if channel:
-                    # this sends message to ay front end that has created a WebSocket
+                    # this sends message to any front end that has created a WebSocket
                     # with the respective channel_url address
-                    msg = {'image': image}
+                    msg = {'image': image, 'shape': image_array.shape}
                     channel.send(text_data=DjangoJSONEncoder().encode(msg))
 
             except queue.Empty:
@@ -176,26 +175,25 @@ class VideoDetectionService(ServiceAbstract, ABC):
         return DetectorMachineFactory().get_trained_objects(detector_name)
 
     @staticmethod
-    def _convert_imgarray_to_inmem_base64_png(img_array: np.array) -> base64:
+    def _convert_imgarray_to_inmem_base64_jpg(img_array: np.array) -> base64:
         """
         ref: https://stackoverflow.com/questions/42503995/how-to-get-a-pil-image-as-a-base64-encoded-string
-        Convert an image array into an in-memory base64 PNG image.
+        Convert an image array into an in-memory base64 RGB image.
         The return value can be placed in an HTML src tag:
-        <img src="data:image/png;base64,<<base64 encoding>>" height="" width="" alt="image">
+        <img src="data:image/jpg;base64,<<base64 encoding>>" height="" width="" alt="image">
         :param img_array: a numpy image
-        :return: base64 image in ascii characters
+        :return: base64 image in ascii characters. The returned object can be placed in an <img> html tag's src (src="data:image/jpg;base64,<<return value>>")
         """
         # convert image from BGR to RGB
         img_array = img_array[:, :, ::-1]
 
+        # create an in-memory rgb image from array using PIL library
         rgbimg = Image.fromarray(img_array, mode='RGB')
-        # pngimg = Image.new(mode='RGB', size=img_array.T.shape[:2])  # create new in-memory image
-        # pngimg.putdata([pixel for pixel in np.ravel(img_array)])  # scale=10 <- will multiple each pixel value
 
         b = io.BytesIO()  # create an empty byte object
-        rgbimg.save(b, format='JPEG')  # save the rgb file to the object
+        rgbimg.save(b, format='JPEG')  # save the rgb in-memory file to the object
         b.seek(0)  # move pointer back to the start of memory space
-        img_bytes = b.read()  # read memory space
+        img_bytes = b.read()  # read memory space into a new variable
 
         base64_img = base64.b64encode(img_bytes)  # encode the image to base64
         base64_ascii_img = base64_img.decode('ascii')  # finally, decode it to ascii characters

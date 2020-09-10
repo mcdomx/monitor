@@ -49,11 +49,8 @@ urlpatterns = [
     path("toggle_box", api.toggle_box, name="toggle_box"),
     path("toggle_all/<int:monitor_id>/<action>", api.toggle_all, name="toggle_all"),
 
-
-
-
-
-    path("get_chart/<int:monitor_id>", api.get_chart, name="get_chart"),
+    # re_path(r"get_chart[\/|\?].*", api.get_chart, name="get_chart"),
+    # path("get_chart/<int:monitor_id>", api.get_chart, name="get_chart"),
 
 
 ]

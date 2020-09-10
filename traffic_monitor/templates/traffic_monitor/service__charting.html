@@ -1,0 +1,82 @@
+{% extends 'traffic_monitor/section_wrapper.html' %}
+
+{% block title %}Detection Trend{% endblock title %}
+
+{% block content %}
+    {% csrf_token %}
+
+    <script type="text/javascript">
+
+        function update_chartsocket(monitor_name) {
+            {# A socket is created that will be used to capture messages from #}
+            {# the backend. When updates are received the web page is updated #}
+            {# with the respective log information. #}
+
+            const chartSocket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/chart/' + monitor_name + '/')
+
+            {# Setup Chart #}
+            let url = 'get_chart?monitor_name=' + monitor_name + '&interval=minute';
+            let target_div = document.getElementById('plot-area')
+            {#fetch(url)#}
+            {#    .then(response => response.json())#}
+            {#    .then(item => {#}
+                                {#console.log(JSON.parse(item.data))#}
+            {#                    target_div.innerHTML = ''#}
+            {#                    target_div.setAttribute('data-url', url);#}
+            {#                    Bokeh.embed.embed_item(item, 'plot-area');#}
+            {#                  })#}
+            {#    .catch((error) => {#}
+            {#                        console.log(error)#}
+            {#                        target_div.innerHTML = error#}
+            {#                    })#}
+
+            {# Update Chart #}
+            chartSocket.onmessage = function(e) {
+                {# Draw a new chart when a message is received by socket #}
+                console.log("updating chart ...")
+
+                const item = JSON.parse(e.data)
+                target_div.innerHTML = ''
+                target_div.setAttribute('data-url', url);
+                Bokeh.embed.embed_item(item, 'plot-area');
+
+
+                {#fetch(url)#}
+                {#    .then(response => response.json())#}
+                {#    .then(item => {#}
+                {#        target_div.innerHTML = ''#}
+                {#        target_div.setAttribute('data-url', url);#}
+                {#        Bokeh.embed.embed_item(item, 'plot-area');#}
+                {#    })#}
+                {#    .catch((error) => {#}
+                {#        console.log(error)#}
+                {#        target_div.innerHTML = error#}
+                {#    })#}
+            }
+
+            chartSocket.onclose = function(e) {
+                console.log("chartSocket closed!")
+            }
+
+            chartSocket.onopen = function(e) {
+                console.log("chartSocket opened!")
+            }
+        }
+
+        {#On load, setup the channel to get communications from the server #}
+        document.addEventListener('DOMContentLoaded', () => {
+            {#Update the table of elements to monitor and log#}
+            update_chartsocket('{{monitor_name}}');
+        })
+
+    </script>
+
+    <div class="card-body" style="height: 360px;">
+        <div id="plot-area" data-label="Traffic Trends" style="height: 360px;">
+        </div>
+    </div>
+
+{% endblock content %}
+
+
+

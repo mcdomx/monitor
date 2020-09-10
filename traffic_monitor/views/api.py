@@ -305,6 +305,7 @@ def toggle_service(request):
     return JsonResponse(rv, safe=False)
 
 
-def get_chart(request, monitor_id: int, interval: int = 0):
-    rv = chart_views.get_chart(monitor_id=monitor_id, interval=interval)
-    return rv
+# def get_chart(request):
+#     kwargs = _parse_args(request, 'monitor_name', 'interval')
+#     rv = chart_views.get_chart(monitor_name=kwargs.get('monitor_name'), interval=kwargs.get('interval'))
+#     return rv

@@ -1,7 +1,4 @@
-import datetime
 import pandas as pd
-
-from traffic_monitor.models.model_logentry import LogEntry
 
 from bokeh.embed import json_item
 from bokeh.models import HoverTool, DatetimeTickFormatter
@@ -10,8 +7,16 @@ from bokeh.palettes import brewer
 from django.http import JsonResponse
 from pygam import LinearGAM, s
 
+from traffic_monitor.models.model_logentry import LogEntry
 
-def get_chart(monitor_id: int, interval: int):
+
+def get_chart(monitor_name: str, interval: str = 'minute'):
+    """
+
+    :param monitor_name: Name of monitor to chart
+    :param interval: 'minute', 'hour', 'day' -> NOT IMPLEMENTED YET
+    :return:
+    """
     tools = [HoverTool(
         tooltips=[
             ("Time", "$x{%m/%d/%y %T}"),
@@ -23,19 +28,18 @@ def get_chart(monitor_id: int, interval: int):
     )]
 
     # data
-    rs = LogEntry.objects.filter(monitor_id=monitor_id).values('time_stamp', 'class_id', 'count')
+    rs = LogEntry.objects.filter(monitor__name=monitor_name).values('time_stamp', 'class_name', 'count')
     df = pd.DataFrame(rs)
     df.rename(columns={'count': 'counts'}, inplace=True)
 
     # set timezone
-    df = df.set_index('time_stamp').tz_convert('US/Mountain').tz_localize(None)
+    df = df.set_index('time_stamp') #.tz_convert('US/Mountain').tz_localize(None)
 
     # get top 5 items
-    top5_classes = df.groupby('class_id').count().sort_values(by='counts', ascending=False).index[0:5].values
-    df = df[df['class_id'].isin(top5_classes)]
+    top5_classes = df.groupby('class_name').count().sort_values(by='counts', ascending=False).index[0:5].values
+    df = df[df['class_name'].isin(top5_classes)]
     df.sort_index(inplace=True)
 
-    # Define the blank canvas of the Bokeh plot that data will be layered on top of
     # Define the blank canvas of the Bokeh plot that data will be layered on top of
     fig = figure(
         sizing_mode="stretch_both",
@@ -45,7 +49,7 @@ def get_chart(monitor_id: int, interval: int):
         border_fill_color=None,
         min_border_left=0)
 
-    # Remove classic x and y ticks and chart junk to make things clean
+    # Remove default x and y tick marks make chart look clean
     fig.xgrid.grid_line_color = None
     fig.xaxis.axis_line_color = None
     fig.yaxis.axis_line_color = None
@@ -63,20 +67,21 @@ def get_chart(monitor_id: int, interval: int):
         seconds="%m/%d/%Y %H:%M:%S")
 
     # create plot lines for each class
-    u_class_ids = sorted(df.class_id.unique())
-    df = df[df.class_id.isin(u_class_ids)]
+    u_class_names = sorted(df.class_name.unique())
+    df = df[df.class_name.isin(u_class_names)]
     colors = brewer['Spectral'][5]
-    df['fill_color'] = [colors[u_class_ids.index(c)] for c in df.class_id]
+    df['fill_color'] = [colors[u_class_names.index(c)] for c in df.class_name]
 
     # Multiple Lines
-    for i, class_id in enumerate(top5_classes):
-        _df = df[df.class_id == class_id].sort_index()
+    for i, class_name in enumerate(top5_classes):
+        _df = df[df.class_name == class_name].sort_index()
         _x = (_df.index - _df.index.min()).astype(int)
 
+        # smooth trend line using LinearGAM
         _df['smoothed_counts'] = LinearGAM(s(0, lam=1)).fit(_x, _df.counts).predict(_x)
 
         fig.line(x='time_stamp', y='smoothed_counts', source=_df,
-                 legend_label=class_id, color=colors[i], line_width=1.5)
+                 legend_label=class_name, color=colors[i], line_width=1.5)
         fig.scatter(x='time_stamp', y='counts', source=_df,
                     color=colors[i], size=2, alpha=.5)
 
@@ -88,7 +93,3 @@ def get_chart(monitor_id: int, interval: int):
     item = json_item(fig)
 
     return JsonResponse(item)
-
-
-
-
