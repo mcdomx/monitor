@@ -59,7 +59,7 @@ class FeedFactory:
                     raise Exception("No video stream found: {}".format(cam))
 
                 # get most reasonably-sized stream h x w < 350k
-                res_limit = 105000
+                res_limit = 300000
 
                 # use pafy to get the url of the stream
                 # find stream with resolution within res_limit

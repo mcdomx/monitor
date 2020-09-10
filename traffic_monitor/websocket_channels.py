@@ -119,3 +119,19 @@ class NotificationChannel(WebsocketConsumer):
     def disconnect(self, code):
         ChannelFactory().remove(self.scope.get('path'))
         logger.info("Notification Channel Closed!")
+
+
+class VideoChannel(WebsocketConsumer):
+
+    def connect(self):
+        ChannelFactory().add(url=self.scope.get('path'), consumer=self)
+        logger.info("STARTING VIDEO CHANNEL")
+        self.accept()
+
+    def receive(self, text_data=None, bytes_data=None):
+        logger.info("Video Channel got information:")
+        logger.info(text_data)
+
+    def disconnect(self, code):
+        ChannelFactory().remove(self.scope.get('path'))
+        logger.info("Video Channel Closed!")

@@ -37,7 +37,7 @@ class DetectorMachineCVlib(DetectorMachineAbstract):
 
     def detect(self, frame: np.array) -> (np.array, list):
         try:
-            bbox, labels, conf = detect_common_objects(frame, confidence=.5, model=self.detector_model)
+            bbox, labels, conf = detect_common_objects(frame, confidence=.25, model=self.detector_model)
             frame = draw_bbox(img=frame, bbox=bbox, labels=labels, confidence=conf, write_conf=False, )
             return frame, labels
         except Exception as e:

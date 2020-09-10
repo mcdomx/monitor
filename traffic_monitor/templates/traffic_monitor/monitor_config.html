@@ -37,7 +37,6 @@
 
         async function update_formdata(monitor_name) {
             let config = await get_monitor_config(monitor_name);
-            console.log(config);
             const e_names = ['monitor_name', 'detector_name', 'detector_model', 'feed_description', 'feed_id', 'time_zone', 'logging_on', 'notifications_on', 'charting_on', 'is_active'];
             {# Update the value of each configuration element #}
             for (let e_name in e_names) {

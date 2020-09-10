@@ -41,8 +41,6 @@ class LogService(ServiceAbstract, ABC):
         self.subject_name = f"logservice__{monitor_config.get('monitor_name')}"
         self.log_interval = 60  # freq (in sec) in detections are logged
         self.channel_url = f"/ws/traffic_monitor/log/{monitor_config.get('monitor_name')}/"  # websocket channel address
-        # self.producer = Producer({'bootstrap.servers': '127.0.0.1:9092',
-        #                           'group.id': 'monitorgroup'})
 
     def handle_message(self, msg) -> (str, object):
         msg_key = msg.key().decode('utf-8')
@@ -104,11 +102,11 @@ class LogService(ServiceAbstract, ABC):
                 channel: LogChannel = ChannelFactory().get(self.channel_url)
                 # only use the channel if a channel has been created
                 if channel:
-                    # this sends message to ay front end that has created a WebSocket with the respective channel_url address
+                    # this sends message to ay front end that has created a WebSocket
+                    # with the respective channel_url address
                     msg = {'time_stamp': time_stamp,
                            'monitor_name': self.monitor_name,
                            'counts': interval_counts_dict}
-
                     channel.send(text_data=DjangoJSONEncoder().encode(msg))
 
                 # reset variables for next observation

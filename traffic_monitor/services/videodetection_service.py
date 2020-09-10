@@ -18,12 +18,20 @@ service has been configured to process.
 import queue
 import logging
 from abc import ABC
+import base64
+import io
+
+import numpy as np
+from PIL import Image
 
 import cv2 as cv
+from django.core.serializers.json import DjangoJSONEncoder
 
 from traffic_monitor.detector_machines.detetor_machine_factory import DetectorMachineFactory
 from traffic_monitor.services.service_abstract import ServiceAbstract
 from traffic_monitor.services.elapsed_time import ElapsedTime
+from traffic_monitor.websocket_channels import VideoChannel
+from traffic_monitor.websocket_channels_factory import ChannelFactory
 
 BUFFER_SIZE = 512
 
@@ -47,6 +55,7 @@ class VideoDetectionService(ServiceAbstract, ABC):
         self.name = f"VideoDetectionService-{self.monitor_name}"
         self.input_image_queue: queue.Queue = queue.Queue(BUFFER_SIZE)
         self.output_image_queue: queue.Queue = queue.Queue(BUFFER_SIZE)
+        self.channel_url = f"/ws/traffic_monitor/video/{monitor_config.get('monitor_name')}/"  # websocket channel address
 
         # DETECTOR STATES
         self.show_full_stream = False
@@ -100,6 +109,24 @@ class VideoDetectionService(ServiceAbstract, ABC):
 
         while self.running and cap.isOpened():
 
+            # first, let's see if there is an image ready to pull from the output queue
+            try:
+                detected_image = self.output_image_queue.get_nowait()
+                image_array: np.array = detected_image.get('frame')
+                # print(image_array.shape) = (240,426,3)
+                image = self._convert_imgarray_to_inmem_base64_png(image_array)
+                # send web-client updates using the Channels-Redis websocket
+                channel: VideoChannel = ChannelFactory().get(self.channel_url)
+                # only use the channel if a channel has been created
+                if channel:
+                    # this sends message to ay front end that has created a WebSocket
+                    # with the respective channel_url address
+                    msg = {'image': image}
+                    channel.send(text_data=DjangoJSONEncoder().encode(msg))
+
+            except queue.Empty:
+                pass
+
             # keep the consumer alive by regular polling
             if timer.get() > 5:
                 _ = self.poll_kafka(0)
@@ -114,7 +141,8 @@ class VideoDetectionService(ServiceAbstract, ABC):
 
                 # if the detector stopped for some reason, create a new thread
                 if not self.detector.is_alive():
-                    logger.info(f"Restarting {self.monitor_config.get('detector_name')}:{self.monitor_config.get('detector_model')} for {self.monitor_name}")
+                    logger.info(
+                        f"Restarting {self.monitor_config.get('detector_name')}:{self.monitor_config.get('detector_model')} for {self.monitor_name}")
                     self.detector = DetectorMachineFactory().get_detector_machine(monitor_config=self.monitor_config,
                                                                                   input_image_queue=self.input_image_queue,
                                                                                   output_image_queue=self.output_image_queue,
@@ -146,3 +174,30 @@ class VideoDetectionService(ServiceAbstract, ABC):
     @staticmethod
     def get_trained_objects(detector_name) -> list:
         return DetectorMachineFactory().get_trained_objects(detector_name)
+
+    @staticmethod
+    def _convert_imgarray_to_inmem_base64_png(img_array: np.array) -> base64:
+        """
+        ref: https://stackoverflow.com/questions/42503995/how-to-get-a-pil-image-as-a-base64-encoded-string
+        Convert an image array into an in-memory base64 PNG image.
+        The return value can be placed in an HTML src tag:
+        <img src="data:image/png;base64,<<base64 encoding>>" height="" width="" alt="image">
+        :param img_array: a numpy image
+        :return: base64 image in ascii characters
+        """
+        # convert image from BGR to RGB
+        img_array = img_array[:, :, ::-1]
+
+        rgbimg = Image.fromarray(img_array, mode='RGB')
+        # pngimg = Image.new(mode='RGB', size=img_array.T.shape[:2])  # create new in-memory image
+        # pngimg.putdata([pixel for pixel in np.ravel(img_array)])  # scale=10 <- will multiple each pixel value
+
+        b = io.BytesIO()  # create an empty byte object
+        rgbimg.save(b, format='JPEG')  # save the rgb file to the object
+        b.seek(0)  # move pointer back to the start of memory space
+        img_bytes = b.read()  # read memory space
+
+        base64_img = base64.b64encode(img_bytes)  # encode the image to base64
+        base64_ascii_img = base64_img.decode('ascii')  # finally, decode it to ascii characters
+
+        return base64_ascii_img

@@ -1,0 +1,55 @@
+{% extends 'traffic_monitor/section_wrapper.html' %}
+
+{% block title %}Detection Images{% endblock title %}
+
+{% block content %}
+    {% csrf_token %}
+
+    <script type="text/javascript">
+
+        function update_videosocket(monitor_name) {
+            {# A socket is created that will be used to capture messages from #}
+            {# the backend. When updates are received the web page is updated #}
+            {# with the respective log information. #}
+
+            const socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/video/' + monitor_name + '/')
+
+            {# Receive Update #}
+            socket.onmessage = function (e) {
+
+                let image_array = JSON.parse(e.data).image;
+                {#update_image(e.data['image'])#}
+                let elem = document.getElementById('video_feed')
+                {#"data:image/png;base64,<<base64 encoding>>"#}
+                elem.src = "data:image/jpg;base64," + image_array;
+            }
+
+            socket.onclose = function (e) {
+                console.log("video socket closed!")
+            }
+
+            socket.onopen = function (e) {
+                console.log("video socket opened!")
+            }
+        }
+
+        function update_image(image) {
+
+        }
+
+        {#On load, setup the channel to get communications from the server #}
+        document.addEventListener('DOMContentLoaded', () => {
+            {#Update the table of elements to monitor and log#}
+            update_videosocket('{{monitor_name}}');
+        })
+
+    </script>
+
+    <div class="card-body p-0" id="video-stream" style="background-color: black; height: 360px;">
+        <img id='video_feed' style="width: 100%; max-height: 100%" src="">
+    </div>
+
+{% endblock content %}
+
+
+

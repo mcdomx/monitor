@@ -20,11 +20,9 @@
 
             {# Update Log #}
             socket.onmessage = function(e) {
-                console.log(e.data);
                 const data = JSON.parse(e.data).counts;
                 const utctime = new Date(JSON.parse(e.data).time_stamp);
                 let time_stamp = utctime.toLocaleString()
-
 
                 let logtable = document.getElementById("logtable");
                 let i = 0;
