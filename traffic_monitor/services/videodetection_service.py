@@ -47,10 +47,11 @@ class VideoDetectionService(ServiceAbstract, ABC):
     def __init__(self,
                  monitor_config: dict,
                  output_data_topic: str,  # Kafka topic to produce data to
+                 class_colors: dict = None
                  ):
         """ Requires existing monitor.  1:1 relationship with a monitor but this is not
         enforced when creating the Monitor Service. """
-        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
+        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic, class_colors=class_colors)
         self.monitor_name: str = monitor_config.get('monitor_name')
         self.name = f"VideoDetectionService-{self.monitor_name}"
         self.input_image_queue: queue.Queue = queue.Queue(BUFFER_SIZE)
@@ -64,7 +65,8 @@ class VideoDetectionService(ServiceAbstract, ABC):
         self.detector = DetectorMachineFactory().get_detector_machine(monitor_config=monitor_config,
                                                                       input_image_queue=self.input_image_queue,
                                                                       output_image_queue=self.output_image_queue,
-                                                                      output_data_topic=self.output_data_topic)
+                                                                      output_data_topic=self.output_data_topic,
+                                                                      class_colors=self.class_colors)
 
         # # This service does not use the consumer that is setup by the
         # # serviceabstract class.  If we don't close it, Kafka will close

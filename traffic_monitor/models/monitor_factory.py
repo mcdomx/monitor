@@ -5,7 +5,9 @@ from confluent_kafka import Producer
 
 from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.models.feed_factory import FeedFactory
-from traffic_monitor.websocket_channels import ConfigChange
+# from traffic_monitor.websocket_channels import ConfigChange
+from channels.generic.websocket import WebsocketConsumer
+
 from traffic_monitor.websocket_channels_factory import ChannelFactory
 
 logger = logging.getLogger('monitor_factory')
@@ -125,10 +127,10 @@ class MonitorFactory:
             """ Kafka support function.  Called once for each message produced to indicate delivery result.
                 Triggered by poll() or flush(). """
             if err is not None:
-                logger.info(f'{self.__class__.__name__}: Message delivery failed: {err}')
+                logger.info(f'{self.__class__.__name__}: Monitor_Factory Message delivery failed: {err}')
             else:
                 logger.info(
-                    f'{self.__class__.__name__}: Message delivered to {msg.topic()} partition:[{msg.partition()}]')
+                    f'{self.__class__.__name__}: Monitor_Factory Message delivered to {msg.topic()} partition:[{msg.partition()}]')
 
         def toggle_service(self, monitor_name: str, service: str):
             """
@@ -211,12 +213,17 @@ class MonitorFactory:
 
             # Update Front-End using Channels
             # -------------------------------
-            channel: ConfigChange = ChannelFactory().get(f"/ws/traffic_monitor/{key}/{monitor_name}/")
+            channel:  WebsocketConsumer = ChannelFactory().get(f"/ws/traffic_monitor/{key}/{monitor_name}/")
             # only update the channel if a channel has been created (i.e. - a front-end is using it)
             if channel:
+                print(">>>>>>I am sending to a channel")
                 # send message to front-end
-                channel.update(json.JSONEncoder().encode(message))
+                channel.send(json.JSONEncoder().encode(message))
+            else:
+                logger.info(f">>>>> No channel: /ws/traffic_monitor/{key}/{monitor_name}/")
             # -------------------------------
+
+            print(f"Factory produced message: {monitor_name} {key}")
 
         @staticmethod
         def get_monitor(monitor_name: str) -> dict:

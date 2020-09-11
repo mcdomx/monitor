@@ -11,7 +11,13 @@ The application uses a Service Oriented Architecture.  The initial releases of t
 
 Communications
 --------------
-Two technologies are used for communicating between components.  Kafka is used for communications between backend components and Channels (sockets) are used to communicate with the web client.
+Three technologies are used for communicating between components.  Kafka is used for communications between backend components. Channels (sockets) are used to communicate from Django to the web-client and rest calls are used by the web-client to communicate to Django.
+
+Django <-> Django : Kafka
+
+Django --> Web-Client : Channels
+
+Web-Client --> Django : Rest
 
 Kafka
 -----
@@ -25,12 +31,12 @@ https://channels.readthedocs.io/en/latest/introduction.html
 
 Channels-Redis is a Django-specific support application that is used in this application to communicate from the web-server to the web-client.
 
-Setting up the channels for communication only requires a few steps; the distributed nature of any communication structure can make it seem complicated:
+Setting up the channels for communication only requires a few steps but the distributed nature of any communication structure can make it seem complicated:
 
-1. Backend: the channel objects are setup in the consumers.py script.  Additionally, routing for websocket communications is setup in 2 routing.py files, one is in the project root and the other is in the traffic_monitor directory.
+1. Backend: the channel objects are setup in the traffic_monitor/websocket_channels.py script.  These are the backend Python objects that represent the backend connection to the socket.  Each socket gets a routing through which the back-end and front-end will communicate with each other.  These routings are defined in the traffic_monitor/channel_routing.py file and a top-level routing is defined in the monitor/channel_routing.py file.  Only the traffic_monitor/channel_routing.py file needs to be maintained for new socket urls.
 
 
-2. A channel is crested by the front-end using JavaScript:
+2. Front-End: The channel end of the socket is established by creating an object in JavaScirpt:
 
 ::
 
@@ -56,10 +62,5 @@ In this JavaScript you can accept and handle incoming messages by assigning a fu
 
 ::
 
-    socket.onmessage = function(message) { <handling statement here> }
-
-In the snippet above, JSON dictionary elements can be accessed via:
-
-::
-
-    const value = JSON.parse(message.data).<key>
+    socket.onmessage = function(message) {
+        const value = JSON.parse(message.data).<key>}

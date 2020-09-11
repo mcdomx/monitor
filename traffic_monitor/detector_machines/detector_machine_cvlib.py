@@ -26,19 +26,22 @@ class DetectorMachineCVlib(DetectorMachineAbstract):
                  monitor_config: dict,
                  input_image_queue: queue.Queue,
                  output_image_queue: queue.Queue,
-                 output_data_topic: str):
+                 output_data_topic: str,
+                 class_colors: dict = None):
         DetectorMachineAbstract.__init__(self,
                                          monitor_config=monitor_config,
                                          input_image_queue=input_image_queue,
                                          output_image_queue=output_image_queue,
-                                         output_data_topic=output_data_topic)
+                                         output_data_topic=output_data_topic,
+                                         class_colors=class_colors)
         self.observers = []
         self.subject_name = 'detector_cvlib'
 
     def detect(self, frame: np.array) -> (np.array, list):
+        # colors is a list of RGB values in a list ([[#r,#g,#b],[#r,#g,#b], ... ])
         try:
             bbox, labels, conf = detect_common_objects(frame, confidence=.25, model=self.detector_model)
-            frame = draw_bbox(img=frame, bbox=bbox, labels=labels, confidence=conf, write_conf=False)
+            frame = draw_bbox(img=frame, bbox=bbox, labels=labels, confidence=conf, write_conf=False, colors=None)
             return frame, labels
         except Exception as e:
             logger.info(f"cvlib Exception: {e}")

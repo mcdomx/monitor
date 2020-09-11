@@ -38,9 +38,10 @@ class DetectorMachineAbstract(ServiceAbstract):
                  monitor_config: dict,
                  output_data_topic: str,
                  input_image_queue: queue.Queue,
-                 output_image_queue: queue.Queue):
+                 output_image_queue: queue.Queue,
+                 class_colors: dict = None):
 
-        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
+        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic, class_colors=class_colors)
         self.monitor_name: str = monitor_config.get('monitor_name')
         self.detector_name: str = monitor_config.get('detector_name')
         self.detector_model: str = monitor_config.get('detector_model')

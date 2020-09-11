@@ -18,8 +18,7 @@ class NotificationService(ServiceAbstract, ABC):
     of a condition in a stream of data.
     """
 
-    def __init__(self, monitor_config: dict,
-                 output_data_topic: str):
+    def __init__(self, monitor_config: dict, output_data_topic: str, class_colors: dict = None):
         ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
         self.subject_name = f"notificationservice__{self.monitor_name}"
         self.notification_interval = 60

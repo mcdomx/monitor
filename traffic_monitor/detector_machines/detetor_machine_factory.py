@@ -25,10 +25,12 @@ class DetectorMachineFactory:
         def get_detector_machine(monitor_config: dict,
                                  input_image_queue: queue.Queue,
                                  output_image_queue: queue.Queue,
-                                 output_data_topic: str) -> DetectorMachineAbstract:
+                                 output_data_topic: str,
+                                 class_colors: dict = None) -> DetectorMachineAbstract:
             """
             Determine the implemented detector class based on the detector name.
             Update this function to add new detection models which implement DetectorAbstract.
+            :param class_colors:
             :param output_data_topic:
             :param monitor_config:
             :param input_image_queue:
@@ -43,7 +45,8 @@ class DetectorMachineFactory:
             return detector_class(monitor_config=monitor_config,
                                   input_image_queue=input_image_queue,
                                   output_image_queue=output_image_queue,
-                                  output_data_topic=output_data_topic)
+                                  output_data_topic=output_data_topic,
+                                  class_colors=class_colors)
 
         @staticmethod
         def _get_detector_class(detector_name) -> DetectorMachineAbstract.__class__:
@@ -58,7 +61,7 @@ class DetectorMachineFactory:
 
             if detector_class is None:
                 raise Exception(
-                    f"Detector with name '{detector_name}' does not exist. Available detectors: {list(detectors.keys())}")
+                    f"Detector with name '{detector_name}' does not exist. Available detectors: {list(DETECTORS.keys())}")
             else:
                 return detector_class
 

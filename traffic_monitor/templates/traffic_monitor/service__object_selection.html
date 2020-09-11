@@ -12,18 +12,19 @@
             {# the backend. When updates are received the web page is updated #}
             {# with the respective log information. #}
 
-            const socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/')
+            const objsel_socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/')
 
             {# Receive Update #}
-            socket.onmessage = async function(e) {
+            objsel_socket.onmessage = async function(e) {
+                console.log("The obj selection socket got a message")
                 await set_selections('{{ monitor_name }}')
             }
 
-            socket.onclose = function(e) {
+            objsel_socket.onclose = function(e) {
                 console.log("config_change socket closed!")
             }
 
-            socket.onopen = function(e) {
+            objsel_socket.onopen = function(e) {
                 console.log("config_change socket opened!")
             }
 
@@ -49,48 +50,48 @@
 
             fetch(url);
         }
+        {##}
+        {#async function get_monitor_config(monitor_name) {#}
+        {#    const url = 'get_monitor?name=' + monitor_name#}
+        {#    return await fetch(url).then(data => {#}
+        {#        return data.json();#}
+        {#    });#}
 
-        async function get_monitor_config(monitor_name) {
-            const url = 'get_monitor?name=' + monitor_name
-            return await fetch(url).then(data => {
-                return data.json();
-            });
-        }
-
-        async function set_selections(monitor_name) {
-
+        {##}
+        {#async function set_selections(monitor_name) {#}
+        {##}
             {# Get selected objects to turn on #}
-            let config = await get_monitor_config(monitor_name);
-            let log_objects = config['log_objects'];
-            let notification_objects = config['notification_objects'];
-
+        {#    let config = await get_monitor_config(monitor_name);#}
+        {#    let log_objects = config['log_objects'];#}
+        {#    let notification_objects = config['notification_objects'];#}
+        {##}
             {# First, Turn all off #}
-            let elems = document.getElementsByTagName('input')
-            for (let e in elems) {
-                if (elems[e].type === 'checkbox') {
-                    elems[e].checked = false;
-                }
-            }
+        {#    let elems = document.getElementsByTagName('input')#}
+        {#    for (let e in elems) {#}
+        {#        if (elems[e].type === 'checkbox') {#}
+        {#            elems[e].checked = false;#}
+        {#        }#}
+        {#    }#}
+        {##}
+        {#    for (let l in log_objects) {#}
+        {#        if (log_objects.hasOwnProperty(l)){#}
+        {#            let e = document.getElementById('log__' + log_objects[l].replace(' ', '_'));#}
+        {#            if (e != null) {#}
+        {#                e.checked = true;#}
+        {#            }#}
+        {#        }#}
+        {#    }#}
+        {##}
+        {#    for (let n in notification_objects) {#}
+        {#        if (notification_objects.hasOwnProperty(n)) {#}
+        {#            let e = document.getElementById('not__' + notification_objects[n].replace(' ', '_'));#}
+        {#            if (e != null) {#}
+        {#                e.checked = true;#}
+        {#            }#}
+        {#        }#}
+        {#    }#}
 
-            for (let l in log_objects) {
-                if (log_objects.hasOwnProperty(l)){
-                    let e = document.getElementById('log__' + log_objects[l].replace(' ', '_'));
-                    if (e != null) {
-                        e.checked = true;
-                    }
-                }
-            }
-
-            for (let n in notification_objects) {
-                if (notification_objects.hasOwnProperty(n)) {
-                    let e = document.getElementById('not__' + notification_objects[n].replace(' ', '_'));
-                    if (e != null) {
-                        e.checked = true;
-                    }
-                }
-            }
-        }
-
+        {##}
 
         function setup_table(monitor_name) {
         {#    Get data to put in table #}
@@ -99,7 +100,8 @@
             fetch(url)
                 .then(response => response.json())
                 .then(data => { make_table(data); })
-                .then( () => set_selections(monitor_name))
+                {#.then( () => set_selections(monitor_name))#}
+                .then( () => update_config_objects(monitor_name))
                 .catch(function(error) {
                                     console.log("Could not get data: get_trained_objects() failed. : " + error);
                                 })
@@ -123,8 +125,9 @@
             {# Create monitoring checkbox column #}
             let not_check_box = document.createElement("input");
             not_check_box.type = 'checkbox';
-            not_check_box.className = 'not_checkbox';
-            not_check_box.id = 'not__' + o.replace(' ', '_');
+            not_check_box.className = 'not_checkbox config_object notification_objects ' + o.replace(' ', '_');
+            not_check_box.setAttribute('data-obj', o);
+            {#not_check_box.id = 'not__' + o.replace(' ', '_');#}
             not_check_box.checked = false;
             not_check_box.onclick = function() {toggle_box('not__' + o.replace(' ', '_'));}
 
@@ -135,8 +138,9 @@
             {# Create logging checkbox column #}
             let log_check_box = document.createElement("input");
             log_check_box.type = 'checkbox';
-            log_check_box.className = 'log_checkbox';
-            log_check_box.id = 'log__' + o.replace(' ', '_');
+            log_check_box.className = 'log_checkbox config_object log_objects ' + o.replace(' ', '_');
+            log_check_box.setAttribute('data-obj', o);
+            {#log_check_box.id = 'log__' + o.replace(' ', '_');#}
             log_check_box.checked = false;
             log_check_box.onclick = function() {toggle_box('log__' + o.replace(' ', '_'));}
 
@@ -163,7 +167,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             {#Update the table of elements to monitor and log#}
             setup_table('{{monitor_name}}');
-            update_configsocket('{{monitor_name}}');
+            {#update_configsocket('{{monitor_name}}');#}
         })
     </script>
 

@@ -1,29 +1,22 @@
 """
 This service will push charts to the web page.
 """
-import pandas as pd
-import threading
+from datetime import datetime, timezone, timedelta
+import logging
+from abc import ABC
 
+import pandas as pd
 from bokeh.embed import json_item
 from bokeh.models import HoverTool, DatetimeTickFormatter
 from bokeh.plotting import figure
 from bokeh.palettes import brewer
 from pygam import LinearGAM, s
-
-from traffic_monitor.models.model_logentry import LogEntry
-
-
-from datetime import datetime, timezone, timedelta
-import time
-import logging
-import json
-from abc import ABC
-
 from django.core.serializers.json import DjangoJSONEncoder
 
 from traffic_monitor.services.service_abstract import ServiceAbstract
 from traffic_monitor.websocket_channels import ChartChannel
 from traffic_monitor.websocket_channels_factory import ChannelFactory
+from traffic_monitor.models.model_logentry import LogEntry
 
 logger = logging.getLogger('chart_service')
 
@@ -37,8 +30,9 @@ class ChartService(ServiceAbstract, ABC):
     def __init__(self,
                  monitor_config: dict,
                  output_data_topic: str,
+                 class_colors: dict = None
                  ):
-        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
+        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic, class_colors=class_colors)
         self.subject_name = f"chartservice__{self.monitor_name}"
         self.charting_interval: int = 60
         self.channel_url = f"/ws/traffic_monitor/chart/{monitor_config.get('monitor_name')}/"  # websocket channel address
@@ -58,21 +52,23 @@ class ChartService(ServiceAbstract, ABC):
 
                 return msg_key, msg
 
-
-
-    def get_timedelta(self) -> timedelta:
-        time_horizon = self.monitor_config.get('charting_time_horizon')
+    def _get_timedelta(self) -> (timedelta, str):
+        """
+        Helper function that converts the monitor_config time horizon into a timedelta object.
+        :return:
+        """
+        time_horizon = self.monitor_config.get('charting_time_horizon').lower()
         try:
-            return timedelta(hours=int(time_horizon))
+            return datetime.now(tz=timezone.utc)-timedelta(hours=int(time_horizon)), f"Last {time_horizon} Hours"
         except ValueError:
             if time_horizon == 'year':
-                return timedelta(days=365)
+                return datetime.now(tz=timezone.utc)-timedelta(days=365), f"Last {time_horizon.capitalize()}"
             if time_horizon == 'month':
-                return timedelta(days=31)
+                return datetime.now(tz=timezone.utc)-timedelta(days=31), f"Last {time_horizon.capitalize()}"
             if time_horizon == 'week':
-                return timedelta(days=7)
+                return datetime.now(tz=timezone.utc)-timedelta(days=7), f"Last {time_horizon.capitalize()}"
             if time_horizon == 'day':
-                return timedelta(days=24)
+                return datetime.now(tz=timezone.utc)-timedelta(hours=24), f"Last {time_horizon.capitalize()}"
 
     def get_chart(self, monitor_name: str):
         """
@@ -90,27 +86,26 @@ class ChartService(ServiceAbstract, ABC):
             #         , mode='vline'
         )]
 
-        # data
-        rs = LogEntry.objects.filter(monitor__name=monitor_name).values('time_stamp', 'class_name', 'count')
+        # get logentries according to the time horizon and charted_objects
+        time_ago, time_delta_description = self._get_timedelta()
+        rs = LogEntry.objects.filter(monitor__name=monitor_name,
+                                     time_stamp__gt=time_ago,
+                                     class_name__in=self.monitor_config.get('charting_objects')[:11]).values('time_stamp', 'class_name', 'count')
         df = pd.DataFrame(rs)
         df.rename(columns={'count': 'counts'}, inplace=True)
 
-        # get time that matches time horizon
-        df = df[df.time_stamp > datetime.now(tz=timezone.utc) - self.get_timedelta()]
-
         # set timezone
         df = df.set_index('time_stamp').tz_convert(self.monitor_config.get('charting_time_zone')).tz_localize(None)
-        # get top 5 items
-        # top5_classes = df.groupby('class_name').count().sort_values(by='counts', ascending=False).index[0:5].values
-        # df = df[df['class_name'].isin(top5_classes)]
-        # df.sort_index(inplace=True)
 
         # get items in the charted_objects list
         c_obj_len = min(len(self.monitor_config.get('charting_objects')), 11)
-        df = df[df.class_name.isin(self.monitor_config.get('charting_objects')[:11])]
+
+        if len(df) == 0:
+            return 'No data for time period.  Wait for detections ... '
 
         # Define the blank canvas of the Bokeh plot that data will be layered on top of
         fig = figure(
+            title=f"{self.monitor_name} - {time_delta_description}",
             sizing_mode="stretch_both",
             tools=tools,
             toolbar_location=None,
@@ -203,6 +198,7 @@ class ChartService(ServiceAbstract, ABC):
                 logger.info(e)
                 continue
 
+            # enter a disruptable sleep
             self.condition.acquire()
             self.condition.wait(self.charting_interval)
             self.condition.release()

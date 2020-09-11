@@ -9,6 +9,7 @@ import logging
 import threading
 import json
 import time
+import numpy as np
 
 from confluent_kafka.admin import AdminClient, NewTopic, KafkaException
 from confluent_kafka import Consumer, TopicPartition, OFFSET_END
@@ -27,10 +28,10 @@ BUFFER_SIZE = 512
 logger = logging.getLogger('monitor_service')
 
 SERVICES = {
-            'logging_on': LogService,
-            'notifications_on': NotificationService,
-            'charting_on': ChartService,
-            }
+    'logging_on': LogService,
+    'notifications_on': NotificationService,
+    'charting_on': ChartService,
+}
 
 
 class MonitorService(threading.Thread):
@@ -71,10 +72,13 @@ class MonitorService(threading.Thread):
         threading.Thread.__init__(self)
         self.id = id(self)
 
+        # LOCAL ATTRIBUTES
         self.monitor_config: dict = monitor_config
         self.monitor_name: str = monitor_config.get('monitor_name')
         self.output_data_topic: str = self.monitor_name
         self.name = f"{self.monitor_name}_thread"
+        self.active_services = {}
+        self.class_colors: dict = self._set_class_colors()
 
         # STATES
         self.running = False
@@ -83,8 +87,6 @@ class MonitorService(threading.Thread):
 
         # QUEUES
         self.output_image_queue = queue.Queue(BUFFER_SIZE)
-
-        self.active_services = {}
 
         # SETUP KAFKA TOPIC
         # Create a dedicated Kafka topic for this monitor service.
@@ -102,7 +104,7 @@ class MonitorService(threading.Thread):
         for t, f in fs.items():
             try:
                 f.result()  # The result itself is None
-                print("Topic {} created".format(t))
+                logger.info("Topic {} created".format(t))
             except KafkaException as e:
                 logger.info("Did not create topic {}: {}".format(t, e))
             except Exception as e:
@@ -114,7 +116,7 @@ class MonitorService(threading.Thread):
             'group.id': 'monitorgroup',
             'auto.offset.reset': 'earliest'
         })
-        self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self.on_revoke)
+        self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self._on_revoke)
         partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p, OFFSET_END) for p in range(3)]
         self.consumer.assign(partitions)
 
@@ -124,7 +126,21 @@ class MonitorService(threading.Thread):
 
         return f"{str_rv}"
 
-    def on_revoke(self, consumer, partitions) -> (Consumer, list):
+    def _set_class_colors(self) -> dict:
+        # get the classes that the detector supports
+        classes = self.get_trained_objects(self.monitor_config.get('detector_name'))
+
+        # for each class, create a random color
+        colors = np.random.uniform(0, 255, size=(len(classes), 3))
+
+        # create a dictionary with {<class>, <[r,b,b]>}
+        rv = {}
+        for cls, color in zip(classes, colors):
+            rv.update({cls: color})
+
+        return rv
+
+    def _on_revoke(self, consumer, partitions) -> (Consumer, list):
         if not self.running:
             return
         logger.info(f"Monitor_Service subscriber on_revoke triggered.  Resetting consumer.")
@@ -133,7 +149,7 @@ class MonitorService(threading.Thread):
             'group.id': 'monitorgroup',
             'auto.offset.reset': 'earliest'
         })
-        self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self.on_revoke)
+        self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self._on_revoke)
         partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p) for p in range(3)]
         self.consumer.assign(partitions)
         return consumer, partitions
@@ -147,8 +163,9 @@ class MonitorService(threading.Thread):
         service: dict = self.active_services.get(service_class.__name__)
 
         if service is None:
-            s = service_class(monitor_config=self.monitor_config,
-                              output_data_topic=self.output_data_topic)
+            s: ServiceAbstract = service_class(monitor_config=self.monitor_config,
+                                               output_data_topic=self.output_data_topic,
+                                               class_colors=self.class_colors)
             s.start()
             self.active_services.update({s.__class__.__name__: {'object': s, 'condition': s.get_condition()}})
 
@@ -161,7 +178,7 @@ class MonitorService(threading.Thread):
             s.join()
             self.active_services.pop(service_name)
 
-    def start(self) -> dict:
+    def start(self):
         """
         Overriding Threading.start() so that we can test if a monitor service  is already active for
         the monitor and set the 'running' variable.
@@ -173,16 +190,21 @@ class MonitorService(threading.Thread):
         try:
             # Start Services
             self.start_service(VideoDetectionService)
-
-            for s, c in SERVICES.items():
-                if self.monitor_config.get(s):
-                    self.start_service(c)
-
-            self.running = True
-            threading.Thread.start(self)
-
         except Exception as e:
-            raise Exception(f"[{self.__class__.__name__}] Could not start '{self.monitor_name}': {e}")
+            raise Exception(f"[{self.__class__.__name__}] Could not start '{self.monitor_name}' VideoDetectionService: {e}")
+
+        for s, c in SERVICES.items():
+            if self.monitor_config.get(s):
+                try:
+                    self.start_service(c)
+                    self.running = True
+                except Exception as e:
+                    raise Exception(f"[{self.__class__.__name__}] Could not start '{self.monitor_name}' '{c.__name__}': {e}")
+
+        # now that all the monitor's sub-services are started, start the monitor service
+        threading.Thread.start(self)
+
+        return
 
     def stop(self) -> dict:
 

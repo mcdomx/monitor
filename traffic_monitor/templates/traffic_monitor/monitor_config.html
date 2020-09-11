@@ -7,94 +7,52 @@
 
     <script type="text/javascript">
 
-        function update_toggleservicesocket(monitor_name) {
-            {# A socket is created that will be used to capture messages from #}
-            {# the backend. When updates are received the web page is updated #}
-            {# with the respective log information. #}
-
-            const socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/toggle_service/' + monitor_name + '/')
-
-            {# Receive Update #}
-            socket.onmessage = async function (e) {
-                await update_formdata('{{ monitor_name }}')
-            }
-
-            socket.onclose = function (e) {
-                console.log("toggle_service socket closed!")
-            }
-
-            socket.onopen = function (e) {
-                console.log("toggle_service socket opened!")
-            }
-        }
-
-        async function get_monitor_config(monitor_name) {
-            const url = 'get_monitor?name=' + monitor_name
-            return await fetch(url).then(data => {
-                return data.json();
-            });
-        }
-
-        async function update_formdata(monitor_name) {
-            let config = await get_monitor_config(monitor_name);
-            const e_names = ['monitor_name', 'detector_name', 'detector_model', 'feed_description', 'feed_id', 'time_zone', 'logging_on', 'notifications_on', 'charting_on', 'is_active'];
-            {# Update the value of each configuration element #}
-            for (let e_name in e_names) {
-                let e = document.getElementById(e_names[e_name]);
-                e.innerText = config[e_names[e_name]];
-            }
-
-        }
-
         function start_monitor(monitor_name) {
-            fetch("start_monitor?monitor_name="+monitor_name).then( () => update_formdata('{{monitor_name}}'))
+            fetch("start_monitor?monitor_name="+monitor_name).then( () => update_config_objects('{{monitor_name}}'))
         }
 
         function stop_monitor(monitor_name) {
-            fetch("stop_monitor?monitor_name="+monitor_name).then( () => update_formdata('{{monitor_name}}'))
+            fetch("stop_monitor?monitor_name="+monitor_name).then( () => update_config_objects('{{monitor_name}}'))
         }
 
         function toggle_service(monitor_name, service) {
-            fetch("toggle_service?monitor_name="+monitor_name+"&service="+service).then( () => update_formdata('{{monitor_name}}'))
-            update_formdata('{{monitor_name}}');
+            fetch("toggle_service?monitor_name="+monitor_name+"&service="+service).then( () => update_config_objects('{{monitor_name}}'))
         }
 
         {#On load, get the monitor configuration data and update the elements #}
         document.addEventListener('DOMContentLoaded', () => {
-            {#Update the form with current configuration settings #}
-            update_formdata('{{monitor_name}}');
-            update_toggleservicesocket('{{monitor_name}}');
+
         })
 
     </script>
 
     <div class="card-body" style="height: 360px; overflow-y: auto">
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 150px">Monitor Name: </div><div id="monitor_name"></div>
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Monitor Name: </div><div class="config_object monitor_name"></div>
         </div>
 
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 150px">Detector Name: </div><div id="detector_name"></div>
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Detector Name: </div><div class="config_object detector_name"></div>
         </div>
 
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 150px">Detector Model: </div><div id="detector_model"></div>
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Detector Model: </div><div class="config_object detector_model"></div>
         </div>
 
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 150px">Feed Description: </div><div id="feed_description"></div>
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Feed Description: </div><div class="config_object feed_description"></div>
         </div>
 
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 150px">Feed ID: </div><div id="feed_id"></div>
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Feed ID: </div><div class="config_object feed_id"></div>
         </div>
 
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 150px">Time Zone: </div><div id="time_zone"></div>
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Time Zone: </div><div class="config_object time_zone"></div>
         </div>
 
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 150px">Running: </div><div id="is_active" style="width: 50px"></div><button type="button" class="btn btn-success btn-sm" onclick="start_monitor('{{ monitor_name }}')">Start</button><button type="button" class="btn btn-danger btn-sm" onclick="stop_monitor('{{ monitor_name }}')">Stop</button>
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Running: </div><div class="config_object is_active" style="width: 50px"></div><button type="button" class="btn btn-success btn-sm" onclick="start_monitor('{{ monitor_name }}')">Start</button><button type="button" class="btn btn-danger btn-sm" onclick="stop_monitor('{{ monitor_name }}')">Stop</button>
         </div>
 
         <div class="col-12 border border-secondary rounded bg-light px-3 py-2 mt-2">
@@ -102,14 +60,23 @@
                 <div style="font-weight: bolder">Services</div>
             </div>
             <div class="row">
-                <div class='mx-2' style="font-weight: bold; width: 150px">Logging Service: </div><div style="width: 50px" id="logging_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'log')">Toggle</button>
+                <div class='mx-2' style="font-weight: bold; width: 150px">Logging Service: </div><div style="width: 50px" class="config_object logging_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'log')">Toggle</button>
             </div>
             <div class="row">
-                <div class='mx-2' style="font-weight: bold; width: 150px">Notification Service: </div><div style="width: 50px" id="notifications_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'notification')">Toggle</button>
+                <div class='mx-2' style="font-weight: bold; width: 150px">Notification Service: </div><div style="width: 50px" class="config_object notifications_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'notification')">Toggle</button>
             </div>
             <div class="row">
-                <div class='mx-2' style="font-weight: bold; width: 150px">Charting Service: </div><div style="width: 50px" id="charting_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'chart')">Toggle</button>
+                <div class='mx-2' style="font-weight: bold; width: 150px">Charting Service: </div><div style="width: 50px" class="config_object charting_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'chart')">Toggle</button>
             </div>
+{#            <div class="row">#}
+{#                <div class='ml-4' style="font-weight: bold; width: 150px">Time Horizon: </div><div id="charting_time_horizon"></div>#}
+{#            </div>#}
+{#            <div class="row">#}
+{#                <div class='ml-4' style="font-weight: bold; width: 150px">Time Zone: </div><div id="charting_time_zone"></div>#}
+{#            </div>#}
+{#            <div class="row">#}
+{#                <div class='ml-4' style="font-weight: bold; width: 150px">Objects: </div><div id="charting_objects"></div>#}
+{#            </div>#}
         </div>
 
     </div>

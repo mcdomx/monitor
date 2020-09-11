@@ -1,29 +1,87 @@
-{# This file lays out the service of  monitor #}
+{# This file lays out the service of a monitor #}
 {# This page expects to be called with a variable called 'monitor_name' #}
-<script type="text/javascript">
-        document.addEventListener('DOMContentLoaded', () => {
+{# This page includes javascript to accept websocket data for config_changes. #}
+{# Config_changes will drive the change to any domain object of class 'config_change' #}
+{# as well as the class of the configuration variable name.  For list-type items like #}
+{# 'log_objects'. the domain element must also include a 'data=obj' tag that includes #}
+{# the object name. #}
+{# Examples:#}
+{# <div class='config_change monitor_name'></div>  This will be filled with the value of 'monitor_name' for a configuration dictionary #}
+{# <input type='checkbox' class='config_change chart_objects' data-obj='car'/> This will check the input box if the 'chart_objects' dictionary element is included #}
 
+<script type="text/javascript">
+
+        async function update_config_objects(monitor_name) {
+            let config = await get_monitor_config(monitor_name);
+            for (let key in config) {
+                if (config.hasOwnProperty(key)) {
+                    let elems = document.getElementsByClassName('config_object '+ key);
+                    {# if elements exist, let's update them #}
+                    if (elems.length) {
+                        {# checkbox lists are a special case: key=log_object, notification_objects, chart_objects#}
+
+                        for (let e in elems) {
+                            if (elems.hasOwnProperty(e)) {
+                                if (key === 'log_objects' || key === 'notification_objects' || key === 'chart_objects') {
+                                    elems[e].checked = !!config[key].includes(elems[e].dataset.obj);
+                                } else {
+                                    elems[e].innerText = config[key];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function setup_config_socket(monitor_name) {
+            const config_change_socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/')
+            {# Receive Update #}
+            config_change_socket.onmessage = function (e) {
+                console.log("config_change_socket socket got a message!")
+                update_config_objects('{{ monitor_name }}')
+            }
+
+            config_change_socket.onclose = function (e) {
+                console.log("config_change_socket socket closed!")
+            }
+
+            config_change_socket.onopen = function (e) {
+                console.log('config_change_socket socket opened at ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/')
+            }
+        }
+
+        async function get_monitor_config(monitor_name) {
+            const url = 'get_monitor?name=' + monitor_name
+            return await fetch(url).then(data => {
+                return data.json();
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setup_config_socket('{{monitor_name}}');
+            update_config_objects('{{monitor_name}}');
         })
 </script>
 
 <div id="monitor_config">
-    {%  include 'traffic_monitor/monitor_config.html' with monitor_name=monitor_name%}
+    {%  include 'traffic_monitor/monitor_config.html' with monitor_name=monitor_name %}
 </div>
 
 <div id="monitor_video">
-    {%  include 'traffic_monitor/service__video.html' with monitor_name=monitor_name%}
+    {%  include 'traffic_monitor/service__video.html' with monitor_name=monitor_name %}
 </div>
 
 <div id="monitor_chart">
-    {%  include 'traffic_monitor/service__charting.html' with monitor_name=monitor_name%}
+    {%  include 'traffic_monitor/service__charting.html' with monitor_name=monitor_name %}
 </div>
 
 <div id="monitor_log">
-    {%  include 'traffic_monitor/service__logging.html' with monitor_name=monitor_name%}
+    {%  include 'traffic_monitor/service__logging.html' with monitor_name=monitor_name %}
 </div>
 
 <div id="monitor_selection">
-    {%  include 'traffic_monitor/service__object_selection.html' with monitor_name=monitor_name%}
+    {%  include 'traffic_monitor/service__object_selection.html' with monitor_name=monitor_name %}
 </div>
 
 

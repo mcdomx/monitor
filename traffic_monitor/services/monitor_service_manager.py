@@ -36,15 +36,6 @@ class MonitorServiceManager:
                 return True
             return False
 
-        def set_charting_options(self, kwargs):
-
-            monitor_name = kwargs.get('monitor_name')
-
-
-
-
-
-
         def set_view_status(self, monitor_name: str) -> dict:
             is_active = self.is_active(monitor_name)
             if not is_active:
@@ -282,7 +273,7 @@ class MonitorServiceManager:
                     message = {'message': f"'{monitor_config.get('monitor_name')}' is already active."}
                     return {**message, **monitor_config}
 
-                ms = MonitorService(monitor_config=monitor_config)
+                ms: MonitorService = MonitorService(monitor_config=monitor_config)
                 ms.start()
 
                 self.active_monitors.update({monitor_name: ms})
