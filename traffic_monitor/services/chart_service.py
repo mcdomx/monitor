@@ -116,7 +116,9 @@ class ChartService(ServiceAbstract, ABC):
             toolbar_location=None,
             x_axis_type="datetime",
             border_fill_color=None,
-            min_border_left=0)
+            min_border_left=0,
+            background_fill_color='lightslategrey',
+            background_fill_alpha=.5)
 
         # Remove default x and y tick marks make chart look clean
         fig.xgrid.grid_line_color = None
@@ -135,6 +137,8 @@ class ChartService(ServiceAbstract, ABC):
             minutes="",
             seconds="%m/%d/%Y %H:%M:%S")
 
+        fig.xaxis.axis_label = self.monitor_config.get('charting_time_zone')
+
         # create plot lines for each class
         u_class_names = sorted(df.class_name.unique())
         df = df[df.class_name.isin(u_class_names)]
@@ -150,9 +154,9 @@ class ChartService(ServiceAbstract, ABC):
             _df['smoothed_counts'] = LinearGAM(s(0, lam=1)).fit(_x, _df.counts).predict(_x)
 
             fig.line(x='time_stamp', y='smoothed_counts', source=_df,
-                     legend_label=class_name, color=colors[i], line_width=1.5)
+                     legend_label=class_name, color=colors[i], line_width=3)
             fig.scatter(x='time_stamp', y='counts', source=_df,
-                        color=colors[i], size=2, alpha=.5)
+                        color=colors[i], size=3, alpha=.5, line_color='black', line_width=.3)
 
         #     fig.add_layout(legend)
         fig.legend.location = "top_left"
@@ -170,8 +174,8 @@ class ChartService(ServiceAbstract, ABC):
 
             # config changes are handled by abstract class
             msg = self.poll_kafka(0)
-            if msg is None:
-                continue
+            # if msg is None:
+            #     continue
 
             # key_msg = self.handle_message(msg)
             # if key_msg is None:

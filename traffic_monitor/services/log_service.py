@@ -115,7 +115,7 @@ class LogService(ServiceAbstract, ABC):
                 timer.reset()
 
             self.condition.acquire()
-            self.condition.wait(.5)
+            self.condition.wait(1)
             self.condition.release()
             # time.sleep(.5)
 
