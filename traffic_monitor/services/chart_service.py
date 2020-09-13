@@ -98,6 +98,9 @@ class ChartService(ServiceAbstract, ABC):
         rs = LogEntry.objects.filter(monitor__name=monitor_name,
                                      time_stamp__gt=time_ago,
                                      class_name__in=self.monitor_config.get('charting_objects')).values('time_stamp', 'class_name', 'count')
+        if len(rs) == 0:
+            return None
+
         df = pd.DataFrame(rs)
         df.rename(columns={'count': 'counts'}, inplace=True)
 
@@ -187,7 +190,9 @@ class ChartService(ServiceAbstract, ABC):
                     # this sends message to ay front end that has created a WebSocket
                     # The message is the bokeh chart object in json format
                     json_chart = self.get_chart(monitor_name=self.monitor_name)
-                    channel.send(text_data=DjangoJSONEncoder().encode(json_chart))
+                    # Only send out a message if there are records to plot
+                    if json_chart:
+                        channel.send(text_data=DjangoJSONEncoder().encode(json_chart))
 
             except Exception as e:
                 logger.error("Unknown exception triggered in chart_service.py run() loop.")

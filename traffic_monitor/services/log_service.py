@@ -60,28 +60,24 @@ class LogService(ServiceAbstract, ABC):
         while self.running:
 
             msg = self.poll_kafka(0)
-            if msg is None:
-                continue
+            if msg is not None:
+                # continue
+                key_msg = self.handle_message(msg)
+                if key_msg is None:
+                    continue
 
-            key_msg = self.handle_message(msg)
+                msg_key, msg_value = key_msg
 
-            if key_msg is None:
-                continue
+                logger.info(f"Log Service is handling message for {self.monitor_name}:")
+                logger.info(f"\tKEY: {msg_key}")
+                logger.info(f"\tMSG: {msg_value}")
 
-            msg_key, msg_value = key_msg
+            # the log service will capture data from detector_detection messages
+            # if msg_key != 'detector_detection':
+                # time_stamp_type, time_stamp = msg.timestamp()
 
-            logger.info(f"Log Service is handling message for {self.monitor_name}:")
-            logger.info(f"\tKEY: {msg_key}")
-            logger.info(f"\tMSG: {msg_value}")
-
-            # the log service only listens for detector_detection messages
-            if msg_key != 'detector_detection':
-                continue
-
-            time_stamp_type, time_stamp = msg.timestamp()
-
-            capture_count += 1
-            log_interval_detections += msg_value
+                capture_count += 1
+                log_interval_detections += msg_value
 
             # if the time reached the the logging interval
             if timer.get() >= self.log_interval:
@@ -91,14 +87,15 @@ class LogService(ServiceAbstract, ABC):
                 interval_counts_dict = {obj: round(log_interval_detections.count(obj) / capture_count, 3) for obj in
                                         objs_unique if obj in self.monitor_config.get('log_objects')}
                 # time is saved in UTC
-                time_stamp = datetime.datetime.utcfromtimestamp(time_stamp / 1000)
+                # time_stamp = datetime.datetime.utcfromtimestamp(time_stamp / 1000)
+                time_stamp = datetime.datetime.utcnow()
 
                 # add observations to database
                 LogEntry.add(time_stamp=time_stamp,
                              monitor_name=self.monitor_name,
                              count_dict=interval_counts_dict)
                 logger.info(f"Monitor: {self.monitor_name} Logged Detections: {interval_counts_dict}")
-                logger.info(f"Monitor: {self.monitor_name} Did not log: {objs_unique.difference(set(self.monitor_config.get('log_objects')))}")
+                logger.info(f"Monitor: {self.monitor_name} Did not log: {[x for x in objs_unique.difference(set(self.monitor_config.get('log_objects')))]}")
 
                 # send web-client updates using the Channels-Redis websocket
                 channel: LogChannel = ChannelFactory().get(self.channel_url)
@@ -114,12 +111,16 @@ class LogService(ServiceAbstract, ABC):
                 # reset variables for next observation
                 log_interval_detections.clear()
                 capture_count = 0
-                timer.reset()
+                timer.reset(start_time=timer.start_time+self.log_interval)
+                continue
 
-            self.condition.acquire()
-            self.condition.wait(1)
-            self.condition.release()
-            # time.sleep(.5)
+            # only sleep if there wasn't a message and we are reasonable
+            # certain there aren't additional messages waiting to be polled
+            if msg is None:
+                self.condition.acquire()
+                self.condition.wait(1)
+                self.condition.release()
+                # time.sleep(.5)
 
         self.consumer.close()
         logger.info(f"[{self.monitor_name}] Stopped log service.")
