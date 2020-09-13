@@ -70,7 +70,7 @@ class LogService(ServiceAbstract, ABC):
 
             msg_key, msg_value = key_msg
 
-            logger.info(f"Logger is handling message for {self.monitor_name}:")
+            logger.info(f"Log Service is handling message for {self.monitor_name}:")
             logger.info(f"\tKEY: {msg_key}")
             logger.info(f"\tMSG: {msg_value}")
 
@@ -98,6 +98,7 @@ class LogService(ServiceAbstract, ABC):
                              monitor_name=self.monitor_name,
                              count_dict=interval_counts_dict)
                 logger.info(f"Monitor: {self.monitor_name} Logged Detections: {interval_counts_dict}")
+                logger.info(f"Monitor: {self.monitor_name} Did not log: {objs_unique.difference(set(self.monitor_config.get('log_objects')))}")
 
                 # send web-client updates using the Channels-Redis websocket
                 channel: LogChannel = ChannelFactory().get(self.channel_url)

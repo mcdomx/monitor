@@ -7,28 +7,28 @@
     {% csrf_token %}
 
     <script type="text/javascript">
-        function update_configsocket(monitor_name) {
+        {#function update_configsocket(monitor_name) {#}
             {# A socket is created that will be used to capture messages from #}
             {# the backend. When updates are received the web page is updated #}
             {# with the respective log information. #}
-
-            const objsel_socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/')
-
+        {##}
+        {#    const objsel_socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/')#}
+        {##}
             {# Receive Update #}
-            objsel_socket.onmessage = async function(e) {
-                console.log("The obj selection socket got a message")
-                await set_selections('{{ monitor_name }}')
-            }
+        {#    objsel_socket.onmessage = async function(e) {#}
+        {#        console.log("The obj selection socket got a message")#}
+        {#        await set_selections('{{ monitor_name }}')#}
+        {#    }#}
+        {##}
+        {#    objsel_socket.onclose = function(e) {#}
+        {#        console.log("config_change socket closed!")#}
+        {#    }#}
+        {##}
+        {#    objsel_socket.onopen = function(e) {#}
+        {#        console.log("config_change socket opened!")#}
+        {#    }#}
+        {##}
 
-            objsel_socket.onclose = function(e) {
-                console.log("config_change socket closed!")
-            }
-
-            objsel_socket.onopen = function(e) {
-                console.log("config_change socket opened!")
-            }
-
-        }
 
 
         function toggle_box(elemid) {

@@ -112,9 +112,6 @@ class DetectorMachineAbstract(ServiceAbstract):
             # publish the data to kafka topic
             try:
                 self.producer.poll(0)
-                # prepare data for serialization
-                detections = [d.replace(' ', '_') for d in detections]
-
                 self.producer.produce(topic=self.monitor_name,
                                       key='detector_detection',
                                       value=json.JSONEncoder().encode(detections),

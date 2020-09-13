@@ -134,10 +134,13 @@ class MonitorFactory:
 
         def toggle_service(self, monitor_name: str, service: str):
             """
-
-            :param monitor_name:
-            :param service:
-            :return:
+            Toggling a service requires a parameter value to be updated as well as an action to be executed.
+            The status of the service is updated and the service needs to be turned on or off.  This function
+            will use set_value() to update the argument value and additionally send a message that will
+            trigger the monitor service to turn the service on or off.
+            :param monitor_name:  Name of monitor that has the service which should be toggled.
+            :param service: The service to toggle ('log', 'notification', 'chart')
+            :return: The parameter field name and the new value as a tuple
             """
             services = {'log': 'logging_on',
                         'notification': 'notifications_on',
@@ -150,11 +153,15 @@ class MonitorFactory:
 
             field = services.get(service)
 
-            # first, change the monitor record
+            # change the monitor record by flipped boolean
             monitor: Monitor = Monitor.objects.get(pk=monitor_name)
-            new_val = self.set_value(monitor_name, field, not getattr(monitor, field))
+            new_val = not getattr(monitor, field)
+            rv = self.set_value(monitor_name, field, new_val)
 
-            # prepare data for serialization
+            # a config_change message will be published when set_value is called
+            # but we also send a toggle_service message since toggling a service
+            # not only changes a monitor value, but also drives an action.
+            # The monitor_service is the only class that is listening for this
             key = 'toggle_service'
             msg = {
                 'message': f"toggle '{service}' for '{monitor_name}'",
@@ -162,9 +169,11 @@ class MonitorFactory:
                 'kwargs': {'field': field, 'value': new_val}
             }
 
-            self._publish_message(monitor_name, key, msg)
+            # no need to publish to the front-end - the config_change will publish the
+            # argument's new value to the front-end
+            self._publish_message(monitor_name, key, msg, channel=False)
 
-            return monitor.set_value(field, new_val)
+            return rv
 
         def set_value(self, monitor_name: str, field: str, value):
             """
@@ -185,8 +194,6 @@ class MonitorFactory:
             rv = monitor.set_value(field, value)
 
             # create message
-
-            # prepare data for serialization
             key = 'config_change'
             msg = {
                 'message': f'configuration change for {monitor_name}',
@@ -198,32 +205,32 @@ class MonitorFactory:
 
             return rv
 
-        def _publish_message(self, monitor_name, key, message):
+        def _publish_message(self, monitor_name, key, message, kafka=True, channel=True):
 
-            # Update backend using Kafka
-            # --------------------------
-            self.producer.poll(0)
-            self.producer.produce(topic=monitor_name,
-                                  key=key,
-                                  value=json.JSONEncoder().encode(message),
-                                  callback=self.delivery_report,
-                                  )
-            self.producer.flush()
-            # --------------------------
+            if kafka:
+                # Update backend using Kafka
+                # --------------------------
+                self.producer.poll(0)
+                self.producer.produce(topic=monitor_name,
+                                      key=key,
+                                      value=json.JSONEncoder().encode(message),
+                                      callback=self.delivery_report,
+                                      )
+                self.producer.flush()
+                # --------------------------
 
-            # Update Front-End using Channels
-            # -------------------------------
-            channel:  WebsocketConsumer = ChannelFactory().get(f"/ws/traffic_monitor/{key}/{monitor_name}/")
-            # only update the channel if a channel has been created (i.e. - a front-end is using it)
             if channel:
-                print(">>>>>>I am sending to a channel")
-                # send message to front-end
-                channel.send(json.JSONEncoder().encode(message))
-            else:
-                logger.info(f">>>>> No channel: /ws/traffic_monitor/{key}/{monitor_name}/")
-            # -------------------------------
-
-            print(f"Factory produced message: {monitor_name} {key}")
+                # Update Front-End using Channels
+                # -------------------------------
+                channel:  WebsocketConsumer = ChannelFactory().get(f"/ws/traffic_monitor/{key}/{monitor_name}/")
+                # only update the channel if a channel has been created (i.e. - a front-end is using it)
+                if channel:
+                    logger.info(f"Monitor_Factory sending message to a channel: {monitor_name} {key}")
+                    # send message to front-end
+                    channel.send(json.JSONEncoder().encode(message))
+                else:
+                    logger.info(f">>>>> Not a channel channel: /ws/traffic_monitor/{key}/{monitor_name}/")
+                # -------------------------------
 
         @staticmethod
         def get_monitor(monitor_name: str) -> dict:

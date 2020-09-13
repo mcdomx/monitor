@@ -150,6 +150,7 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {'verbose': {
+        '()': 'monitor.settings.LogColorFormatter',
         'format': '{levelname} {asctime} ({module}): {message}',
         'datefmt': '%Y-%m-%d %H:%M:%S',
         'style': '{', },
@@ -205,3 +206,34 @@ LOGGING = {
                          'level': 'INFO', },
                 },
 }
+
+
+from django.core.management.color import color_style, Style
+
+
+class LogColorFormatter(logging.Formatter):
+    def __init__(self, *args, **kwargs):
+        self.style: Style = color_style()
+        super().__init__(*args, **kwargs)
+
+    def format(self, record):
+        msg = record.msg
+        level_name = getattr(record, 'levelname', None)
+
+        # NOTICE(red), SUCCESS(green), WARNING(yellow), ERROR(red)
+        if level_name:
+            if level_name == 'INFO':
+                msg = self.style.SUCCESS(msg)
+            elif level_name == 'ERROR':
+                msg = self.style.ERROR(msg)
+            else:
+                msg = self.style.NOTICE(msg)
+
+        if self.uses_server_time() and not hasattr(record, 'server_time'):
+            record.server_time = self.formatTime(record, self.datefmt)
+
+        record.msg = msg
+        return super().format(record)
+
+    def uses_server_time(self):
+        return self._fmt.find('{server_time}') >= 0

@@ -20,8 +20,8 @@ from traffic_monitor.services.videodetection_service import VideoDetectionServic
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.notification_service import NotificationService
 from traffic_monitor.services.chart_service import ChartService
-from traffic_monitor.websocket_channels import ServiceToggle
-from traffic_monitor.websocket_channels_factory import ChannelFactory
+# from traffic_monitor.websocket_channels import ServiceToggle
+# from traffic_monitor.websocket_channels_factory import ChannelFactory
 
 BUFFER_SIZE = 512
 
@@ -245,7 +245,7 @@ class MonitorService(threading.Thread):
 
         # If a config_change message is received, get each service's
         # condition and notify so that the service's run loop
-        # is interrupted and the message is checked
+        # is interrupted and the kafka message is checked by the service's abstract class
         if msg_key == 'config_change':
             for s_dict in self.active_services.values():
                 c: threading.Condition = s_dict.get('condition')
@@ -254,6 +254,10 @@ class MonitorService(threading.Thread):
                     c.notify()
                     c.release()
 
+        # toggling a service triggers a config_change, but also requires and action
+        # to be fulfilled, this is why the monitor_factory will also send a toggle_service
+        # message which contains the function_name and kwargs to execute in order
+        # to turn the service on or off in addition to the changed value of the configuration.
         if msg_key == 'toggle_service':
 
             msg_value = json.JSONDecoder().decode(msg.value().decode('utf-8'))
@@ -276,14 +280,15 @@ class MonitorService(threading.Thread):
                 else:
                     f()
 
-                # Update Front-End using Channels
-                # -------------------------------
-                channel: ServiceToggle = ChannelFactory().get(f"/ws/traffic_monitor/{msg_key}/{self.monitor_name}/")
-                # only update the channel if a channel has been created (i.e. - a front-end is using it)
-                if channel:
-                    # send message to front-end
-                    channel.update(json.JSONEncoder().encode(msg_value))
-                # -------------------------------
+                # no need to update front-end - this is handled by the monitor_factory
+                # # Update Front-End using Channels
+                # # -------------------------------
+                # channel: ServiceToggle = ChannelFactory().get(f"/ws/traffic_monitor/{msg_key}/{self.monitor_name}/")
+                # # only update the channel if a channel has been created (i.e. - a front-end is using it)
+                # if channel:
+                #     # send message to front-end
+                #     channel.update(json.JSONEncoder().encode(msg_value))
+                # # -------------------------------
 
             except AttributeError as e:
                 logger.error(e)
@@ -304,6 +309,7 @@ class MonitorService(threading.Thread):
             # msg = msg.value().decode('utf-8')
 
             if msg is None:
+                time.sleep(1)
                 continue
             if msg.error():
                 logger.info(f"[{self.__class__.__name__}] Consumer error: {msg.error()}")
@@ -311,7 +317,7 @@ class MonitorService(threading.Thread):
 
             self.handle_message(msg)
 
-            time.sleep(1)
+            # time.sleep(1)
 
         self.consumer.close()
         logger.info("MONITOR SERVICE HAS STOPPED!")

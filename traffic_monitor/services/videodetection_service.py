@@ -147,7 +147,8 @@ class VideoDetectionService(ServiceAbstract, ABC):
                     self.detector = DetectorMachineFactory().get_detector_machine(monitor_config=self.monitor_config,
                                                                                   input_image_queue=self.input_image_queue,
                                                                                   output_image_queue=self.output_image_queue,
-                                                                                  output_data_topic=self.output_data_topic)
+                                                                                  output_data_topic=self.output_data_topic,
+                                                                                  class_colors=self.class_colors)
                     self.detector.start()
 
                 # if detector is ready, perform frame detection

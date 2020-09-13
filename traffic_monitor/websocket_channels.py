@@ -36,18 +36,18 @@ class ConfigChange(WebsocketConsumer):
         self.send(text_data=json.dumps(text_data))
 
 
-class ServiceToggle(WebsocketConsumer):
-    def connect(self):
-        ChannelFactory().add(url=self.scope.get('path'), consumer=self)
-        logger.info("STARTING SERVICE TOGGLE CHANNEL")
-        self.accept()
-
-    def disconnect(self, code):
-        ChannelFactory().remove(self.scope.get('path'))
-        logger.info("Service Toggle Channel Closed!")
-
-    def update(self, text_data=None, bytes_data=None, close=False):
-        self.send(text_data=json.dumps(text_data))
+# class ServiceToggle(WebsocketConsumer):
+#     def connect(self):
+#         ChannelFactory().add(url=self.scope.get('path'), consumer=self)
+#         logger.info("STARTING SERVICE TOGGLE CHANNEL")
+#         self.accept()
+#
+#     def disconnect(self, code):
+#         ChannelFactory().remove(self.scope.get('path'))
+#         logger.info("Service Toggle Channel Closed!")
+#
+#     def update(self, text_data=None, bytes_data=None, close=False):
+#         self.send(text_data=json.dumps(text_data))
 
 
 class LogChannel(WebsocketConsumer):

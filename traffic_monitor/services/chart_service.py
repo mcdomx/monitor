@@ -5,11 +5,13 @@ from datetime import datetime, timezone, timedelta
 import logging
 from abc import ABC
 
+# import numpy as np
 import pandas as pd
 from bokeh.embed import json_item
 from bokeh.models import HoverTool, DatetimeTickFormatter
 from bokeh.plotting import figure
-from bokeh.palettes import brewer
+# from bokeh.palettes import brewer
+from bokeh.colors import RGB
 from pygam import LinearGAM, s
 from django.core.serializers.json import DjangoJSONEncoder
 
@@ -37,20 +39,25 @@ class ChartService(ServiceAbstract, ABC):
         self.charting_interval: int = 60
         self.channel_url = f"/ws/traffic_monitor/chart/{monitor_config.get('monitor_name')}/"  # websocket channel address
 
+        # class colors must be integer RGB values for bokeh charting
+        # self.class_colors = {cls: np.uint8(color) for cls, color in self.class_colors.items()}
+
     def handle_message(self, msg):
         """
-        If the configuration changes, we should redraw the chart
+        If the configuration changes, we should redraw the chart by sending
+        a message through the ChartChannel.
         :param msg:
         :return:
         """
-        msg_key = msg.key().decode('utf-8')
-        if msg_key == 'config_change':
-            channel: ChartChannel = ChannelFactory().get(self.channel_url)
-            if channel:
-                msg = self.get_chart(monitor_name=self.monitor_name)
-                channel.send(text_data=DjangoJSONEncoder().encode(msg))
-
-                return msg_key, msg
+        pass
+        # msg_key = msg.key().decode('utf-8')
+        # if msg_key == 'config_change':
+        #     channel: ChartChannel = ChannelFactory().get(self.channel_url)
+        #     if channel:
+        #         msg = self.get_chart(monitor_name=self.monitor_name)
+        #         channel.send(text_data=DjangoJSONEncoder().encode(msg))
+        #
+        #         return msg_key, msg
 
     def _get_timedelta(self) -> (timedelta, str):
         """
@@ -90,7 +97,7 @@ class ChartService(ServiceAbstract, ABC):
         time_ago, time_delta_description = self._get_timedelta()
         rs = LogEntry.objects.filter(monitor__name=monitor_name,
                                      time_stamp__gt=time_ago,
-                                     class_name__in=self.monitor_config.get('charting_objects')[:11]).values('time_stamp', 'class_name', 'count')
+                                     class_name__in=self.monitor_config.get('charting_objects')).values('time_stamp', 'class_name', 'count')
         df = pd.DataFrame(rs)
         df.rename(columns={'count': 'counts'}, inplace=True)
 
@@ -98,7 +105,7 @@ class ChartService(ServiceAbstract, ABC):
         df = df.set_index('time_stamp').tz_convert(self.monitor_config.get('charting_time_zone')).tz_localize(None)
 
         # get items in the charted_objects list
-        c_obj_len = min(len(self.monitor_config.get('charting_objects')), 11)
+        # c_obj_len = min(len(self.monitor_config.get('charting_objects')), 11)
 
         if len(df) == 0:
             return 'No data for time period.  Wait for detections ... '
@@ -137,8 +144,8 @@ class ChartService(ServiceAbstract, ABC):
         # create plot lines for each class
         u_class_names = sorted(df.class_name.unique())
         df = df[df.class_name.isin(u_class_names)]
-        colors = brewer['Spectral'][c_obj_len]
-        df['fill_color'] = [colors[u_class_names.index(c)] for c in df.class_name]
+        # colors = brewer['Spectral'][c_obj_len]
+        # df['fill_color'] = [colors[u_class_names.index(c)] for c in df.class_name]
 
         # Multiple Lines
         for i, class_name in enumerate(u_class_names):
@@ -149,9 +156,10 @@ class ChartService(ServiceAbstract, ABC):
             _df['smoothed_counts'] = LinearGAM(s(0, lam=1)).fit(_x, _df.counts).predict(_x)
 
             fig.line(x='time_stamp', y='smoothed_counts', source=_df,
-                     legend_label=class_name, color=colors[i], line_width=3)
+                     legend_label=class_name, color=RGB(*self.class_colors.get(class_name)), line_width=3)
             fig.scatter(x='time_stamp', y='counts', source=_df,
-                        color=colors[i], size=3, alpha=.5, line_color='black', line_width=.3)
+                        fill_color=RGB(*self.class_colors.get(class_name)), size=3, alpha=.5, line_color='black', line_width=.3)
+            #colors[i]
 
         #     fig.add_layout(legend)
         fig.legend.location = "top_left"
@@ -166,43 +174,30 @@ class ChartService(ServiceAbstract, ABC):
 
         logger.info("Starting chart service ...")
         while self.running:
-
-            # config changes are handled by abstract class
-            msg = self.poll_kafka(0)
-            # if msg is None:
-            #     continue
-
-            # key_msg = self.handle_message(msg)
-            # if key_msg is None:
-            #     continue
-
             try:
+                # let config changes be handled by abstract class
+                # no need to locally handle message
+                _ = self.poll_kafka(0)
+
                 # send web-client updates using the Channels-Redis websocket
                 channel: ChartChannel = ChannelFactory().get(self.channel_url)
 
                 # only use the channel if a channel has been created
                 if channel:
                     # this sends message to ay front end that has created a WebSocket
-                    # with the respective channel_url address
-                    # time_stamp_type, time_stamp = msg.timestamp()
-                    # msg_key, msg_value = key_msg
-                    # msg = {'time_stamp': time_stamp,
-                    #        'monitor_name': self.monitor_name,
-                    #        'key': msg_key,
-                    #        'chart_data': msg_value}
-                    msg = self.get_chart(monitor_name=self.monitor_name)
-                    channel.send(text_data=DjangoJSONEncoder().encode(msg))
-                    # channel.send(text_data=msg)
+                    # The message is the bokeh chart object in json format
+                    json_chart = self.get_chart(monitor_name=self.monitor_name)
+                    channel.send(text_data=DjangoJSONEncoder().encode(json_chart))
+
             except Exception as e:
-                logger.info("Unknown exception triggered in chart_service.py run() loop.")
-                logger.info(e)
+                logger.error("Unknown exception triggered in chart_service.py run() loop.")
+                logger.error(e)
                 continue
 
             # enter a disruptable sleep
             self.condition.acquire()
             self.condition.wait(self.charting_interval)
             self.condition.release()
-            # time.sleep(self.charting_interval)
 
         self.consumer.close()
         logger.info(f"[{self.monitor_name}] Stopped charting service.")
