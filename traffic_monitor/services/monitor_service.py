@@ -131,14 +131,10 @@ class MonitorService(threading.Thread):
         classes = self.get_trained_objects(self.monitor_config.get('detector_name'))
 
         # for each class, create a random color
-        colors = np.random.uniform(0, 255, size=(len(classes), 3))
+        colors = np.random.random_integers(0, 255, size=(len(classes), 3))
 
-        # create a dictionary with {<class>, <[r,b,b]>}
-        rv = {}
-        for cls, color in zip(classes, colors):
-            rv.update({cls: color})
-
-        return rv
+        # create a dictionary with {<class>, [r,g,b]}
+        return {cls: color for cls, color in zip(classes, colors)}
 
     def _on_revoke(self, consumer, partitions) -> (Consumer, list):
         if not self.running:

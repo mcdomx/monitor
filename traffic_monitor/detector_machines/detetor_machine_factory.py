@@ -69,3 +69,7 @@ class DetectorMachineFactory:
         def get_trained_objects(detector_name):
 
             return DetectorMachineFactory()._get_detector_class(detector_name).get_trained_objects()
+
+        # @staticmethod
+        # def get_class_colors(detector_name):
+        #     return DetectorMachineFactory()._get_detector_class(detector_name).get_class_colors()

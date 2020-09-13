@@ -36,13 +36,14 @@ class DetectorMachineCVlib(DetectorMachineAbstract):
                                          class_colors=class_colors)
         self.observers = []
         self.subject_name = 'detector_cvlib'
-        self.COLORS = [self.class_colors.get(o) for o in self.get_trained_objects()]
+        # note that colors in cvlib uses BGR not RGB colors
+        self.bgr_colors = np.float64([self.class_colors.get(o)[::-1] for o in populate_class_labels()])
 
     def detect(self, frame: np.array) -> (np.array, list):
-        # colors is a list of RGB values in a list ([[#r,#g,#b],[#r,#g,#b], ... ])
+        # colors is a list of BGR values in a list ([[#b,#g,#r],[#b,#g,#r], ... ])
         try:
             bbox, labels, conf = detect_common_objects(frame, confidence=.25, model=self.detector_model)
-            frame = draw_bbox(img=frame, bbox=bbox, labels=labels, confidence=conf, write_conf=False, colors=self.COLORS)
+            frame = draw_bbox(img=frame, bbox=bbox, labels=labels, confidence=conf, write_conf=False, colors=self.bgr_colors)
             return frame, labels
         except Exception as e:
             logger.info(f"cvlib Exception: {e}")
