@@ -74,7 +74,7 @@
             menu_header1.innerText = "Time Horizon:";
             menulisting.appendChild(menu_header1);
 
-            const horizons = [{'desc':'1 Hour', 'value':'1'}, {'desc':'6 Hours', 'value':'6'} , {'desc':'12 Hours', 'value':'12'}, {'desc':'1 Day', 'value':'day'}, {'desc':'1 Week', 'value':'week'}, {'desc':'1 Month', 'value':'month'}]
+            let horizons = [{'desc':'1 Hour', 'value':'1'}, {'desc':'6 Hours', 'value':'6'} , {'desc':'12 Hours', 'value':'12'}, {'desc':'1 Day', 'value':'day'}, {'desc':'1 Week', 'value':'week'}, {'desc':'1 Month', 'value':'month'}]
             for (let t in horizons) {
                 let elem = document.createElement('a');
                 elem.className = "dropdown-item py-0";
@@ -92,8 +92,8 @@
             menu_header2.innerText = "Time Zone:";
             menulisting.appendChild(menu_header2);
 
-            const monitor_config = await get_monitor_config(monitor_name);
-            const zones = [{'desc':'UTC', 'value':'UTC'}, {'desc':'US/Eastern', 'value':'US/Eastern'}, {'desc':monitor_config['time_zone'] + '(source)', 'value': monitor_config['time_zone']}]
+            let monitor_config = await get_monitor_config(monitor_name);
+            let zones = [{'desc':'UTC', 'value':'UTC'}, {'desc':'US/Eastern', 'value':'US/Eastern'}, {'desc':monitor_config['time_zone'] + '(source)', 'value': monitor_config['time_zone']}]
             for (let z in zones) {
                 if (zones.hasOwnProperty(z)) {
                     let elem = document.createElement('a');

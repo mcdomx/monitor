@@ -7,12 +7,15 @@
 
     <script type="text/javascript">
 
-        function update_logsocket(monitor_name) {
+        async function update_logsocket(monitor_name) {
             {# A socket is created that will be used to capture messages from #}
             {# the backend. When updates are received the web page is updated #}
             {# with the respective log information. #}
 
             const socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/log/' + monitor_name + '/')
+
+            let monitor_config = await get_monitor_config("{{ monitor_name }}")
+            let class_colors = monitor_config['class_colors']
 
             {# Clear anything already in the detections log #}
             let logtable = document.getElementById("logtable");
@@ -29,6 +32,9 @@
 
                 for (const [k, v] of Object.entries(data)){
                     console.log(k + ': ' + v);
+                    let color = class_colors[k];
+                    console.log(class_colors);
+                    console.log(class_colors[k]);
                     let logentry = document.createElement("tr");
 
                     let c1 = document.createElement("td");
@@ -42,7 +48,8 @@
 
                     let c2 = document.createElement("td");
                     c2.className = 'py-1'
-                    c2.innerHTML = k + ': ' + v;
+                    c2.innerHTML = "<span style='height:10px; width:10px; border-radius:50%; background-color: rgb(" + color[0] + "," + color[1] + "," + color[2] +"); display: inline-block'></span>&nbsp" + k + ": " + v;
+                    {#c2.innerHTML = k + ': ' + v;#}
                     logentry.appendChild(c2);
 
                     logtable.insertBefore(logentry, logtable.childNodes[0]);
