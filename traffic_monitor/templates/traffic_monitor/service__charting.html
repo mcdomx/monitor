@@ -64,6 +64,11 @@
             fetch(url).then(() => force_chart_update(monitor_name));
         }
 
+        function toggle_chart_object(monitor_name, obj) {
+            const url = 'toggle_chart_objects?monitor_name=' + monitor_name + '&objects=' + obj;
+            fetch(url).then(() => force_chart_update(monitor_name));
+        }
+
         async function setup_dropdown_menu(monitor_name) {
             {# Update the parent's 'dropdown-menu' tag with <a> links #}
             let menulisting = document.getElementById('{{ section_id }}').getElementsByClassName('dropdown-menu')[0]
@@ -87,6 +92,10 @@
                 menulisting.appendChild(elem);
             }
 
+            let div = document.createElement('div');
+            div.className = "dropdown-divider";
+            menulisting.appendChild(div)
+
             let menu_header2 = document.createElement('p');
             menu_header2.className = "dropdown-header";
             menu_header2.innerText = "Time Zone:";
@@ -107,6 +116,33 @@
                     menulisting.appendChild(elem);
                 }
             }
+
+            menulisting.appendChild(div)
+            let menu_header3 = document.createElement('p');
+            menu_header3.className = "dropdown-header";
+            menu_header3.innerText = "Display:";
+            menulisting.appendChild(menu_header3);
+
+            let url = 'get_all_log_objects?monitor_name=' + monitor_name;
+            let all_logged_objects = await fetch(url).then(data => {
+                                                                        return data.json();
+                                                                    })
+            console.log(all_logged_objects);
+
+            for (let lo in all_logged_objects) {
+                if (all_logged_objects.hasOwnProperty(lo)) {
+                    let elem = document.createElement('a');
+                    elem.className = "dropdown-item py-0";
+                    elem.setAttribute('role', "presentation");
+                    elem.href = '#';
+                    elem.onclick = () => {
+                        toggle_chart_object(monitor_name, all_logged_objects[lo])
+                    };
+                    elem.innerText = all_logged_objects[lo];
+                    menulisting.appendChild(elem);
+                }
+            }
+
 
         }
 

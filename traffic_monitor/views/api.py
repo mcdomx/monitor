@@ -236,6 +236,19 @@ def get_log_objects(request) -> JsonResponse:
         return JsonResponse({'error': e.args}, safe=False)
 
 
+def get_all_log_objects(request) -> JsonResponse:
+    try:
+        kwargs = _parse_args(request, 'monitor_name')
+        monitor_name = kwargs.get('monitor_name')
+
+        objects = MonitorServiceManager().get_objects(monitor_name=monitor_name, _type='all_log')
+        return JsonResponse(objects, safe=False)
+    except Exception as e:
+        logger.error(e)
+        return JsonResponse({'error': e.args}, safe=False)
+
+
+
 def get_notification_objects(request) -> JsonResponse:
     try:
         kwargs = _parse_args(request, 'monitor_name')

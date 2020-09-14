@@ -26,6 +26,7 @@ urlpatterns = [
 
     re_path(r"get_trained_objects[\/|\?].*", api.get_trained_objects, name='get_trained_objects'),
     re_path(r"get_log_objects[\/|\?].*", api.get_log_objects, name='get_log_objects'),
+    re_path(r"get_all_log_objects[\/|\?].*", api.get_all_log_objects, name='get_all_log_objects'),
     re_path(r"get_notification_objects[\/|\?].*", api.get_notification_objects, name='get_notified_objects'),
 
     re_path(r"toggle_log_objects[\/|\?].*", api.toggle_log_objects, name='toggle_log_objects'),

@@ -82,6 +82,9 @@ class Monitor(models.Model):
     def get_objects(self, _type: str) -> list:
         if _type == 'log':
             return sorted(self.log_objects)
+        elif _type == 'all_log':
+            rs = self.monitor_log.values_list('class_name').distinct()
+            return sorted([r[0] for r in rs])
         elif _type == 'notification':
             return sorted(self.notification_objects)
         else:
