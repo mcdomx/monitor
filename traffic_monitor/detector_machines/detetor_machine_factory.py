@@ -25,8 +25,7 @@ class DetectorMachineFactory:
         def get_detector_machine(monitor_config: dict,
                                  input_image_queue: queue.Queue,
                                  output_image_queue: queue.Queue,
-                                 output_data_topic: str,
-                                 class_colors: dict = None) -> DetectorMachineAbstract:
+                                 output_data_topic: str) -> DetectorMachineAbstract:
             """
             Determine the implemented detector class based on the detector name.
             Update this function to add new detection models which implement DetectorAbstract.
@@ -45,8 +44,7 @@ class DetectorMachineFactory:
             return detector_class(monitor_config=monitor_config,
                                   input_image_queue=input_image_queue,
                                   output_image_queue=output_image_queue,
-                                  output_data_topic=output_data_topic,
-                                  class_colors=class_colors)
+                                  output_data_topic=output_data_topic)
 
         @staticmethod
         def _get_detector_class(detector_name) -> DetectorMachineAbstract.__class__:

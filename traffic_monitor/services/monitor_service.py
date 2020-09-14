@@ -78,7 +78,7 @@ class MonitorService(threading.Thread):
         self.output_data_topic: str = self.monitor_name
         self.name = f"{self.monitor_name}_thread"
         self.active_services = {}
-        self.class_colors: dict = self._set_class_colors()
+        self.active_services = {}
 
         # STATES
         self.running = False
@@ -126,15 +126,21 @@ class MonitorService(threading.Thread):
 
         return f"{str_rv}"
 
-    def _set_class_colors(self) -> dict:
-        # get the classes that the detector supports
-        classes = self.get_trained_objects(self.monitor_config.get('detector_name'))
+    def get_config(self) -> dict:
+        return self.monitor_config
 
-        # for each class, create a random color
-        colors = np.random.random_integers(0, 255, size=(len(classes), 3))
+    # def get_class_colors(self) -> dict:
+    #     return self.class_colors
 
-        # create a dictionary with {<class>, [r,g,b]}
-        return {cls: color for cls, color in zip(classes, colors)}
+    # def _set_class_colors(self) -> dict:
+    #     # get the classes that the detector supports
+    #     classes = self.get_trained_objects(self.monitor_config.get('detector_name'))
+    #
+    #     # for each class, create a random color
+    #     colors = np.random.random_integers(0, 255, size=(len(classes), 3))
+    #
+    #     # create a dictionary with {<class>, [r,g,b]}
+    #     return {cls: color for cls, color in zip(classes, colors)}
 
     def _on_revoke(self, consumer, partitions) -> (Consumer, list):
         if not self.running:
@@ -159,9 +165,10 @@ class MonitorService(threading.Thread):
         service: dict = self.active_services.get(service_class.__name__)
 
         if service is None:
-            s: ServiceAbstract = service_class(monitor_config=self.monitor_config,
-                                               output_data_topic=self.output_data_topic,
-                                               class_colors=self.class_colors)
+            s: ServiceAbstract = service_class(
+                                                monitor_config=self.monitor_config,
+                                                output_data_topic=self.output_data_topic,
+                                               )
             s.start()
             self.active_services.update({s.__class__.__name__: {'object': s, 'condition': s.get_condition()}})
 

@@ -27,6 +27,7 @@ class Monitor(models.Model):
     charting_time_horizon = models.CharField(default='6', max_length=8)
     charting_objects = models.JSONField(default=list)
     charting_time_zone = models.CharField(max_length=32)
+    class_colors = models.JSONField(default=dict)
 
     def __str__(self):
         # this is set to self.name so that the admin page shows the monitor name
@@ -56,6 +57,27 @@ class Monitor(models.Model):
         kwargs.update({'detector': detector})
         kwargs.update({'feed': feed})
         return Monitor.objects.create(**kwargs)
+
+    @staticmethod
+    def update_monitor(kwargs):
+
+        monitor_name = kwargs.get('monitor_name')
+        kwargs.pop('monitor_name')
+
+        if 'detector_name' in kwargs.keys() or 'detector_model' in kwargs.keys():
+            detector_name = kwargs.get('detector_name', Monitor.objects.get(pk=monitor_name).detector.name)
+            detector_model = kwargs.get('detector_model', Monitor.objects.get(pk=monitor_name).detector.model)
+            detector = Detector.objects.get(name=detector_name, model=detector_model)
+            if 'detector_name' in kwargs.keys():
+                kwargs.pop('detector_name')
+            if 'detector_model' in kwargs.keys():
+                kwargs.pop('detector_model')
+            kwargs.update({'detector': detector})
+
+        if Monitor.objects.filter(name=monitor_name).update(**kwargs):
+            return Monitor.objects.get(name=monitor_name)
+        else:
+            raise Exception(f"Unable to save monitor update: {monitor_name}")
 
     def get_objects(self, _type: str) -> list:
         if _type == 'log':

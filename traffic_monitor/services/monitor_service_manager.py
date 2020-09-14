@@ -1,4 +1,6 @@
 import logging
+import numpy as np
+import json
 
 from traffic_monitor.models.monitor_factory import MonitorFactory
 from traffic_monitor.services.monitor_service import MonitorService
@@ -123,12 +125,15 @@ class MonitorServiceManager:
             monitors = MonitorFactory().all_monitors()
             rv = []
             for m in monitors:
-                rv.append(self.get_monitor(m.get('name')))
+                rv_m = MonitorFactory().get_monitor(monitor_name=m.get('name'))
+                rv_m.update({'is_active': self.is_active(monitor_name=m.get('name'))})
+                rv.append(rv_m)
             return rv
 
-        def get_monitor(self, name: str) -> dict:
-            rv = MonitorFactory().get_monitor(monitor_name=name)
-            rv.update({'is_active': self.is_active(monitor_name=name)})
+        def get_monitor(self, monitor_name: str) -> MonitorService:
+            rv = self.active_monitors.get(monitor_name)
+            if rv is None:
+                raise Exception(f"'{monitor_name}' is not an active monitor")
             return rv
 
         @staticmethod
@@ -143,11 +148,21 @@ class MonitorServiceManager:
         def all_detectors() -> list:
             return MonitorFactory().all_detectors()
 
-
-
         @staticmethod
         def create_feed(cam: str, time_zone: str, description: str) -> dict:
             return MonitorFactory().create_feed(cam, time_zone, description)
+
+        @staticmethod
+        def make_class_colors(detector_name) -> dict:
+            # get the classes that the detector supports
+            classes = MonitorServiceManager().get_trained_objects(detector_name=detector_name)
+
+            # for each class, create a random color
+            colors = [list(c) for c in (np.random.randint(0, 255, size=(len(classes), 3), dtype='uint8'))]
+            colors = [[int(v) for v in c] for c in colors]
+
+            # create a dictionary with {<class>, [r,g,b]}
+            return {cls: color for cls, color in zip(classes, colors)}
 
         @staticmethod
         def create_monitor(**kwargs) -> dict:
@@ -195,6 +210,10 @@ class MonitorServiceManager:
                     objects=kwargs.get('charting_objects'), detector_name=kwargs.get('detector_name'))
                 kwargs.update({'charting_objects': charting_objects})
 
+            # Create class colors
+            class_colors = MonitorServiceManager().make_class_colors(kwargs.get('detector_name'))
+            kwargs.update({'class_colors': class_colors})
+
             rv = MonitorFactory().create(**kwargs)
 
             # create return messages that identify untrained items that were included in lists
@@ -214,6 +233,19 @@ class MonitorServiceManager:
                 rv = {**message, **rv}
 
             return rv
+
+        @staticmethod
+        def update_monitor(kwargs) -> dict:
+            monitor_name = kwargs.get('monitor_name')
+
+            monitor_config = MonitorServiceManager().get_monitor_configuration(monitor_name)
+            if monitor_config.get('class_colors') is None or len(monitor_config.get('class_colors')) == 0:
+                logger.info(f"Creating class colors for {monitor_name}")
+                kwargs.update(
+                    {"class_colors": MonitorServiceManager().make_class_colors(monitor_config.get('detector_name'))})
+            else:
+                logger.info(f"class colors already existed for {monitor_name}")
+            return MonitorFactory().update_monitor(kwargs)
 
         @staticmethod
         def get_trained_objects(monitor_name: str = None, detector_name: str = None) -> list:
@@ -322,5 +354,13 @@ class MonitorServiceManager:
         @staticmethod
         def get_monitor_configuration(name: str) -> dict:
             rv = MonitorFactory().get_monitor_configuration(name)
-            rv.update({'is_active': MonitorServiceManager().is_active(monitor_name=rv.get('monitor_name'))})
+
+            # if class_colors have not been assigned, assign them
+            if not len(rv.get('class_colors')):
+                MonitorFactory().set_value(monitor_name=name, field='class_colors', value=MonitorServiceManager().make_class_colors(rv.get('detector_name')))
+                rv = MonitorFactory().get_monitor_configuration(name)
+
+            is_active = MonitorServiceManager().is_active(monitor_name=rv.get('monitor_name'))
+            rv.update({'is_active': is_active})
+
             return rv

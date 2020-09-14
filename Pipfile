@@ -28,6 +28,7 @@ python-dotenv = "*"
 numpy = "*"
 confluent-kafka = "*"
 fastavro = "*"
+gunicorn = "*"
 
 [requires]
 python_version = "3.7"

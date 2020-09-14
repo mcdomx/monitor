@@ -20,6 +20,7 @@ import logging
 from abc import ABC
 import base64
 import io
+import json
 
 import numpy as np
 from PIL import Image
@@ -47,11 +48,10 @@ class VideoDetectionService(ServiceAbstract, ABC):
     def __init__(self,
                  monitor_config: dict,
                  output_data_topic: str,  # Kafka topic to produce data to
-                 class_colors: dict = None
                  ):
         """ Requires existing monitor.  1:1 relationship with a monitor but this is not
         enforced when creating the Monitor Service. """
-        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic, class_colors=class_colors)
+        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
         self.monitor_name: str = monitor_config.get('monitor_name')
         self.name = f"VideoDetectionService-{self.monitor_name}"
         self.input_image_queue: queue.Queue = queue.Queue(BUFFER_SIZE)
@@ -62,16 +62,19 @@ class VideoDetectionService(ServiceAbstract, ABC):
         self.show_full_stream = False
 
         # Create a detector
-        self.detector = DetectorMachineFactory().get_detector_machine(monitor_config=monitor_config,
+        # self.detector = DetectorMachineFactory().get_detector_machine(monitor_config=monitor_config,
+        #                                                               input_image_queue=self.input_image_queue,
+        #                                                               output_image_queue=self.output_image_queue,
+        #                                                               output_data_topic=self.output_data_topic)
+        self.detector = None
+        self._set_detector()
+
+
+    def _set_detector(self):
+        self.detector = DetectorMachineFactory().get_detector_machine(monitor_config=self.monitor_config,
                                                                       input_image_queue=self.input_image_queue,
                                                                       output_image_queue=self.output_image_queue,
-                                                                      output_data_topic=self.output_data_topic,
-                                                                      class_colors=self.class_colors)
-
-        # # This service does not use the consumer that is setup by the
-        # # serviceabstract class.  If we don't close it, Kafka will close
-        # # the group when it sees that a consumer is no longer consuming.
-        # self.consumer.close()
+                                                                      output_data_topic=self.output_data_topic)
 
     def __str__(self):
         rv = self.__dict__
@@ -130,7 +133,22 @@ class VideoDetectionService(ServiceAbstract, ABC):
 
             # keep the consumer alive by regular polling
             if timer.get() > 5:
-                _ = self.poll_kafka(0)
+                msg = self.poll_kafka(0)
+
+                # if the detector setting changed, we need to create and start a new detector
+                if msg is not None:
+                    key = msg.key().decode('utf-8')
+                    if key == 'config_change':
+                        udpate_kwargs = json.JSONDecoder().decode(msg.value().decode('utf-8')).get('kwargs')
+                        fields = [d.get('field') for d in udpate_kwargs]
+                        if 'detector_name' in fields or 'detector_model' in fields:
+                            # restart detector
+                            logger.info(f"Resetting detector with update configuration: {udpate_kwargs}")
+                            self.detector.stop()
+                            self.detector.join()
+                            self._set_detector()
+                            self.detector.start()
+
                 timer.reset()
 
             cap.grab()  # only read every other frame
@@ -144,11 +162,13 @@ class VideoDetectionService(ServiceAbstract, ABC):
                 if not self.detector.is_alive():
                     logger.info(
                         f"Restarting {self.monitor_config.get('detector_name')}:{self.monitor_config.get('detector_model')} for {self.monitor_name}")
-                    self.detector = DetectorMachineFactory().get_detector_machine(monitor_config=self.monitor_config,
-                                                                                  input_image_queue=self.input_image_queue,
-                                                                                  output_image_queue=self.output_image_queue,
-                                                                                  output_data_topic=self.output_data_topic,
-                                                                                  class_colors=self.class_colors)
+                    self._set_detector()
+                    # self.detector = DetectorMachineFactory().get_detector_machine(
+                    #                                                                 monitor_config=self.monitor_config,
+                    #                                                                 input_image_queue=self.input_image_queue,
+                    #                                                                 output_image_queue=self.output_image_queue,
+                    #                                                                 output_data_topic=self.output_data_topic,
+                    #                                                               )
                     self.detector.start()
 
                 # if detector is ready, perform frame detection

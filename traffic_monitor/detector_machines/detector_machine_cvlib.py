@@ -32,12 +32,11 @@ class DetectorMachineCVlib(DetectorMachineAbstract):
                                          monitor_config=monitor_config,
                                          input_image_queue=input_image_queue,
                                          output_image_queue=output_image_queue,
-                                         output_data_topic=output_data_topic,
-                                         class_colors=class_colors)
+                                         output_data_topic=output_data_topic)
         self.observers = []
         self.subject_name = 'detector_cvlib'
         # note that colors in cvlib uses BGR not RGB colors
-        self.bgr_colors = np.float64([self.class_colors.get(o)[::-1] for o in populate_class_labels()])
+        self.bgr_colors = np.float64([self.monitor_config.get('class_colors').get(o)[::-1] for o in populate_class_labels()])
 
     def detect(self, frame: np.array) -> (np.array, list):
         # colors is a list of BGR values in a list ([[#b,#g,#r],[#b,#g,#r], ... ])

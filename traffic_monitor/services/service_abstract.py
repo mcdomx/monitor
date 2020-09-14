@@ -23,7 +23,7 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
 
     """
 
-    def __init__(self, monitor_config, output_data_topic, class_colors: dict = None):
+    def __init__(self, monitor_config, output_data_topic):
         """
 
         :param monitor_config: The monitor's configuration dictionary which is retrieved via MonitorFactory().get_monitor_configuration(<monitor_name>).
@@ -36,7 +36,6 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
         # self.pulse = 1
         self.running = False
         self.condition = threading.Condition()  # used to interrupt sleep when config changes
-        self.class_colors = class_colors
 
         # Kafka settings
         self.consumer = Consumer({

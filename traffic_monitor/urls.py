@@ -20,6 +20,7 @@ urlpatterns = [
     path("get_detectors", api.get_detectors, name="get_detectors"),
 
     re_path(r"create_monitor[\/|\?].*", api.create_monitor, name='create_monitor'),
+    re_path(r"update_monitor[\/|\?].*", api.update_monitor, name='update_monitor'),
     path("get_monitors", api.get_monitors, name="get_monitors"),
     re_path(r"get_monitor[\/|\?].*", api.get_monitor, name='get_monitor'),
 
@@ -53,7 +54,7 @@ urlpatterns = [
     path("toggle_box", api.toggle_box, name="toggle_box"),
     path("toggle_all/<int:monitor_id>/<action>", api.toggle_all, name="toggle_all"),
 
-    # re_path(r"get_chart[\/|\?].*", api.get_chart, name="get_chart"),
+    re_path(r"get_chart[\/|\?].*", api.get_chart, name="get_chart"),
     # path("get_chart/<int:monitor_id>", api.get_chart, name="get_chart"),
 
 

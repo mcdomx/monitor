@@ -7,7 +7,7 @@
 
     <script type="text/javascript">
 
-        function update_chartsocket(monitor_name) {
+        function setup_chartsocket(monitor_name) {
             {# A socket is created that will be used to capture messages from #}
             {# the backend. When updates are received the web page is updated #}
             {# with the respective log information. #}
@@ -63,10 +63,34 @@
             }
         }
 
+        function force_chart_update(monitor_name) {
+            let url = 'get_chart?monitor_name=' + monitor_name;
+            let target_div = document.getElementById('plot-area')
+            fetch(url)
+                .then(data => {return data.json()})
+                .then(item => {
+                    console.log("forcing chart update ...");
+                    target_div.innerHTML = '';
+                    target_div.setAttribute('data-url', url);
+                    Bokeh.embed.embed_item(item, 'plot-area');
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        }
+
+        function setup_dropdown_menu(monitor_name) {
+            {# Update the parent's 'dropdown-menu' tag with <a> links #}
+            const menuelem = document.getElementById('{{ section_id }}').getElementsByClassName('dropdown-menu')[0]
+            menuelem.innerText = '';
+        }
+
         {#On load, setup the channel to get communications from the server #}
         document.addEventListener('DOMContentLoaded', () => {
             {#Update the table of elements to monitor and log#}
-            update_chartsocket('{{monitor_name}}');
+            setup_chartsocket('{{ monitor_name }}');
+            setup_dropdown_menu('{{ monitor_name }}');
+            force_chart_update('{{ monitor_name }}');
         })
 
     </script>

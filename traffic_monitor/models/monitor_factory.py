@@ -54,11 +54,13 @@ class MonitorFactory:
                    charting_on: bool = False,
                    charting_objects: list = None,
                    charting_time_horizon: str = '6',
-                   charting_time_zone: str = 'UTC') -> dict:
+                   charting_time_zone: str = 'UTC',
+                   class_colors: dict = None) -> dict:
             """
             Create a Monitor entry which is a combination of detector and feed
             as well as the logged and notified objects.
 
+            :param class_colors:
             :param charting_time_zone:
             :param charting_time_horizon:
             :param charting_objects:
@@ -91,9 +93,35 @@ class MonitorFactory:
                                                   charting_on=charting_on,
                                                   charting_objects=charting_objects,
                                                   charting_time_zone=charting_time_zone,
-                                                  charting_time_horizon=charting_time_horizon)
+                                                  charting_time_horizon=charting_time_horizon,
+                                                  class_colors=class_colors)
 
                 return monitor.__dict__
+
+        @staticmethod
+        def update_monitor(kwargs):
+
+            if len(kwargs) == 1:
+                return {'message': f"No records to update for '{kwargs.get('monitor_name')}'"}
+
+            # need to make a copy since kwargs is passed by reference
+            monitor: Monitor = Monitor.update_monitor(kwargs.copy())
+
+            # create message
+            for field, value in kwargs.items():
+
+                if field == 'monitor_name':
+                    continue
+                key = 'config_change'
+                msg = {
+                    'message': f'configuration change for {monitor.name}',
+                    'function': 'set_value',
+                    'kwargs': [{'field': field, 'value': value}]
+                }
+
+                MonitorFactory()._publish_message(monitor.name, key, msg)
+
+            return MonitorFactory().get_monitor_configuration(monitor.name)
 
         @staticmethod
         def get(monitor_name) -> dict:
@@ -222,7 +250,7 @@ class MonitorFactory:
             if channel:
                 # Update Front-End using Channels
                 # -------------------------------
-                channel:  WebsocketConsumer = ChannelFactory().get(f"/ws/traffic_monitor/{key}/{monitor_name}/")
+                channel: WebsocketConsumer = ChannelFactory().get(f"/ws/traffic_monitor/{key}/{monitor_name}/")
                 # only update the channel if a channel has been created (i.e. - a front-end is using it)
                 if channel:
                     logger.info(f"Monitor_Factory sending message to a channel: {monitor_name} {key}")
@@ -256,4 +284,5 @@ class MonitorFactory:
                     'charting_on': monitor.charting_on,
                     'charting_time_horizon': monitor.charting_time_horizon,
                     'charting_objects': monitor.charting_objects,
-                    'charting_time_zone': monitor.charting_time_zone}
+                    'charting_time_zone': monitor.charting_time_zone,
+                    'class_colors': monitor.class_colors}

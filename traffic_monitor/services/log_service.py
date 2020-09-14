@@ -35,12 +35,11 @@ class LogService(ServiceAbstract, ABC):
 
     def __init__(self,
                  monitor_config: dict,
-                 output_data_topic: str,
-                 class_colors: dict = None
+                 output_data_topic: str
                  ):
-        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic, class_colors=class_colors)
+        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
         self.subject_name = f"logservice__{monitor_config.get('monitor_name')}"
-        self.log_interval = 60  # freq (in sec) in detections are logged
+        self.log_interval = 120  # freq (in sec) in detections are logged
         self.channel_url = f"/ws/traffic_monitor/log/{monitor_config.get('monitor_name')}/"  # websocket channel address
 
     def handle_message(self, msg) -> (str, object):

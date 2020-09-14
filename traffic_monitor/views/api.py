@@ -192,6 +192,22 @@ def create_monitor(request) -> JsonResponse:
         return JsonResponse({'error': e.args}, safe=False)
 
 
+def update_monitor(request) -> JsonResponse:
+    try:
+        kwargs = _parse_args(request, 'monitor_name')
+
+        mon = MonitorServiceManager().update_monitor(kwargs)
+
+        # only return values that are Json serializable
+        rv = _filter_serializable(mon)
+
+        return JsonResponse(rv, safe=False)
+
+    except Exception as e:
+        logger.error(e)
+        return JsonResponse({'error': e.args}, safe=False)
+
+
 def get_trained_objects(request) -> JsonResponse:
     try:
         monitor_name = request.GET.get('monitor_name', None)
@@ -326,10 +342,13 @@ def toggle_service(request):
     return JsonResponse(rv, safe=False)
 
 
-# def get_chart(request):
-#     kwargs = _parse_args(request, 'monitor_name', 'interval')
-#     rv = chart_views.get_chart(monitor_name=kwargs.get('monitor_name'), interval=kwargs.get('interval'))
-#     return rv
+def get_chart(request):
+    kwargs = _parse_args(request, 'monitor_name')
+    monitor_config = MonitorServiceManager().get_monitor_configuration(kwargs.get('monitor_name'))
+    rv = chart_views.get_chart(monitor_config)
+
+    return JsonResponse(rv, safe=False)
+
 
 def set_charting_options(request):
 

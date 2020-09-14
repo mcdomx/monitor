@@ -1,4 +1,4 @@
-import threading
+import time
 import queue
 import json
 import logging
@@ -38,10 +38,9 @@ class DetectorMachineAbstract(ServiceAbstract):
                  monitor_config: dict,
                  output_data_topic: str,
                  input_image_queue: queue.Queue,
-                 output_image_queue: queue.Queue,
-                 class_colors: dict = None):
+                 output_image_queue: queue.Queue):
 
-        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic, class_colors=class_colors)
+        ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
         self.monitor_name: str = monitor_config.get('monitor_name')
         self.detector_name: str = monitor_config.get('detector_name')
         self.detector_model: str = monitor_config.get('detector_model')
@@ -126,6 +125,7 @@ class DetectorMachineAbstract(ServiceAbstract):
             # # sleep to let the timer expire
             # time.sleep(max(0, self.detection_interval - timer.get()))
             # timer.reset()
+            time.sleep(5)
             self.is_ready = True
 
         self.is_ready = True  # if this stopped with is_ready as false, we make sure it will start again as ready
