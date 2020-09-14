@@ -13,22 +13,9 @@
             {# with the respective log information. #}
 
             const chartSocket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/chart/' + monitor_name + '/')
-
             {# Setup Chart #}
-            let url = 'get_chart?monitor_name=' + monitor_name + '&interval=minute';
+            let url = 'get_chart?monitor_name=' + monitor_name;
             let target_div = document.getElementById('plot-area')
-            {#fetch(url)#}
-            {#    .then(response => response.json())#}
-            {#    .then(item => {#}
-                                {#console.log(JSON.parse(item.data))#}
-            {#                    target_div.innerHTML = ''#}
-            {#                    target_div.setAttribute('data-url', url);#}
-            {#                    Bokeh.embed.embed_item(item, 'plot-area');#}
-            {#                  })#}
-            {#    .catch((error) => {#}
-            {#                        console.log(error)#}
-            {#                        target_div.innerHTML = error#}
-            {#                    })#}
 
             {# Update Chart #}
             chartSocket.onmessage = function(e) {
@@ -39,19 +26,6 @@
                 target_div.innerHTML = ''
                 target_div.setAttribute('data-url', url);
                 Bokeh.embed.embed_item(item, 'plot-area');
-
-
-                {#fetch(url)#}
-                {#    .then(response => response.json())#}
-                {#    .then(item => {#}
-                {#        target_div.innerHTML = ''#}
-                {#        target_div.setAttribute('data-url', url);#}
-                {#        Bokeh.embed.embed_item(item, 'plot-area');#}
-                {#    })#}
-                {#    .catch((error) => {#}
-                {#        console.log(error)#}
-                {#        target_div.innerHTML = error#}
-                {#    })#}
             }
 
             chartSocket.onclose = function(e) {
@@ -64,6 +38,7 @@
         }
 
         function force_chart_update(monitor_name) {
+            {# Used to present a chart to the user when page is loaded without starting monitor #}
             let url = 'get_chart?monitor_name=' + monitor_name;
             let target_div = document.getElementById('plot-area')
             fetch(url)
@@ -79,10 +54,60 @@
                 });
         }
 
-        function setup_dropdown_menu(monitor_name) {
+        function set_chart_time_horizon(monitor_name, horizon) {
+            const url ='set_chart_time_horizon?monitor_name=' + monitor_name + '&value=' + horizon;
+            fetch(url).then(() => force_chart_update(monitor_name));
+        }
+
+        function set_chart_time_zone(monitor_name, zone) {
+            const url ='set_chart_time_zone?monitor_name=' + monitor_name + '&value=' + zone;
+            fetch(url).then(() => force_chart_update(monitor_name));
+        }
+
+        async function setup_dropdown_menu(monitor_name) {
             {# Update the parent's 'dropdown-menu' tag with <a> links #}
-            const menuelem = document.getElementById('{{ section_id }}').getElementsByClassName('dropdown-menu')[0]
-            menuelem.innerText = '';
+            let menulisting = document.getElementById('{{ section_id }}').getElementsByClassName('dropdown-menu')[0]
+            menulisting.innerText = '';
+
+            let menu_header1 = document.createElement('p');
+            menu_header1.className = "dropdown-header";
+            menu_header1.innerText = "Time Horizon:";
+            menulisting.appendChild(menu_header1);
+
+            const horizons = [{'desc':'1 Hour', 'value':'1'}, {'desc':'6 Hours', 'value':'6'} , {'desc':'12 Hours', 'value':'12'}, {'desc':'1 Day', 'value':'day'}, {'desc':'1 Week', 'value':'week'}, {'desc':'1 Month', 'value':'month'}]
+            for (let t in horizons) {
+                let elem = document.createElement('a');
+                elem.className = "dropdown-item py-0";
+                elem.setAttribute('role', "presentation");
+                elem.href = '#';
+                elem.onclick = () => {
+                    set_chart_time_horizon(monitor_name, horizons[t]['value'])
+                };
+                elem.innerText = horizons[t]['desc'];
+                menulisting.appendChild(elem);
+            }
+
+            let menu_header2 = document.createElement('p');
+            menu_header2.className = "dropdown-header";
+            menu_header2.innerText = "Time Zone:";
+            menulisting.appendChild(menu_header2);
+
+            const monitor_config = await get_monitor_config(monitor_name);
+            const zones = [{'desc':'UTC', 'value':'UTC'}, {'desc':'US/Eastern', 'value':'US/Eastern'}, {'desc':monitor_config['time_zone'] + '(source)', 'value': monitor_config['time_zone']}]
+            for (let z in zones) {
+                if (zones.hasOwnProperty(z)) {
+                    let elem = document.createElement('a');
+                    elem.className = "dropdown-item py-0";
+                    elem.setAttribute('role', "presentation");
+                    elem.href = '#';
+                    elem.onclick = () => {
+                        set_chart_time_zone(monitor_name, zones[z]['value'])
+                    };
+                    elem.innerText = zones[z]['desc'];
+                    menulisting.appendChild(elem);
+                }
+            }
+
         }
 
         {#On load, setup the channel to get communications from the server #}

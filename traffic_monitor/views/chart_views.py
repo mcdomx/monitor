@@ -63,7 +63,10 @@ def get_chart(monitor_config: dict):
     df.rename(columns={'count': 'counts'}, inplace=True)
 
     # set timezone
-    df = df.set_index('time_stamp').tz_convert(monitor_config.get('charting_time_zone')).tz_localize(None)
+    try:
+        df = df.set_index('time_stamp').tz_convert(monitor_config.get('charting_time_zone')).tz_localize(None)
+    except Exception:
+        df = df.set_index('time_stamp').tz_convert(monitor_config.get('time_zone')).tz_localize(None)
 
     if len(df) == 0:
         return 'No data for time period.  Wait for detections ... '
