@@ -8,14 +8,35 @@
     <script type="text/javascript">
 
         function start_monitor(monitor_name) {
+            let elems = document.getElementsByClassName('config_object is_active')
+            let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'
+            for (let e in elems) {
+                if (elems.hasOwnProperty(e)) {
+                    elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"
+                }
+            }
             fetch("start_monitor?monitor_name="+monitor_name).then( () => update_config_objects('{{monitor_name}}'))
         }
 
         function stop_monitor(monitor_name) {
+            let elems = document.getElementsByClassName('config_object is_active')
+            let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'
+            for (let e in elems) {
+                if (elems.hasOwnProperty(e)) {
+                    elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"
+                }
+            }
             fetch("stop_monitor?monitor_name="+monitor_name).then( () => update_config_objects('{{monitor_name}}'))
         }
 
-        function toggle_service(monitor_name, service) {
+        function toggle_service(monitor_name, service, class_name) {
+            let elems = document.getElementsByClassName('config_object '+ class_name)
+            let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'
+            for (let e in elems) {
+                if (elems.hasOwnProperty(e)) {
+                    elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"
+                }
+            }
             fetch("toggle_service?monitor_name="+monitor_name+"&service="+service).then( () => update_config_objects('{{monitor_name}}'))
         }
 
@@ -60,13 +81,13 @@
                 <div style="font-weight: bolder">Services</div>
             </div>
             <div class="row">
-                <div class='mx-2' style="font-weight: bold; width: 150px">Logging Service: </div><div style="width: 50px" class="config_object logging_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'log')">Toggle</button>
+                <div class='mx-2' style="font-weight: bold; width: 150px">Logging Service: </div><div style="width: 50px" class="config_object logging_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'log', 'logging_on')">Toggle</button>
             </div>
             <div class="row">
-                <div class='mx-2' style="font-weight: bold; width: 150px">Notification Service: </div><div style="width: 50px" class="config_object notifications_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'notification')">Toggle</button>
+                <div class='mx-2' style="font-weight: bold; width: 150px">Notification Service: </div><div style="width: 50px" class="config_object notifications_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'notification', 'notifications_on')">Toggle</button>
             </div>
             <div class="row">
-                <div class='mx-2' style="font-weight: bold; width: 150px">Charting Service: </div><div style="width: 50px" class="config_object charting_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'chart')">Toggle</button>
+                <div class='mx-2' style="font-weight: bold; width: 150px">Charting Service: </div><div style="width: 50px" class="config_object charting_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'chart', 'charting_on')">Toggle</button>
             </div>
 {#            <div class="row">#}
 {#                <div class='ml-4' style="font-weight: bold; width: 150px">Time Horizon: </div><div id="charting_time_horizon"></div>#}

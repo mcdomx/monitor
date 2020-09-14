@@ -127,8 +127,6 @@
             let all_logged_objects = await fetch(url).then(data => {
                                                                         return data.json();
                                                                     })
-            console.log(all_logged_objects);
-
             for (let lo in all_logged_objects) {
                 if (all_logged_objects.hasOwnProperty(lo)) {
                     let elem = document.createElement('a');
