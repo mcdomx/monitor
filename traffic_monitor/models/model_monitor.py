@@ -18,10 +18,12 @@ class Monitor(models.Model):
     """
     name = models.CharField(primary_key=True, max_length=64)
     detector = models.ForeignKey(Detector, on_delete=models.CASCADE, related_name='detector_log', null=True)
+    detector_sleep_throttle = models.IntegerField(default=5)
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name='feed_log', null=True)
     log_objects = models.JSONField(default=list)
     notification_objects = models.JSONField(default=list)
     logging_on = models.BooleanField(default=True)
+    log_interval = models.IntegerField(default=60)
     notifications_on = models.BooleanField(default=False)
     charting_on = models.BooleanField(default=False)
     charting_time_horizon = models.CharField(default='6', max_length=8)

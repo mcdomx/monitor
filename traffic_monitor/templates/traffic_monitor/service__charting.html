@@ -69,7 +69,7 @@
             fetch(url).then(() => force_chart_update(monitor_name));
         }
 
-        async function setup_dropdown_menu(monitor_name) {
+        async function setup_charting_dropdown_menu(monitor_name) {
             {# Update the parent's 'dropdown-menu' tag with <a> links #}
             let menulisting = document.getElementById('{{ section_id }}').getElementsByClassName('dropdown-menu')[0]
             menulisting.innerText = '';
@@ -148,7 +148,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             {#Update the table of elements to monitor and log#}
             setup_chartsocket('{{ monitor_name }}');
-            setup_dropdown_menu('{{ monitor_name }}');
+            setup_charting_dropdown_menu('{{ monitor_name }}');
             force_chart_update('{{ monitor_name }}');
         })
 

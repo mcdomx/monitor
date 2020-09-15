@@ -30,16 +30,52 @@
             }
         }
 
+        function set_detector_sleep_throttle(monitor_name, seconds) {
+            const url ='set_detector_sleep_throttle?monitor_name=' + monitor_name + '&value=' + seconds;
+            fetch(url);
+        }
+
+        async function setup_detection_dropdown_menu(monitor_name) {
+            {# Update the parent's 'dropdown-menu' tag with <a> links #}
+            let menulisting = document.getElementById('{{ section_id }}').getElementsByClassName('dropdown-menu')[0]
+            menulisting.innerText = '';
+
+            let menu_header1 = document.createElement('p');
+            menu_header1.className = "dropdown-header";
+            menu_header1.innerText = "Detector Throttle:";
+            menulisting.appendChild(menu_header1);
+
+            let seconds = [{'desc': '0 seconds', 'value': '0'}, {'desc': '2 seconds', 'value': '2'}, {
+                'desc': '3 seconds',
+                'value': '3'
+            }, {'desc': '5 seconds', 'value': '5'}, {'desc': '7 seconds', 'value': '7'}, {
+                'desc': '10 seconds',
+                'value': '10'
+            }]
+            for (let s in seconds) {
+                let elem = document.createElement('a');
+                elem.className = "dropdown-item py-0";
+                elem.setAttribute('role', "presentation");
+                elem.href = '#';
+                elem.onclick = () => {
+                    set_detector_sleep_throttle(monitor_name, seconds[s]['value'])
+                };
+                elem.innerText = seconds[s]['desc'];
+                menulisting.appendChild(elem);
+            }
+        }
+
         {#On load, setup the channel to get communications from the server #}
         document.addEventListener('DOMContentLoaded', () => {
             {#Update the table of elements to monitor and log#}
             update_videosocket('{{monitor_name}}');
+            setup_detection_dropdown_menu('{{monitor_name}}');
         })
 
     </script>
 
     <div class="card-body p-0" id="video-stream" style="background-color: black; height: 360px; text-align: center">
-        <img id='video_feed' style="max-height: 100%" src="">
+        <img id='video_feed' style="max-height: 100%; height: auto; max-width: 100%" src="">
     </div>
 
 {% endblock content %}

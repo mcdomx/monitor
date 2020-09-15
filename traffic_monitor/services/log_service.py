@@ -39,7 +39,7 @@ class LogService(ServiceAbstract, ABC):
                  ):
         ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
         self.subject_name = f"logservice__{monitor_config.get('monitor_name')}"
-        self.log_interval = 120  # freq (in sec) in detections are logged
+        # self.log_interval = 120  # freq (in sec) in detections are logged
         self.channel_url = f"/ws/traffic_monitor/log/{monitor_config.get('monitor_name')}/"  # websocket channel address
 
     def handle_message(self, msg) -> (str, object):
@@ -79,7 +79,7 @@ class LogService(ServiceAbstract, ABC):
                 log_interval_detections += msg_value
 
             # if the time reached the the logging interval
-            if timer.get() >= self.log_interval:
+            if timer.get() >= self.monitor_config.get('log_interval'):
                 # Counts the mean observation count at any moment over the log interval period.
                 # Only count items that are on the logged_objects list
                 objs_unique = set(log_interval_detections)
@@ -110,7 +110,7 @@ class LogService(ServiceAbstract, ABC):
                 # reset variables for next observation
                 log_interval_detections.clear()
                 capture_count = 0
-                timer.reset(start_time=timer.start_time+self.log_interval)
+                timer.reset(start_time=timer.start_time+self.monitor_config.get('log_interval'))
                 continue
 
             # only sleep if there wasn't a message and we are reasonable

@@ -302,6 +302,12 @@ def set_log_objects(request) -> JsonResponse:
     return JsonResponse(rv, safe=False)
 
 
+def set_log_interval(request) -> JsonResponse:
+    kwargs = _parse_args(request, 'monitor_name', 'value')
+    rv = MonitorServiceManager().set_value(kwargs.get('monitor_name'), 'log_interval', int(kwargs.get('value')))
+    return JsonResponse(rv, safe=False)
+
+
 def set_notification_objects(request) -> JsonResponse:
     rv = _set_objects(request=request, field='notification_objects')
     return JsonResponse(rv, safe=False)
@@ -321,6 +327,12 @@ def set_chart_time_horizon(request) -> JsonResponse:
 def set_chart_time_zone(request) -> JsonResponse:
     kwargs = _parse_args(request, 'monitor_name', 'value')
     rv = MonitorServiceManager().set_value(kwargs.get('monitor_name'), 'charting_time_zone', kwargs.get('value'))
+    return JsonResponse(rv, safe=False)
+
+
+def detector_sleep_throttle(request) -> JsonResponse:
+    kwargs = _parse_args(request, 'monitor_name', 'value')
+    rv = MonitorServiceManager().set_value(kwargs.get('monitor_name'), 'detector_sleep_throttle', int(kwargs.get('value')))
     return JsonResponse(rv, safe=False)
 
 

@@ -33,8 +33,6 @@
                 for (const [k, v] of Object.entries(data)){
                     console.log(k + ': ' + v);
                     let color = class_colors[k];
-                    console.log(class_colors);
-                    console.log(class_colors[k]);
                     let logentry = document.createElement("tr");
 
                     let c1 = document.createElement("td");
@@ -76,10 +74,46 @@
 
         }
 
+        function set_log_interval(monitor_name, interval) {
+            const url ='set_log_interval?monitor_name=' + monitor_name + '&value=' + interval;
+            fetch(url);
+        }
+
+        async function setup_logging_dropdown_menu(monitor_name) {
+            {# Update the parent's 'dropdown-menu' tag with <a> links #}
+            let menulisting = document.getElementById('{{ section_id }}').getElementsByClassName('dropdown-menu')[0]
+            menulisting.innerText = '';
+
+            let menu_header1 = document.createElement('p');
+            menu_header1.className = "dropdown-header";
+            menu_header1.innerText = "Logging Intervals:";
+            menulisting.appendChild(menu_header1);
+
+            let intervals = [{'desc': '1 minute', 'value': '60'}, {
+                'desc': '2 minutes',
+                'value': '120'
+            }, {'desc': '3 minutes', 'value': '180'}, {'desc': '5 minutes', 'value': '300'}, {
+                'desc': '10 minutes',
+                'value': '600'
+            }, {'desc': '15 minutes', 'value': '900'}]
+            for (let i in intervals) {
+                let elem = document.createElement('a');
+                elem.className = "dropdown-item py-0";
+                elem.setAttribute('role', "presentation");
+                elem.href = '#';
+                elem.onclick = () => {
+                    set_log_interval(monitor_name, intervals[i]['value'])
+                };
+                elem.innerText = intervals[i]['desc'];
+                menulisting.appendChild(elem);
+            }
+        }
+
         {#On load, setup the channel to get communications from the server #}
         document.addEventListener('DOMContentLoaded', () => {
             {#Update the table of elements to monitor and log#}
             update_logsocket('{{monitor_name}}');
+            setup_logging_dropdown_menu('{{monitor_name}}');
         })
 
     </script>

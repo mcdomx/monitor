@@ -53,27 +53,28 @@
         </div>
 
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 150px">Detector Name: </div><div class="config_object detector_name"></div>
+            <div class='mx-2' style="font-weight: bolder; width: 150px">Detector Name: </div><div class="config_object detector_name" style="width: 75px"></div>
+            <div class='mx-2' style="font-weight: bolder; width: 60px">Model: </div><div class="config_object detector_model"></div>
         </div>
 
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 150px">Detector Model: </div><div class="config_object detector_model"></div>
+            <div class='mx-2' style="font-weight: bolder; width: 200px">Detector Sleep Throttle: </div><div class="config_object detector_sleep_throttle"></div>
         </div>
 
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 150px">Feed Description: </div><div class="config_object feed_description"></div>
+            <div class='mx-2' style="font-weight: bolder; width: 200px">Feed Description: </div><div class="config_object feed_description"></div>
         </div>
 
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 150px">Feed ID: </div><div class="config_object feed_id"></div>
+            <div class='mx-2' style="font-weight: bolder; width: 200px">Feed ID: </div><div class="config_object feed_id"></div>
         </div>
 
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 150px">Time Zone: </div><div class="config_object time_zone"></div>
+            <div class='mx-2' style="font-weight: bolder; width: 200px">Time Zone: </div><div class="config_object time_zone"></div>
         </div>
 
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 150px">Running: </div><div class="config_object is_active" style="width: 50px"></div><button type="button" class="btn btn-success btn-sm" onclick="start_monitor('{{ monitor_name }}')">Start</button><button type="button" class="btn btn-danger btn-sm" onclick="stop_monitor('{{ monitor_name }}')">Stop</button>
+            <div class='mx-2' style="font-weight: bolder; width: 200px">Running: </div><div class="config_object is_active" style="width: 50px"></div><button type="button" class="btn btn-success btn-sm" onclick="start_monitor('{{ monitor_name }}')">Start</button><button type="button" class="btn btn-danger btn-sm" onclick="stop_monitor('{{ monitor_name }}')">Stop</button>
         </div>
 
         <div class="col-12 border border-secondary rounded bg-light px-3 py-2 mt-2">
@@ -81,13 +82,21 @@
                 <div style="font-weight: bolder">Services</div>
             </div>
             <div class="row">
-                <div class='mx-2' style="font-weight: bold; width: 150px">Logging Service: </div><div style="width: 50px" class="config_object logging_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'log', 'logging_on')">Toggle</button>
+                <div class='mx-2' style="font-weight: bold; width: 100px">Logging: </div>
+                <div style="width: 50px" class="config_object logging_on"></div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'log', 'logging_on')">Toggle</button>
+                <div class='mx-2' style="font-weight: bold; width: 100px">Interval: <span class="config_object log_interval" style="font-weight: normal"></span></div>
+
             </div>
             <div class="row">
-                <div class='mx-2' style="font-weight: bold; width: 150px">Notification Service: </div><div style="width: 50px" class="config_object notifications_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'notification', 'notifications_on')">Toggle</button>
+                <div class='mx-2' style="font-weight: bold; width: 100px">Notification: </div>
+                <div style="width: 50px" class="config_object notifications_on"></div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'notification', 'notifications_on')">Toggle</button>
             </div>
             <div class="row">
-                <div class='mx-2' style="font-weight: bold; width: 150px">Charting Service: </div><div style="width: 50px" class="config_object charting_on"></div><button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'chart', 'charting_on')">Toggle</button>
+                <div class='mx-2' style="font-weight: bold; width: 100px">Charting: </div>
+                <div style="width: 50px" class="config_object charting_on"></div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="toggle_service('{{ monitor_name }}', 'chart', 'charting_on')">Toggle</button>
             </div>
 {#            <div class="row">#}
 {#                <div class='ml-4' style="font-weight: bold; width: 150px">Time Horizon: </div><div id="charting_time_horizon"></div>#}

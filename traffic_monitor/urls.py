@@ -27,6 +27,7 @@ urlpatterns = [
     re_path(r"get_trained_objects[\/|\?].*", api.get_trained_objects, name='get_trained_objects'),
     re_path(r"get_log_objects[\/|\?].*", api.get_log_objects, name='get_log_objects'),
     re_path(r"get_all_log_objects[\/|\?].*", api.get_all_log_objects, name='get_all_log_objects'),
+    re_path(r"set_log_interval[\/|\?].*", api.set_log_interval, name='set_log_interval'),
     re_path(r"get_notification_objects[\/|\?].*", api.get_notification_objects, name='get_notified_objects'),
 
     re_path(r"toggle_log_objects[\/|\?].*", api.toggle_log_objects, name='toggle_log_objects'),
@@ -38,6 +39,7 @@ urlpatterns = [
     re_path(r"set_chart_objects[\/|\?].*", api.set_chart_objects, name='set_chart_objects'),
     re_path(r"set_chart_time_horizon[\/|\?].*", api.set_chart_time_horizon, name='set_chart_time_horizon'),
     re_path(r"set_chart_time_zone[\/|\?].*", api.set_chart_time_zone, name='set_chart_time_zone'),
+    re_path(r"set_detector_sleep_throttle[\/|\?].*", api.detector_sleep_throttle, name='detector_sleep_throttle'),
 
 
     re_path(r"start_monitor[\/|\?].*", api.start_monitor, name="start_monitor"),

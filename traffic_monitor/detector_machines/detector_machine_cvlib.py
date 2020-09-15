@@ -26,8 +26,7 @@ class DetectorMachineCVlib(DetectorMachineAbstract):
                  monitor_config: dict,
                  input_image_queue: queue.Queue,
                  output_image_queue: queue.Queue,
-                 output_data_topic: str,
-                 class_colors: dict = None):
+                 output_data_topic: str):
         DetectorMachineAbstract.__init__(self,
                                          monitor_config=monitor_config,
                                          input_image_queue=input_image_queue,

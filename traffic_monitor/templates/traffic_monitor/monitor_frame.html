@@ -64,24 +64,26 @@
         })
 </script>
 
-<div class= "" id="monitor_config">
-    {%  include 'traffic_monitor/monitor_config.html' with monitor_name=monitor_name section_id="monitor_config" %}
-</div>
+<div class="row">
+    <div class= "col-12" id="monitor_config">
+        {%  include 'traffic_monitor/monitor_config.html' with monitor_name=monitor_name section_id="monitor_config" %}
+    </div>
 
-<div class= "" id="monitor_video">
-    {%  include 'traffic_monitor/service__video.html' with monitor_name=monitor_name section_id="monitor_video" %}
-</div>
+    <div class= "col-12 col-md-6" id="monitor_video">
+        {%  include 'traffic_monitor/service__video.html' with monitor_name=monitor_name section_id="monitor_video" %}
+    </div>
 
-<div class= "" id="monitor_chart">
-    {%  include 'traffic_monitor/service__charting.html' with monitor_name=monitor_name section_id="monitor_chart" %}
-</div>
+    <div class= "col-12 col-md-6" id="monitor_chart">
+        {%  include 'traffic_monitor/service__charting.html' with monitor_name=monitor_name section_id="monitor_chart" %}
+    </div>
 
-<div class= "" id="monitor_log">
-    {%  include 'traffic_monitor/service__logging.html' with monitor_name=monitor_name section_id="monitor_log" %}
-</div>
+    <div class= "col-12 col-md-6" id="monitor_log">
+        {%  include 'traffic_monitor/service__logging.html' with monitor_name=monitor_name section_id="monitor_log" %}
+    </div>
 
-<div class= "" id="monitor_selection">
-    {%  include 'traffic_monitor/service__object_selection.html' with monitor_name=monitor_name section_id="monitor_selection" %}
+    <div class= "col-12 col-md-6" id="monitor_selection">
+        {%  include 'traffic_monitor/service__object_selection.html' with monitor_name=monitor_name section_id="monitor_selection" %}
+    </div>
 </div>
 
 

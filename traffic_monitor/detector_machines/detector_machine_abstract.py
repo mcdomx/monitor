@@ -125,7 +125,7 @@ class DetectorMachineAbstract(ServiceAbstract):
             # # sleep to let the timer expire
             # time.sleep(max(0, self.detection_interval - timer.get()))
             # timer.reset()
-            time.sleep(5)
+            time.sleep(self.monitor_config.get('detector_sleep_throttle', 1))
             self.is_ready = True
 
         self.is_ready = True  # if this stopped with is_ready as false, we make sure it will start again as ready
