@@ -2,7 +2,7 @@ import logging
 import queue
 
 from traffic_monitor.detector_machines.detector_machine_abstract import DetectorMachineAbstract
-from traffic_monitor.detector_machines.detector_machines import *
+from traffic_monitor.detector_machines.detector_machines import DetectorMachineCVlib
 
 # This dictionary must be updated with new detector name and class
 # Any new class must also be imported into the traffic_monitor.detector_machines.detector_machines module

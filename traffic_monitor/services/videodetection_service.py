@@ -28,7 +28,7 @@ from PIL import Image
 import cv2 as cv
 from django.core.serializers.json import DjangoJSONEncoder
 
-from traffic_monitor.detector_machines.detetor_machine_factory import DetectorMachineFactory
+from traffic_monitor.detector_machines.detector_machine_factory import DetectorMachineFactory
 from traffic_monitor.services.service_abstract import ServiceAbstract
 from traffic_monitor.services.elapsed_time import ElapsedTime
 from traffic_monitor.websocket_channels import VideoChannel

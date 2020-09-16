@@ -31,6 +31,13 @@
         }
 
         function set_detector_sleep_throttle(monitor_name, seconds) {
+            let elems = document.getElementsByClassName('config_object detector_sleep_throttle')
+            let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'
+            for (let e in elems) {
+                if (elems.hasOwnProperty(e)) {
+                    elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"
+                }
+            }
             const url ='set_detector_sleep_throttle?monitor_name=' + monitor_name + '&value=' + seconds;
             fetch(url);
         }

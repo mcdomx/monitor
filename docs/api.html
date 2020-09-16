@@ -158,45 +158,138 @@
 <p>API functions called from command line.</p>
 </div>
 <span class="target" id="module-views.api"></span><dl class="py function">
-<dt id="views.api.get_active_monitors">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_active_monitors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_active_monitors" title="Permalink to this definition">¶</a></dt>
+<dt id="views.api.create_monitor">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">create_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.create_monitor" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – The HTML request</p>
+</dd>
+</dl>
+<p>See the parameter descriptions below for constraints and defaults for each parameter.
+:return:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.create_stream">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">create_stream</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.create_stream" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="views.api.get_all_monitors">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_all_monitors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_all_monitors" title="Permalink to this definition">¶</a></dt>
+<dt id="views.api.detector_sleep_throttle">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">detector_sleep_throttle</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.detector_sleep_throttle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.get_active_monitors">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_active_monitors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_active_monitors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.get_all_log_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_all_log_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_all_log_objects" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
 <dt id="views.api.get_chart">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_chart</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em>, <em class="sig-param"><span class="n">monitor_id</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">interval</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_chart" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_chart</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_chart" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="views.api.get_class_data">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_class_data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em>, <em class="sig-param"><span class="n">monitor_id</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_class_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get class data including class_name, class_id, is_mon_on and is_log_on</p>
+<dt id="views.api.get_detectors">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_detectors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_detectors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dictionary of all available detector_machines.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>request</strong> – </p></li>
-<li><p><strong>monitor_id</strong> – </p></li>
-</ul>
+<dd class="field-odd"><p><strong>request</strong> – HTML Request. (not used for this function)</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p></p>
+<dd class="field-even"><p>A JsonResponse dictionary of detector_machines. {detector_id: {‘id’:, ‘name’: , ‘model’: }}</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
+<dt id="views.api.get_log_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_log_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_log_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.get_monitor">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_monitor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.get_monitors">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_monitors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_monitors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.get_notification_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_notification_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_notification_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.get_streams">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_streams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_streams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dictionary of all available video streams.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTML Request. (not used for this function)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A JsonResponse dictionary of video streams. {stream: {‘cam’: , ‘time_zone’: , ‘url’: ,’description’: }}</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.get_trained_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_trained_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_trained_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.set_chart_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_chart_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_chart_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.set_chart_time_horizon">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_chart_time_horizon</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_chart_time_horizon" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.set_chart_time_zone">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_chart_time_zone</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_chart_time_zone" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.set_charting_options">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_charting_options</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.set_charting_options" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.set_log_interval">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_log_interval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_log_interval" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.set_log_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_log_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_log_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.set_notification_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_notification_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_notification_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt id="views.api.start_monitor">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">start_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em>, <em class="sig-param"><span class="n">monitor_id</span><span class="p">:</span> <span class="n">int</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.start_monitor" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">start_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.start_monitor" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
 <dt id="views.api.stop_monitor">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">stop_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em>, <em class="sig-param"><span class="n">monitor_id</span><span class="p">:</span> <span class="n">int</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.stop_monitor" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">stop_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.stop_monitor" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -216,6 +309,36 @@
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py function">
+<dt id="views.api.toggle_chart_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">toggle_chart_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.toggle_chart_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.toggle_log_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">toggle_log_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.toggle_log_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.toggle_notification_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">toggle_notification_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.toggle_notification_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.toggle_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">toggle_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em>, <em class="sig-param"><span class="n">field</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.toggle_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.toggle_service">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">toggle_service</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.toggle_service" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="views.api.update_monitor">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">update_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.update_monitor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </div>
 

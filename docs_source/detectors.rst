@@ -10,14 +10,14 @@ Detectors
   :local:
   :depth: 2
 
-.. automodule:: detectors.detector_abstract
+.. automodule:: detector_machines.detector_machine_abstract
    :members:
    :undoc-members:
 
-.. automodule:: detectors.detector_factory
+.. automodule:: detector_machines.detector_machine_factory
    :members:
    :undoc-members:
 
-.. automodule:: detectors.detector_cvlib
+.. automodule:: detector_machines.detector_machine_cvlib
    :members:
    :undoc-members:

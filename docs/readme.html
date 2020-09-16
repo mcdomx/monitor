@@ -85,12 +85,14 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Traffic Monitor</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#database">Database</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#start-docker-postgres-database">Start Docker Postgres Database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#logging-and-monitoring">Logging and Monitoring</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#environment-setup">Environment Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#database-and-kafka-messaging-services">Database and Kafka Messaging Services</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#initialize-database">Initialize Database</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#stop-the-database-container">Stop the Database Container</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-the-database-and-kafka-containers">Stop the Database and Kafka Containers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#delete-database">Delete Database</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#change-database-settings-and-configuration">Change Database Settings and Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#change-database-and-kafka-configuration">Change Database and Kafka Configuration</a></li>
 </ul>
 </li>
 </ul>
@@ -163,60 +165,97 @@
             
   <div class="section" id="traffic-monitor">
 <span id="readme"></span><h1>Traffic Monitor<a class="headerlink" href="#traffic-monitor" title="Permalink to this headline">¶</a></h1>
-<p>This application is designed to monitor a video stream and detect objects in it. Detections are recorded in a database so that they can be used to observe frequency of objects over time. This data can be used to train a model which can predict traffic patterns.</p>
-<div class="section" id="database">
-<h2>Database<a class="headerlink" href="#database" title="Permalink to this headline">¶</a></h2>
-<p>The application relies on a Postgres database. The default SQlite
-database used by Django does not allow concurrent read/write requests
-which can happen in this application.</p>
-<div class="section" id="start-docker-postgres-database">
-<h3>Start Docker Postgres Database<a class="headerlink" href="#start-docker-postgres-database" title="Permalink to this headline">¶</a></h3>
-<ul class="simple">
-<li><p>Ensure you have the latest Postgres Docker image:</p></li>
-</ul>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span> <span class="n">pull</span> <span class="n">postgres</span>
+<p>This application is designed to monitor a video stream and log the occurrence of detect objects in it. Detections are recorded in a database so that they can be used to analyze the frequency of objects over time. This data can be used to train a model which can predict patterns.</p>
+<div class="section" id="logging-and-monitoring">
+<h2>Logging and Monitoring<a class="headerlink" href="#logging-and-monitoring" title="Permalink to this headline">¶</a></h2>
+<p>The application supports two distinct types of activities for each type of object detected in the video stream; Logging and Monitoring.  Logging is the action of storing the counts of detected objects in the video stream.  The resulting log can be used to analyze traffic patterns.  Monitoring will trigger an action when a defined object is detected in the video stream.  For example, if an elephant is detected, a message can be sent or the frame image can be saved. (Currently, monitoring actions are not setup and intended for a future release.)</p>
+<p>A web font-end provides the most appealing and simple interface to the monitor but the monitor can also be controlled via rest calls and the progress can be seen in a terminal window.</p>
+</div>
+<div class="section" id="architecture">
+<h2>Architecture<a class="headerlink" href="#architecture" title="Permalink to this headline">¶</a></h2>
+<p>The application uses Django to publish pages and handle API requests.  A Postgres database is used to store configuration information as well as data collected by the Monitor.  In an effort to structure the application so that it can later be converted to a series of microservices, the Postgres database is run in a Docker container.</p>
+<p>Application components communicate across the backend using Kafka and the Django back-end communicates with web clients using WebSockets.</p>
+<p>The application employs a concept of a Monitor which is a user-named combination of a Video Feed and a Detector.  The video feed is the link to the video source and the Detector is a configured object which includes an object detector which will detect objects in a video feed.  3 services are defined which independently perform actions based on the Monitor:</p>
+<p>#. Monitor Service
+This is the primary service that is necessary for any other service to operate.  The Monitor Service will initiate the video stream and other services that are configured for the monitor.  This service serves as the top-level coordinator for a Monitor and its supporting services.</p>
+<p>The monitor service runs as a thread, so an instantiated service is a one-time object.  Once the thread is stopped, it cannot be restarted and will be destroyed.  A new instance of the service is instantiated each time the service is restarted.  Configurations for the service are persistent and stored in the database, so new instances of the Monitor will have the same settings as the last time the monitor was used.</p>
+<p>#. Log Service
+The Log Service will collect data from a detector through Kafka messages and subsequently store the logged data into the application’s database. Logged data can be used later to create models which can predict future appearance of objects or simply used to identify traffic patterns.  A detector may be capable of detecting a long list of objects, but the Log Service can be configured to store a subset of items from the detector.  By default, the Log Service will write to the database each minute, but this frequency can be changed.</p>
+<p>#. Chart Service
+The Chart Service will collect data from the Monitor Service and publish a chart to the web client that displays the number of detected instances over time.  The time zone and time horizon on the x-axis of this chart can be configured.</p>
+<p>#. Notification Service (future)
+The Notification service will perform a notification action (alert, email, text message, etc) based on the presence of a particular object detected in the video stream.  Where logging will record each instance of a detected object, the Notification Service will broadcast a notification the moment that an object is detected.  This service can be used as an ‘alarm’ or ‘alert’; for example, if there is an elephant in your front yard.</p>
+<p>A small hierarchy of objects are necessary to organize data collected by a Monitor.  A Monitor is defined as a combination of a Video Feed and a Detector.  A Monitor is created by a user and given a unique name.  Data is retrieved via a reference to the Monitor.  The detector can be changed once a Monitor has been defined, but the monitor name and the video feed remain fixed.</p>
+</div>
+<div class="section" id="environment-setup">
+<h2>Environment Setup<a class="headerlink" href="#environment-setup" title="Permalink to this headline">¶</a></h2>
+<p>The application relies on a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file in the root.  This file supports the following environment variables:</p>
+<p><em>optional variables:</em></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">VERBOSITY</span><span class="o">=</span><span class="n">DEBUG</span>
 </pre></div>
 </div>
-<ul class="simple">
-<li><p>To start container, run the following from the project’s
-<code class="docutils literal notranslate"><span class="pre">infrastructure</span></code> directory:</p></li>
-</ul>
+<p><em>required variables:</em></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">DB_NAME</span><span class="o">=</span><span class="n">monitor_db</span>  <span class="c1"># name of database</span>
+<span class="n">export</span> <span class="n">DB_USER</span><span class="o">=</span><span class="n">monuser</span>  <span class="c1"># username of database</span>
+<span class="n">export</span> <span class="n">DB_PASSWORD</span><span class="o">=</span><span class="n">password</span>  <span class="c1"># user password of database</span>
+<span class="n">export</span> <span class="n">DB_HOST</span><span class="o">=</span><span class="mf">0.0</span><span class="o">.</span><span class="mf">0.0</span>  <span class="c1"># IP address of database (0.0.0.0 for Docker)</span>
+<span class="n">export</span> <span class="n">DJANGO_SECRET_KEY</span><span class="o">=</span><span class="s1">&#39;&lt;&lt;gobblty_snobblty&gt;&gt;&#39;</span>  <span class="c1"># Django secret key (can be anything)</span>
+</pre></div>
+</div>
+<p>The variables defined in the <cite>.env</cite> file will be included in the environment available in Django and accessible using:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">local_variable_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;&lt;env_varibale_name&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;default_if_not_found&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="database-and-kafka-messaging-services">
+<h2>Database and Kafka Messaging Services<a class="headerlink" href="#database-and-kafka-messaging-services" title="Permalink to this headline">¶</a></h2>
+<p>The application relies on a Postgres database as well as Kafka for messaging. Postgres is used as the database because the default SQLite database used by Django does not allow concurrent read/write requests which can happen in this application.</p>
+<p>Both the Postgres and Kafka services are configured to run in docker containers in this application.  To start the Docker containers, run the following from the project’s <code class="docutils literal notranslate"><span class="pre">infrastructure</span></code> directory:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">up</span>
 </pre></div>
 </div>
-<ul class="simple">
-<li><p>This will use the postgres image to create a docker container. If the
-container has previously been created, the container will be opened
-with the respective data stored in it.</p></li>
-</ul>
+<p>Any data stored in these services will persist locally and will be available the next time that you start the containers from the same machine.</p>
+<p>Alteratively, the database or kafka containers can be started individually; however, note that the application requires both to function:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">up</span> <span class="n">db</span>
+
+<span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">up</span> <span class="n">zookeeper</span>
+<span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">up</span> <span class="n">kafka</span>
+</pre></div>
 </div>
 <div class="section" id="initialize-database">
 <h3>Initialize Database<a class="headerlink" href="#initialize-database" title="Permalink to this headline">¶</a></h3>
+<p>The first time that you start the database, it will need to be initialized with Django.</p>
 <ul class="simple">
-<li><p>Run the following Django commands to setup the database from te
-project root directory:</p></li>
+<li><p>Run the following Django commands to setup the database from the project root directory:</p></li>
 </ul>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">migrate</span>
-
 <span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">createsuperuser</span>
-
 <span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">setup_database</span>
 </pre></div>
 </div>
 </div>
-<div class="section" id="stop-the-database-container">
-<h3>Stop the Database Container<a class="headerlink" href="#stop-the-database-container" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="stop-the-database-and-kafka-containers">
+<h3>Stop the Database and Kafka Containers<a class="headerlink" href="#stop-the-database-and-kafka-containers" title="Permalink to this headline">¶</a></h3>
+<p>To stop both the database and Kafka containers:</p>
 <ul class="simple">
 <li><p>Run the following from the <code class="docutils literal notranslate"><span class="pre">infratructure</span></code> directory:</p></li>
 </ul>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">down</span>
 </pre></div>
 </div>
+<p>Alternatively, either service can be individually stopped:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">down</span> <span class="n">db</span>
+
+<span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">down</span> <span class="n">kafka</span>
+<span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">down</span> <span class="n">zookeeper</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="delete-database">
 <h3>Delete Database<a class="headerlink" href="#delete-database" title="Permalink to this headline">¶</a></h3>
+<p>In the event that you want to delete the database and start over, follow the steps below.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">down</span>
-<span class="n">docker</span> <span class="n">volume</span> <span class="n">remove</span> <span class="n">monitor_data_db</span>
+<span class="n">docker</span> <span class="n">volume</span> <span class="n">remove</span> <span class="n">infrastructure_monitor_data</span>
 </pre></div>
 </div>
 <ul class="simple">
@@ -229,8 +268,9 @@ project root directory:</p></li>
 </pre></div>
 </div>
 </div>
-<div class="section" id="change-database-settings-and-configuration">
-<h3>Change Database Settings and Configuration<a class="headerlink" href="#change-database-settings-and-configuration" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="change-database-and-kafka-configuration">
+<h3>Change Database and Kafka Configuration<a class="headerlink" href="#change-database-and-kafka-configuration" title="Permalink to this headline">¶</a></h3>
+<p>Changes to the Postgres or Kafka services can be made by updating the docker-compose.yaml file:</p>
 <ul class="simple">
 <li><p>Update variables and values in the <code class="docutils literal notranslate"><span class="pre">docker-compose.yaml</span></code> file in
 the <code class="docutils literal notranslate"><span class="pre">infrastructure</span></code> directory.</p></li>

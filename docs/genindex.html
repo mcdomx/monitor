@@ -153,11 +153,11 @@
 <h1 id="index">Index</h1>
 
 <div class="genindex-jumpbox">
- <a href="#A"><strong>A</strong></a>
- | <a href="#C"><strong>C</strong></a>
+ <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
  | <a href="#E"><strong>E</strong></a>
  | <a href="#G"><strong>G</strong></a>
+ | <a href="#H"><strong>H</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#R"><strong>R</strong></a>
@@ -167,18 +167,16 @@
  | <a href="#V"><strong>V</strong></a>
  
 </div>
-<h2 id="A">A</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="services_monitor.html#services.monitor_service.ActiveMonitors">ActiveMonitors (class in services.monitor_service)</a>
-</li>
-  </ul></td>
-</tr></table>
-
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="services_chart.html#services.chart_service.ChartService">ChartService (class in services.chart_service)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#views.api.create_monitor">create_monitor() (in module views.api)</a>
+</li>
+      <li><a href="api.html#views.api.create_stream">create_stream() (in module views.api)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -186,35 +184,33 @@
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="detectors.html#detectors.detector_abstract.Detector_Abstract.detect">detect() (detectors.detector_abstract.Detector_Abstract method)</a>
-</li>
-      <li><a href="detectors.html#detectors.detector_abstract.Detector_Abstract">Detector_Abstract (class in detectors.detector_abstract)</a>
-</li>
-      <li><a href="detectors.html#detectors.detector_factory.DetectorFactory">DetectorFactory (class in detectors.detector_factory)</a>
-</li>
       <li>
-    detectors.detector_abstract
+    detector_machines.detector_machine_abstract
 
       <ul>
-        <li><a href="detectors.html#module-detectors.detector_abstract">module</a>
+        <li><a href="detectors.html#module-detector_machines.detector_machine_abstract">module</a>
+</li>
+      </ul></li>
+      <li>
+    detector_machines.detector_machine_cvlib
+
+      <ul>
+        <li><a href="detectors.html#module-detector_machines.detector_machine_cvlib">module</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li>
-    detectors.detector_cvlib
+    detector_machines.detector_machine_factory
 
       <ul>
-        <li><a href="detectors.html#module-detectors.detector_cvlib">module</a>
+        <li><a href="detectors.html#module-detector_machines.detector_machine_factory">module</a>
 </li>
       </ul></li>
-      <li>
-    detectors.detector_factory
-
-      <ul>
-        <li><a href="detectors.html#module-detectors.detector_factory">module</a>
+      <li><a href="api.html#views.api.detector_sleep_throttle">detector_sleep_throttle() (in module views.api)</a>
 </li>
-      </ul></li>
+      <li><a href="detectors.html#detector_machines.detector_machine_factory.DetectorMachineFactory">DetectorMachineFactory (class in detector_machines.detector_machine_factory)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -233,39 +229,53 @@
 </li>
       <li><a href="api.html#views.api.get_active_monitors">get_active_monitors() (in module views.api)</a>
 </li>
-      <li><a href="api.html#views.api.get_all_monitors">get_all_monitors() (in module views.api)</a>
+      <li><a href="api.html#views.api.get_all_log_objects">get_all_log_objects() (in module views.api)</a>
 </li>
       <li><a href="api.html#views.api.get_chart">get_chart() (in module views.api)</a>
 </li>
-      <li><a href="detectors.html#detectors.detector_abstract.Detector_Abstract.get_class_data">get_class_data() (detectors.detector_abstract.Detector_Abstract static method)</a>
+      <li><a href="services_monitor.html#id1">get_config() (services.monitor_service.MonitorService method)</a>, <a href="services_monitor.html#services.monitor_service.MonitorService.get_config">[1]</a>
+</li>
+      <li><a href="api.html#views.api.get_detectors">get_detectors() (in module views.api)</a>
+</li>
+      <li><a href="api.html#views.api.get_log_objects">get_log_objects() (in module views.api)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#views.api.get_monitor">get_monitor() (in module views.api)</a>
+</li>
+      <li><a href="api.html#views.api.get_monitors">get_monitors() (in module views.api)</a>
+</li>
+      <li><a href="services_monitor.html#id2">get_next_frame() (services.monitor_service.MonitorService method)</a>, <a href="services_monitor.html#services.monitor_service.MonitorService.get_next_frame">[1]</a>
+</li>
+      <li><a href="api.html#views.api.get_notification_objects">get_notification_objects() (in module views.api)</a>
+</li>
+      <li><a href="api.html#views.api.get_streams">get_streams() (in module views.api)</a>
+</li>
+      <li><a href="api.html#views.api.get_trained_objects">get_trained_objects() (in module views.api)</a>
 
       <ul>
-        <li><a href="api.html#views.api.get_class_data">(in module views.api)</a>
-</li>
-        <li><a href="services_monitor.html#services.monitor_service.MonitorService.get_class_data">(services.monitor_service.MonitorService method)</a>
+        <li><a href="services_monitor.html#id3">(services.monitor_service.MonitorService static method)</a>, <a href="services_monitor.html#services.monitor_service.MonitorService.get_trained_objects">[1]</a>
 </li>
       </ul></li>
   </ul></td>
+</tr></table>
+
+<h2 id="H">H</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="services_monitor.html#services.monitor_service.MonitorService.get_detector">get_detector() (services.monitor_service.MonitorService method)</a>
+      <li><a href="services_chart.html#services.chart_service.ChartService.handle_message">handle_message() (services.chart_service.ChartService method)</a>
+
+      <ul>
+        <li><a href="services_log.html#services.log_service.LogService.handle_message">(services.log_service.LogService method)</a>
 </li>
-      <li><a href="services_monitor.html#services.monitor_service.MonitorService.get_feed">get_feed() (services.monitor_service.MonitorService static method)</a>
+        <li><a href="services_monitor.html#id4">(services.monitor_service.MonitorService method)</a>, <a href="services_monitor.html#services.monitor_service.MonitorService.handle_message">[1]</a>
 </li>
-      <li><a href="services_monitor.html#services.monitor_service.MonitorService.get_monitor">get_monitor() (services.monitor_service.MonitorService static method)</a>
-</li>
-      <li><a href="services_monitor.html#services.monitor_service.MonitorService.get_next_frame">get_next_frame() (services.monitor_service.MonitorService method)</a>
-</li>
-      <li><a href="detectors.html#detectors.detector_abstract.Detector_Abstract.get_trained_objects">get_trained_objects() (detectors.detector_abstract.Detector_Abstract method)</a>
-</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="services_monitor.html#services.monitor_service.MonitorService.load_classes">load_classes() (services.monitor_service.MonitorService method)</a>
-</li>
-  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="services_log.html#services.log_service.LogService">LogService (class in services.log_service)</a>
 </li>
@@ -279,11 +289,11 @@
     module
 
       <ul>
-        <li><a href="detectors.html#module-detectors.detector_abstract">detectors.detector_abstract</a>
+        <li><a href="detectors.html#module-detector_machines.detector_machine_abstract">detector_machines.detector_machine_abstract</a>
 </li>
-        <li><a href="detectors.html#module-detectors.detector_cvlib">detectors.detector_cvlib</a>
+        <li><a href="detectors.html#module-detector_machines.detector_machine_cvlib">detector_machines.detector_machine_cvlib</a>
 </li>
-        <li><a href="detectors.html#module-detectors.detector_factory">detectors.detector_factory</a>
+        <li><a href="detectors.html#module-detector_machines.detector_machine_factory">detector_machines.detector_machine_factory</a>
 </li>
         <li><a href="services_chart.html#module-services.chart_service">services.chart_service</a>
 </li>
@@ -298,7 +308,7 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="services_monitor.html#services.monitor_service.MonitorService">MonitorService (class in services.monitor_service)</a>
+      <li><a href="services_monitor.html#id0">MonitorService (class in services.monitor_service)</a>, <a href="services_monitor.html#services.monitor_service.MonitorService">[1]</a>
 </li>
   </ul></td>
 </tr></table>
@@ -308,14 +318,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="services_elapsedtime.html#id2">reset() (services.elapsed_time.ElapsedTime method)</a>, <a href="services_elapsedtime.html#services.elapsed_time.ElapsedTime.reset">[1]</a>
 </li>
-      <li><a href="detectors.html#detectors.detector_abstract.Detector_Abstract.run">run() (detectors.detector_abstract.Detector_Abstract method)</a>
+      <li><a href="services_chart.html#services.chart_service.ChartService.run">run() (services.chart_service.ChartService method)</a>
 
       <ul>
-        <li><a href="services_chart.html#services.chart_service.ChartService.run">(services.chart_service.ChartService method)</a>
-</li>
         <li><a href="services_log.html#services.log_service.LogService.run">(services.log_service.LogService method)</a>
 </li>
-        <li><a href="services_monitor.html#services.monitor_service.MonitorService.run">(services.monitor_service.MonitorService method)</a>
+        <li><a href="services_monitor.html#id5">(services.monitor_service.MonitorService method)</a>, <a href="services_monitor.html#services.monitor_service.MonitorService.run">[1]</a>
 </li>
       </ul></li>
   </ul></td>
@@ -352,41 +360,35 @@
         <li><a href="services_monitor.html#module-services.monitor_service">module</a>
 </li>
       </ul></li>
-      <li><a href="detectors.html#detectors.detector_abstract.Detector_Abstract.set_logged_objects">set_logged_objects() (detectors.detector_abstract.Detector_Abstract method)</a>
+      <li><a href="api.html#views.api.set_chart_objects">set_chart_objects() (in module views.api)</a>
 </li>
-      <li><a href="detectors.html#detectors.detector_abstract.Detector_Abstract.set_monitored_objects">set_monitored_objects() (detectors.detector_abstract.Detector_Abstract method)</a>
+      <li><a href="api.html#views.api.set_chart_time_horizon">set_chart_time_horizon() (in module views.api)</a>
 </li>
-      <li><a href="detectors.html#detectors.detector_factory.DetectorFactory.singelton">singelton (detectors.detector_factory.DetectorFactory attribute)</a>
-
-      <ul>
-        <li><a href="services_monitor.html#services.monitor_service.ActiveMonitors.singelton">(services.monitor_service.ActiveMonitors attribute)</a>
+      <li><a href="api.html#views.api.set_chart_time_zone">set_chart_time_zone() (in module views.api)</a>
 </li>
-      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="detectors.html#detectors.detector_abstract.Detector_Abstract.start">start() (detectors.detector_abstract.Detector_Abstract method)</a>
-
-      <ul>
-        <li><a href="services_chart.html#services.chart_service.ChartService.start">(services.chart_service.ChartService method)</a>
+      <li><a href="api.html#views.api.set_charting_options">set_charting_options() (in module views.api)</a>
 </li>
-        <li><a href="services_log.html#services.log_service.LogService.start">(services.log_service.LogService method)</a>
+      <li><a href="api.html#views.api.set_log_interval">set_log_interval() (in module views.api)</a>
 </li>
-        <li><a href="services_monitor.html#services.monitor_service.MonitorService.start">(services.monitor_service.MonitorService method)</a>
+      <li><a href="api.html#views.api.set_log_objects">set_log_objects() (in module views.api)</a>
 </li>
-      </ul></li>
+      <li><a href="api.html#views.api.set_notification_objects">set_notification_objects() (in module views.api)</a>
+</li>
+      <li><a href="detectors.html#detector_machines.detector_machine_factory.DetectorMachineFactory.singleton">singleton (detector_machines.detector_machine_factory.DetectorMachineFactory attribute)</a>
+</li>
+      <li><a href="services_monitor.html#id6">start() (services.monitor_service.MonitorService method)</a>, <a href="services_monitor.html#services.monitor_service.MonitorService.start">[1]</a>
+</li>
       <li><a href="api.html#views.api.start_monitor">start_monitor() (in module views.api)</a>
 </li>
-      <li><a href="detectors.html#detectors.detector_abstract.Detector_Abstract.stop">stop() (detectors.detector_abstract.Detector_Abstract method)</a>
-
-      <ul>
-        <li><a href="services_chart.html#services.chart_service.ChartService.stop">(services.chart_service.ChartService method)</a>
+      <li><a href="services_monitor.html#id7">start_service() (services.monitor_service.MonitorService method)</a>, <a href="services_monitor.html#services.monitor_service.MonitorService.start_service">[1]</a>
 </li>
-        <li><a href="services_log.html#services.log_service.LogService.stop">(services.log_service.LogService method)</a>
+      <li><a href="services_monitor.html#id8">stop() (services.monitor_service.MonitorService method)</a>, <a href="services_monitor.html#services.monitor_service.MonitorService.stop">[1]</a>
 </li>
-        <li><a href="services_monitor.html#services.monitor_service.MonitorService.stop">(services.monitor_service.MonitorService method)</a>
-</li>
-      </ul></li>
       <li><a href="api.html#views.api.stop_monitor">stop_monitor() (in module views.api)</a>
+</li>
+      <li><a href="services_monitor.html#id9">stop_service() (services.monitor_service.MonitorService method)</a>, <a href="services_monitor.html#services.monitor_service.MonitorService.stop_service">[1]</a>
 </li>
   </ul></td>
 </tr></table>
@@ -396,31 +398,31 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#views.api.toggle_all">toggle_all() (in module views.api)</a>
 </li>
-      <li><a href="services_monitor.html#services.monitor_service.MonitorService.toggle_all_log">toggle_all_log() (services.monitor_service.MonitorService method)</a>
+      <li><a href="api.html#views.api.toggle_box">toggle_box() (in module views.api)</a>
 </li>
-      <li><a href="services_monitor.html#services.monitor_service.MonitorService.toggle_all_mon">toggle_all_mon() (services.monitor_service.MonitorService method)</a>
+      <li><a href="api.html#views.api.toggle_chart_objects">toggle_chart_objects() (in module views.api)</a>
+</li>
+      <li><a href="api.html#views.api.toggle_log_objects">toggle_log_objects() (in module views.api)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#views.api.toggle_box">toggle_box() (in module views.api)</a>
+      <li><a href="api.html#views.api.toggle_notification_objects">toggle_notification_objects() (in module views.api)</a>
 </li>
-      <li><a href="services_monitor.html#services.monitor_service.MonitorService.toggle_log">toggle_log() (services.monitor_service.MonitorService method)</a>
+      <li><a href="api.html#views.api.toggle_objects">toggle_objects() (in module views.api)</a>
 </li>
-      <li><a href="services_monitor.html#services.monitor_service.MonitorService.toggle_monitor">toggle_monitor() (services.monitor_service.MonitorService method)</a>
+      <li><a href="api.html#views.api.toggle_service">toggle_service() (in module views.api)</a>
+
+      <ul>
+        <li><a href="services_monitor.html#id10">(services.monitor_service.MonitorService method)</a>, <a href="services_monitor.html#services.monitor_service.MonitorService.toggle_service">[1]</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="services_monitor.html#services.monitor_service.MonitorService.update">update() (services.monitor_service.MonitorService method)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="services_monitor.html#services.monitor_service.MonitorService.update_logged_objects">update_logged_objects() (services.monitor_service.MonitorService method)</a>
-</li>
-      <li><a href="services_monitor.html#services.monitor_service.MonitorService.update_monitored_objects">update_monitored_objects() (services.monitor_service.MonitorService method)</a>
+      <li><a href="api.html#views.api.update_monitor">update_monitor() (in module views.api)</a>
 </li>
   </ul></td>
 </tr></table>

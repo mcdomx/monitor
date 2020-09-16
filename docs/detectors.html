@@ -157,87 +157,17 @@
 <p class="admonition-title">Note</p>
 <p>Modules used to create object detectors.</p>
 </div>
-<span class="target" id="module-detectors.detector_abstract"></span><dl class="py class">
-<dt id="detectors.detector_abstract.Detector_Abstract">
-<em class="property">class </em><code class="sig-prename descclassname">detectors.detector_abstract.</code><code class="sig-name descname">Detector_Abstract</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">detector_id</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">queue_detready</span><span class="p">:</span> <span class="n">queue.Queue</span></em>, <em class="sig-param"><span class="n">queue_detframe</span><span class="p">:</span> <span class="n">queue.Queue</span></em>, <em class="sig-param"><span class="n">queue_dets_log</span><span class="p">:</span> <span class="n">queue.Queue</span></em>, <em class="sig-param"><span class="n">queue_dets_mon</span><span class="p">:</span> <span class="n">queue.Queue</span></em>, <em class="sig-param"><span class="n">mon_objs</span><span class="p">:</span> <span class="n">list</span></em>, <em class="sig-param"><span class="n">log_objs</span><span class="p">:</span> <span class="n">list</span></em>, <em class="sig-param"><span class="n">detection_interval</span><span class="p">:</span> <span class="n">int</span></em><span class="sig-paren">)</span><a class="headerlink" href="#detectors.detector_abstract.Detector_Abstract" title="Permalink to this definition">¶</a></dt>
-<dd><p>Abstract class for a detector.
-required methods:
-&gt; detect(frame_num:int, frame:np.array) -&gt; int, np.array</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>returns the frame number and frame with detections</p></li>
-</ul>
-</div></blockquote>
-<dl class="py method">
-<dt id="detectors.detector_abstract.Detector_Abstract.detect">
-<em class="property">abstract </em><code class="sig-name descname">detect</code><span class="sig-paren">(</span><em class="sig-param">frame: numpy.array) -&gt; (&lt;class 'int'&gt;</em>, <em class="sig-param">&lt;built-in function array&gt;</em>, <em class="sig-param">&lt;class 'list'&gt;</em>, <em class="sig-param">&lt;class 'list'&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#detectors.detector_abstract.Detector_Abstract.detect" title="Permalink to this definition">¶</a></dt>
-<dd><p>Each supported detector must override this method.
-:frame: np.array) - frame from which to detect objects
-:det_objs: set - set of object names which should be detected
-Returns: frame number, frame, log_detections list and mon_detections list</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="detectors.detector_abstract.Detector_Abstract.get_class_data">
-<em class="property">static </em><code class="sig-name descname">get_class_data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">monitor_id</span><span class="p">:</span> <span class="n">int</span></em><span class="sig-paren">)</span><a class="headerlink" href="#detectors.detector_abstract.Detector_Abstract.get_class_data" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="detectors.detector_abstract.Detector_Abstract.get_trained_objects">
-<em class="property">abstract </em><code class="sig-name descname">get_trained_objects</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; set<a class="headerlink" href="#detectors.detector_abstract.Detector_Abstract.get_trained_objects" title="Permalink to this definition">¶</a></dt>
-<dd><p>Each supported detector must override this method.
-:return: set of strings where each string is the name of a trained object. Spaces
-must be represented with an underscore, ‘_’.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="detectors.detector_abstract.Detector_Abstract.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#detectors.detector_abstract.Detector_Abstract.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Method representing the thread’s activity.</p>
-<p>You may override this method in a subclass. The standard run() method
-invokes the callable object passed to the object’s constructor as the
-target argument, if any, with sequential and keyword arguments taken
-from the args and kwargs arguments, respectively.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="detectors.detector_abstract.Detector_Abstract.set_logged_objects">
-<code class="sig-name descname">set_logged_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">logged_objects</span><span class="p">:</span> <span class="n">list</span></em><span class="sig-paren">)</span><a class="headerlink" href="#detectors.detector_abstract.Detector_Abstract.set_logged_objects" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="detectors.detector_abstract.Detector_Abstract.set_monitored_objects">
-<code class="sig-name descname">set_monitored_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">monitored_objects</span></em><span class="sig-paren">)</span><a class="headerlink" href="#detectors.detector_abstract.Detector_Abstract.set_monitored_objects" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="detectors.detector_abstract.Detector_Abstract.start">
-<code class="sig-name descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#detectors.detector_abstract.Detector_Abstract.start" title="Permalink to this definition">¶</a></dt>
-<dd><p>Start the thread’s activity.</p>
-<p>It must be called at most once per thread object. It arranges for the
-object’s run() method to be invoked in a separate thread of control.</p>
-<p>This method will raise a RuntimeError if called more than once on the
-same thread object.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="detectors.detector_abstract.Detector_Abstract.stop">
-<code class="sig-name descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#detectors.detector_abstract.Detector_Abstract.stop" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<span class="target" id="module-detectors.detector_factory"></span><dl class="py class">
-<dt id="detectors.detector_factory.DetectorFactory">
-<em class="property">class </em><code class="sig-prename descclassname">detectors.detector_factory.</code><code class="sig-name descname">DetectorFactory</code><a class="headerlink" href="#detectors.detector_factory.DetectorFactory" title="Permalink to this definition">¶</a></dt>
+<span class="target" id="module-detector_machines.detector_machine_abstract"></span><span class="target" id="module-detector_machines.detector_machine_factory"></span><dl class="py class">
+<dt id="detector_machines.detector_machine_factory.DetectorMachineFactory">
+<em class="property">class </em><code class="sig-prename descclassname">detector_machines.detector_machine_factory.</code><code class="sig-name descname">DetectorMachineFactory</code><a class="headerlink" href="#detector_machines.detector_machine_factory.DetectorMachineFactory" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py attribute">
-<dt id="detectors.detector_factory.DetectorFactory.singelton">
-<code class="sig-name descname">singelton</code><em class="property"> = None</em><a class="headerlink" href="#detectors.detector_factory.DetectorFactory.singelton" title="Permalink to this definition">¶</a></dt>
+<dt id="detector_machines.detector_machine_factory.DetectorMachineFactory.singleton">
+<code class="sig-name descname">singleton</code><em class="property"> = None</em><a class="headerlink" href="#detector_machines.detector_machine_factory.DetectorMachineFactory.singleton" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-<span class="target" id="module-detectors.detector_cvlib"></span></div>
+<span class="target" id="module-detector_machines.detector_machine_cvlib"></span></div>
 
 
            </div>

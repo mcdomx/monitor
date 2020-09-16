@@ -167,8 +167,15 @@
 </div>
 <span class="target" id="module-services.elapsed_time"></span><dl class="py class">
 <dt id="services.elapsed_time.ElapsedTime">
-<em class="property">class </em><code class="sig-prename descclassname">services.elapsed_time.</code><code class="sig-name descname">ElapsedTime</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">start_time</span><span class="o">=</span><span class="default_value">3.800968956</span></em>, <em class="sig-param"><span class="n">adj</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#services.elapsed_time.ElapsedTime" title="Permalink to this definition">¶</a></dt>
-<dd><p>Timer the counts elapsed time</p>
+<em class="property">class </em><code class="sig-prename descclassname">services.elapsed_time.</code><code class="sig-name descname">ElapsedTime</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">start_time</span><span class="o">=</span><span class="default_value">2.75422451</span></em>, <em class="sig-param"><span class="n">adj</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#services.elapsed_time.ElapsedTime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Timer the counts elapsed time.
+Usage:
+# create a timer
+timer = ElapsedTime()
+# get the elapsed time
+seconds_since_timer_started = timer.get()
+# start the timer at 0
+timer.reset()</p>
 <dl class="py method">
 <dt id="services.elapsed_time.ElapsedTime.get">
 <code class="sig-name descname">get</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#services.elapsed_time.ElapsedTime.get" title="Permalink to this definition">¶</a></dt>
@@ -176,15 +183,22 @@
 
 <dl class="py method">
 <dt id="services.elapsed_time.ElapsedTime.reset">
-<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#services.elapsed_time.ElapsedTime.reset" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">start_time</span><span class="o">=</span><span class="default_value">2.754225033</span></em><span class="sig-paren">)</span><a class="headerlink" href="#services.elapsed_time.ElapsedTime.reset" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt id="id0">
-<em class="property">class </em><code class="sig-prename descclassname">services.elapsed_time.</code><code class="sig-name descname">ElapsedTime</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">start_time</span><span class="o">=</span><span class="default_value">3.800968956</span></em>, <em class="sig-param"><span class="n">adj</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
-<dd><p>Timer the counts elapsed time</p>
+<em class="property">class </em><code class="sig-prename descclassname">services.elapsed_time.</code><code class="sig-name descname">ElapsedTime</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">start_time</span><span class="o">=</span><span class="default_value">2.75422451</span></em>, <em class="sig-param"><span class="n">adj</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
+<dd><p>Timer the counts elapsed time.
+Usage:
+# create a timer
+timer = ElapsedTime()
+# get the elapsed time
+seconds_since_timer_started = timer.get()
+# start the timer at 0
+timer.reset()</p>
 <dl class="py method">
 <dt id="id1">
 <code class="sig-name descname">get</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id1" title="Permalink to this definition">¶</a></dt>
@@ -192,7 +206,7 @@
 
 <dl class="py method">
 <dt id="id2">
-<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id2" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">start_time</span><span class="o">=</span><span class="default_value">2.754225033</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id2" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
