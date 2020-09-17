@@ -40,6 +40,7 @@ urlpatterns = [
     re_path(r"set_chart_time_horizon[\/|\?].*", api.set_chart_time_horizon, name='set_chart_time_horizon'),
     re_path(r"set_chart_time_zone[\/|\?].*", api.set_chart_time_zone, name='set_chart_time_zone'),
     re_path(r"set_detector_sleep_throttle[\/|\?].*", api.detector_sleep_throttle, name='detector_sleep_throttle'),
+    re_path(r"set_detector_confidence[\/|\?].*", api.detector_confidence, name='detector_confidence'),
 
 
     re_path(r"start_monitor[\/|\?].*", api.start_monitor, name="start_monitor"),

@@ -273,6 +273,7 @@ class MonitorFactory:
                     'detector_name': monitor.detector.name,
                     'detector_model': monitor.detector.model,
                     'detector_sleep_throttle': monitor.detector_sleep_throttle,
+                    'detector_confidence': monitor.detector_confidence,
                     'feed_description': monitor.feed.description,
                     'feed_id': monitor.feed.cam,
                     'feed_url': monitor.feed.url,

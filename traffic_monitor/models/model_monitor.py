@@ -19,6 +19,7 @@ class Monitor(models.Model):
     name = models.CharField(primary_key=True, max_length=64)
     detector = models.ForeignKey(Detector, on_delete=models.CASCADE, related_name='detector_log', null=True)
     detector_sleep_throttle = models.IntegerField(default=5)
+    detector_confidence = models.FloatField(default=.50)
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name='feed_log', null=True)
     log_objects = models.JSONField(default=list)
     notification_objects = models.JSONField(default=list)
@@ -30,6 +31,7 @@ class Monitor(models.Model):
     charting_objects = models.JSONField(default=list)
     charting_time_zone = models.CharField(max_length=32)
     class_colors = models.JSONField(default=dict)
+
 
     def __str__(self):
         # this is set to self.name so that the admin page shows the monitor name

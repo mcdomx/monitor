@@ -40,7 +40,7 @@ class DetectorMachineCVlib(DetectorMachineAbstract):
     def detect(self, frame: np.array) -> (np.array, list):
         # colors is a list of BGR values in a list ([[#b,#g,#r],[#b,#g,#r], ... ])
         try:
-            bbox, labels, conf = detect_common_objects(frame, confidence=.25, model=self.detector_model)
+            bbox, labels, conf = detect_common_objects(frame, confidence=self.monitor_config.get('detector_confidence'), model=self.detector_model)
             frame = draw_bbox(img=frame, bbox=bbox, labels=labels, confidence=conf, write_conf=False, colors=self.bgr_colors)
             return frame, labels
         except Exception as e:

@@ -55,13 +55,25 @@
             const url = 'get_monitor?name=' + monitor_name
             return await fetch(url).then(data => {
                 return data.json();
-            });
+            }).catch( function(error) {
+                                    console.log("Could not get data: get_monitor_config() failed. : " + error);
+                                });
+        }
+
+        async function get_monitor_config_value(monitor_name, field) {
+            const url = 'get_monitor?name=' + monitor_name + '&field=' + field;
+            return await fetch(url).then(data => {
+                return data.json();
+            }).catch( function(error) {
+                                    console.log("Could not get data: get_monitor_config() failed. : " + error);
+                                });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             setup_config_socket('{{monitor_name}}');
             update_config_objects('{{monitor_name}}');
         })
+
 </script>
 
 <div class="row">

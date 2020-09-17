@@ -156,14 +156,15 @@ def _filter_serializable(filter_me: dict) -> dict:
 def get_monitor(request) -> JsonResponse:
     try:
         kwargs = _parse_args(request, 'name')
-        # name = request.GET.get('name')
-        # if name is None:
-        #     raise Exception("'name' parameter is required.")
 
-        mon = MonitorServiceManager().get_monitor_configuration(**kwargs)
+        mon = MonitorServiceManager().get_monitor_configuration(kwargs.get('name'))
 
         # only return values that are Json serializable
         rv = _filter_serializable(mon)
+
+        field = kwargs.get('field')
+        if field is not None and field in rv.keys():
+            rv = rv.get(field)
 
         return JsonResponse(rv, safe=False)
     except Exception as e:
@@ -333,6 +334,12 @@ def set_chart_time_zone(request) -> JsonResponse:
 def detector_sleep_throttle(request) -> JsonResponse:
     kwargs = _parse_args(request, 'monitor_name', 'value')
     rv = MonitorServiceManager().set_value(kwargs.get('monitor_name'), 'detector_sleep_throttle', int(kwargs.get('value')))
+    return JsonResponse(rv, safe=False)
+
+
+def detector_confidence(request) -> JsonResponse:
+    kwargs = _parse_args(request, 'monitor_name', 'value')
+    rv = MonitorServiceManager().set_value(kwargs.get('monitor_name'), 'detector_confidence', float(kwargs.get('value')))
     return JsonResponse(rv, safe=False)
 
 
