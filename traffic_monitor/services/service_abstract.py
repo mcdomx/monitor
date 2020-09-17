@@ -33,7 +33,6 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
         self.monitor_config = monitor_config
         self.output_data_topic = output_data_topic
         self.monitor_name = monitor_config.get('monitor_name')
-        # self.pulse = 1
         self.running = False
         self.condition = threading.Condition()  # used to interrupt sleep when config changes
 
@@ -59,9 +58,6 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
         """
         return self.condition
 
-    # def update_monitor_config(self, monitor_config):
-    #     self.monitor_config = monitor_config
-
     def _on_revoke(self, consumer, partitions) -> (Consumer, list):
         """
         Kafak will revoke the consumer occasionally.  When this happens, a new consumer is setup
@@ -73,7 +69,7 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
         """
         if not self.running:
             return
-        logger.info(f"ServiceAbstract subscriber on_revoke triggered.  Resetting consumer.")
+        logger.error(f"{self.__class__.__name__:25}: subscriber on_revoke triggered.  Resetting consumer.")
         consumer = Consumer({
             'bootstrap.servers': '127.0.0.1:9092',
             'group.id': 'monitorgroup',
@@ -91,15 +87,15 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
         :return: A dict with bool 'success' and string 'message' describing result.
         """
         if self.running:
-            message = {'message': f"[{self.__class__.__name__}] Service is already running: {self.monitor_name}"}
+            message = {'message': f"[{self.__class__.__name__}]: already running for'{self.monitor_name}'"}
             return message
         try:
             self.running = True
             threading.Thread.start(self)
-            message = {'message': f"[{self.__class__.__name__}] Service started for: {self.monitor_name}"}
+            message = {'message': f"[{self.__class__.__name__}]: started for '{self.monitor_name}'"}
             return message
         except Exception as e:
-            raise Exception(f"[{self.__class__.__name__}] Could not start '{self.monitor_name}': {e}")
+            raise Exception(f"[{self.__class__.__name__}]: could not start for '{self.monitor_name}': {e}")
 
     def stop(self):
         """
@@ -143,6 +139,9 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
         """
         ...
 
+    def keep_alive(self):
+        pass
+
     def _handle_config_change(self, msg):
         """
         The abstract class will handle message with the key 'config_change'.
@@ -164,7 +163,10 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
             # These are converted into a single dict to be used as a kwargs parameter
             # when calling the respective function named in the message.
             kwargs_list: list = msg_value.get('kwargs')
-            kwargs = {p['field']: p['value'] for p in kwargs_list}
+            if kwargs_list:
+                kwargs = {p['field']: p['value'] for p in kwargs_list}
+            else:
+                kwargs = None
 
             try:
                 f = getattr(self, function_name)
@@ -180,7 +182,7 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
                 return
 
             except AttributeError as e:
-                logger.error(e)
+                logger.error(f"{self.__class__.__name__}: e")
 
     def set_value(self, kwargs):
         """
@@ -190,7 +192,7 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
         :param kwargs: k,v pairs representing the 'field_name' and 'value' to update or add to the monitor_config attribute.
         :return: None
         """
-        logger.info(f"Setting value: {kwargs}")
+        logger.info(f"{self.__class__.__name__}: setting value: {kwargs}")
         for field, value in kwargs.items():
             self.monitor_config.update({field: value})
         return

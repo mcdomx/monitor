@@ -155,10 +155,9 @@ class MonitorFactory:
             """ Kafka support function.  Called once for each message produced to indicate delivery result.
                 Triggered by poll() or flush(). """
             if err is not None:
-                logger.info(f'{self.__class__.__name__}: Monitor_Factory Message delivery failed: {err}')
+                logger.info(f'Monitor_Factory Message delivery failed: {err}')
             else:
-                logger.info(
-                    f'{self.__class__.__name__}: Monitor_Factory Message delivered to {msg.topic()} partition:[{msg.partition()}]')
+                logger.info(f'Monitor_Factory Message delivered to {msg.topic()} partition:[{msg.partition()}]')
 
         def toggle_service(self, monitor_name: str, service: str):
             """

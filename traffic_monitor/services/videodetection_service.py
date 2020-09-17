@@ -106,9 +106,9 @@ class VideoDetectionService(ServiceAbstract, ABC):
             logger.error(e)
             return
 
-        logger.info(f"Starting video detection service for id: {self.monitor_name}")
-        logger.info(f"Video detection service running for {self.monitor_name}: {self.running}")
-        logger.info(f"Video Capture Opened: {cap.isOpened()}")
+        # logger.info(f"Starting video detection service for id: {self.monitor_name}")
+        # logger.info(f"Video detection service running for {self.monitor_name}: {self.running}")
+        # logger.info(f"Video Capture Opened: {cap.isOpened()}")
 
         timer = ElapsedTime()
 
@@ -132,18 +132,27 @@ class VideoDetectionService(ServiceAbstract, ABC):
                 pass
 
             # keep the consumer alive by regular polling
-            if timer.get() > 5:
+            if timer.get() > 0:
                 msg = self.poll_kafka(0)
 
                 # if the detector setting changed, we need to create and start a new detector
                 if msg is not None:
                     key = msg.key().decode('utf-8')
                     if key == 'config_change':
-                        udpate_kwargs = json.JSONDecoder().decode(msg.value().decode('utf-8')).get('kwargs')
-                        fields = [d.get('field') for d in udpate_kwargs]
+                        decoded_msg = json.JSONDecoder().decode(msg.value().decode('utf-8'))
+                        f = decoded_msg.get('function')
+                        # not all 'config_change' messages call 'set_value' - 'keep_alive' is possible
+                        # we don't reset the detector for keep_alive messages
+                        if f is not 'set_value':
+                            continue
+
+                        update_kwargs = decoded_msg.get('kwargs')
+                        if not update_kwargs:
+                            continue
+                        fields = [d.get('field') for d in update_kwargs]
                         if 'detector_name' in fields or 'detector_model' in fields:
                             # restart detector
-                            logger.info(f"Resetting detector with update configuration: {udpate_kwargs}")
+                            logger.info(f"Resetting detector with update configuration: {update_kwargs}")
                             self.detector.stop()
                             self.detector.join()
                             self._set_detector()

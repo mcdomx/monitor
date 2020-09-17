@@ -12,7 +12,7 @@ import time
 import numpy as np
 
 from confluent_kafka.admin import AdminClient, NewTopic, KafkaException
-from confluent_kafka import Consumer, TopicPartition, OFFSET_END
+from confluent_kafka import Consumer, TopicPartition, OFFSET_END, Producer
 
 from traffic_monitor.detector_machines.detector_machine_factory import DetectorMachineFactory
 from traffic_monitor.services.service_abstract import ServiceAbstract
@@ -20,8 +20,7 @@ from traffic_monitor.services.videodetection_service import VideoDetectionServic
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.notification_service import NotificationService
 from traffic_monitor.services.chart_service import ChartService
-# from traffic_monitor.websocket_channels import ServiceToggle
-# from traffic_monitor.websocket_channels_factory import ChannelFactory
+from traffic_monitor.services.elapsed_time import ElapsedTime
 
 BUFFER_SIZE = 512
 
@@ -120,6 +119,10 @@ class MonitorService(threading.Thread):
         partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p, OFFSET_END) for p in range(3)]
         self.consumer.assign(partitions)
 
+        # Keep-Alive Producer
+        # self.producer = Producer({'bootstrap.servers': '127.0.0.1:9092',
+        #                           'group.id': 'monitorgroup'})
+
     def __str__(self):
         rv = self.__dict__
         str_rv = {k: f"{v}" for k, v in rv.items()}
@@ -166,9 +169,9 @@ class MonitorService(threading.Thread):
 
         if service is None:
             s: ServiceAbstract = service_class(
-                                                monitor_config=self.monitor_config,
-                                                output_data_topic=self.output_data_topic,
-                                               )
+                monitor_config=self.monitor_config,
+                output_data_topic=self.output_data_topic,
+            )
             s.start()
             self.active_services.update({s.__class__.__name__: {'object': s, 'condition': s.get_condition()}})
 
@@ -194,7 +197,8 @@ class MonitorService(threading.Thread):
             # Start Services
             self.start_service(VideoDetectionService)
         except Exception as e:
-            raise Exception(f"[{self.__class__.__name__}] Could not start '{self.monitor_name}' VideoDetectionService: {e}")
+            raise Exception(
+                f"[{self.__class__.__name__}] Could not start '{self.monitor_name}' VideoDetectionService: {e}")
 
         for s, c in SERVICES.items():
             if self.monitor_config.get(s):
@@ -202,7 +206,8 @@ class MonitorService(threading.Thread):
                     self.start_service(c)
                     self.running = True
                 except Exception as e:
-                    raise Exception(f"[{self.__class__.__name__}] Could not start '{self.monitor_name}' '{c.__name__}': {e}")
+                    raise Exception(
+                        f"[{self.__class__.__name__}] Could not start '{self.monitor_name}' '{c.__name__}': {e}")
 
         # now that all the monitor's sub-services are started, start the monitor service
         threading.Thread.start(self)
@@ -248,8 +253,11 @@ class MonitorService(threading.Thread):
 
         # If a config_change message is received, get each service's
         # condition and notify so that the service's run loop
-        # is interrupted and the kafka message is checked by the service's abstract class
-        if msg_key == 'config_change':
+        # is interrupted and the kafka message is checked by the
+        # service's abstract class immediately.
+        # We also need to make sure the consumers get any
+        # keep_alive messages.
+        if msg_key == 'config_change' or msg_key == 'keep_alive':
             for s_dict in self.active_services.values():
                 c: threading.Condition = s_dict.get('condition')
                 if c:
@@ -283,15 +291,8 @@ class MonitorService(threading.Thread):
                 else:
                     f()
 
-                # no need to update front-end - this is handled by the monitor_factory
-                # # Update Front-End using Channels
-                # # -------------------------------
-                # channel: ServiceToggle = ChannelFactory().get(f"/ws/traffic_monitor/{msg_key}/{self.monitor_name}/")
-                # # only update the channel if a channel has been created (i.e. - a front-end is using it)
-                # if channel:
-                #     # send message to front-end
-                #     channel.update(json.JSONEncoder().encode(msg_value))
-                # # -------------------------------
+                # no need to update front-end - this is handled by the
+                # monitor_factory when it sends out a config_change message
 
             except AttributeError as e:
                 logger.error(e)
@@ -303,6 +304,8 @@ class MonitorService(threading.Thread):
         """
         logger.info(f"[{self.__class__.__name__}] Service started for: {self.monitor_name}")
 
+        # keep_alive_timer = ElapsedTime()
+
         while self.running:
 
             # poll kafka for messages that control the state of services
@@ -312,15 +315,38 @@ class MonitorService(threading.Thread):
             # msg = msg.value().decode('utf-8')
 
             if msg is None:
-                time.sleep(1)
-                continue
-            if msg.error():
-                logger.info(f"[{self.__class__.__name__}] Consumer error: {msg.error()}")
-                continue
+                pass
+            else:
+                if msg.error():
+                    logger.info(f"[{self.__class__.__name__}] Consumer error: {msg.error()}")
+                else:
+                    self.handle_message(msg)
 
-            self.handle_message(msg)
+            time.sleep(1)
 
-            # time.sleep(1)
+            # send out a keep_alive message every 4 minutes
+            # This will create a message that will be handled by this
+            # monitor_service which will acquire the sub-service locks
+            # and send them a 'config_change' message that calls
+            # a keep_alive function in the sub-service's abstract class
+            # if keep_alive_timer.get() >= 60:
+            #     # logger.info(f"Keep_alive_timer value before message: {keep_alive_timer.get()}")
+            #     # create message
+            #     key = 'config_change'
+            #     msg = {
+            #         'message': f"config_change keep_alive for '{self.monitor_name}'",
+            #         'function': 'keep_alive',
+            #         # 'kwargs': [{'field': field, 'value': value}]
+            #     }
+            #     self.producer.poll(0)
+            #     self.producer.produce(topic=self.monitor_name,
+            #                           key=key,
+            #                           value=json.JSONEncoder().encode(msg),
+            #                           # callback=self.delivery_report,
+            #                           )
+            #     self.producer.flush()
+            #     keep_alive_timer.reset()
+            #     # logger.info(f"Keep_alive_timer value after message: {keep_alive_timer.get()}")
 
         self.consumer.close()
         logger.info("MONITOR SERVICE HAS STOPPED!")

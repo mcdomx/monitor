@@ -19,8 +19,10 @@ class ElapsedTime:
     def get(self):
         return time.perf_counter() - self.start_time
 
-    def reset(self, start_time=time.perf_counter()):
-        self.start_time = start_time
+    def reset(self, start_time=None):
+        # print(f"start_time before reset: {self.start_time} perf_counter={time.perf_counter()}")
+        self.start_time = time.perf_counter() if start_time is None else start_time
+        # print(f"start_time after reset: {self.start_time}  incoming start_time: {start_time}")
 
     def __str__(self):
         t = self.get()

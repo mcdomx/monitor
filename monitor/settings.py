@@ -151,7 +151,7 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {'verbose': {
         '()': 'monitor.settings.LogColorFormatter',
-        'format': '{levelname} {asctime} ({module}): {message}',
+        'format': '{levelname:^6} {asctime} ({module:^25}): {message}',
         'datefmt': '%Y-%m-%d %H:%M:%S',
         'style': '{', },
         'simple': {
