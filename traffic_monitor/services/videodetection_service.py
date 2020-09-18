@@ -172,12 +172,6 @@ class VideoDetectionService(ServiceAbstract, ABC):
                     logger.info(
                         f"Restarting {self.monitor_config.get('detector_name')}:{self.monitor_config.get('detector_model')} for {self.monitor_name}")
                     self._set_detector()
-                    # self.detector = DetectorMachineFactory().get_detector_machine(
-                    #                                                                 monitor_config=self.monitor_config,
-                    #                                                                 input_image_queue=self.input_image_queue,
-                    #                                                                 output_image_queue=self.output_image_queue,
-                    #                                                                 output_data_topic=self.output_data_topic,
-                    #                                                               )
                     self.detector.start()
 
                 # if detector is ready, perform frame detection

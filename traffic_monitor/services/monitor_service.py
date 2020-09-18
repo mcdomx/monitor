@@ -148,7 +148,7 @@ class MonitorService(threading.Thread):
     def _on_revoke(self, consumer, partitions) -> (Consumer, list):
         if not self.running:
             return
-        logger.info(f"Monitor_Service subscriber on_revoke triggered.  Resetting consumer.")
+        logger.error(f"{self.__class__.__name__:25}: subscriber on_revoke triggered.  Resetting consumer.")
         consumer = Consumer({
             'bootstrap.servers': '127.0.0.1:9092',
             'group.id': 'monitorgroup',

@@ -76,57 +76,64 @@ class DetectorMachineAbstract(ServiceAbstract):
 
         timer = ElapsedTime()
 
+
         while self.running:
-
-            # keep the consumer alive by regular polling
-            if timer.get() > 5:
-                _ = self.poll_kafka(0)
-                timer.reset()
-
             try:
-                frame = self.input_image_queue.get(block=False)
+                # keep the consumer alive by regular polling
+                if timer.get() > 5:
+                    _ = self.poll_kafka(0)
+                    timer.reset()
 
-            except queue.Empty:
-                # no frames available to perform detection on
+                try:
+                    frame = self.input_image_queue.get(block=False)
+
+                except queue.Empty:
+                    # no frames available to perform detection on
+                    continue
+
+                self.is_ready = False
+                try:
+                    frame, detections = self.detect(frame)
+                except Exception as e:
+                    logger.info(f"[{self.name}] Unhandled Detection Exception: {e.args}")
+                    continue
+
+                # put detected frame on queue
+                try:
+                    self.output_image_queue.put({'frame': frame})
+
+                except queue.Full:
+                    logger.info(f"[{self.name}] Detected frame queue was full.  Purging oldest item to make room.")
+                    _ = self.output_image_queue.get()
+                    self.output_image_queue.put({'frame': frame})
+                except Exception as e:
+                    logger.info(f"[{self.name}] Unhandled Exception placing detection image on queue: {e.args}")
+
+                # publish the data to kafka topic
+                try:
+                    self.producer.poll(0)
+                    self.producer.produce(topic=self.monitor_name,
+                                          key='detector_detection',
+                                          value=json.JSONEncoder().encode(detections),
+                                          callback=self.delivery_report,
+                                          )
+                    self.producer.flush()
+
+                except Exception as e:
+                    logger.info(f"[{self.name}] Unhandled Exception publishing detection data: {e.args}")
+                    logger.info(traceback.print_stack())
+
+                # # sleep to let the timer expire
+                # time.sleep(max(0, self.detection_interval - timer.get()))
+                # timer.reset()
+                time.sleep(self.monitor_config.get('detector_sleep_throttle', 1))
+                self.is_ready = True
+
+            except Exception as e:
+                logger.error(f"{self.__class__.__name__:25} run loop failed!")
+                logger.error(f"{self.__class__.__name__:25} {e}")
+                self.is_ready = True
                 continue
-
-            self.is_ready = False
-            try:
-                frame, detections = self.detect(frame)
-            except Exception as e:
-                logger.info(f"[{self.name}] Unhandled Detection Exception: {e.args}")
-                continue
-
-            # put detected frame on queue
-            try:
-                self.output_image_queue.put({'frame': frame})
-
-            except queue.Full:
-                logger.info(f"[{self.name}] Detected frame queue was full.  Purging oldest item to make room.")
-                _ = self.output_image_queue.get()
-                self.output_image_queue.put({'frame': frame})
-            except Exception as e:
-                logger.info(f"[{self.name}] Unhandled Exception placing detection image on queue: {e.args}")
-
-            # publish the data to kafka topic
-            try:
-                self.producer.poll(0)
-                self.producer.produce(topic=self.monitor_name,
-                                      key='detector_detection',
-                                      value=json.JSONEncoder().encode(detections),
-                                      callback=self.delivery_report,
-                                      )
-                self.producer.flush()
-
-            except Exception as e:
-                logger.info(f"[{self.name}] Unhandled Exception publishing detection data: {e.args}")
-                logger.info(traceback.print_stack())
-
-            # # sleep to let the timer expire
-            # time.sleep(max(0, self.detection_interval - timer.get()))
-            # timer.reset()
-            time.sleep(self.monitor_config.get('detector_sleep_throttle', 1))
-            self.is_ready = True
 
         self.is_ready = True  # if this stopped with is_ready as false, we make sure it will start again as ready
         self.consumer.close()

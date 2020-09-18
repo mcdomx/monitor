@@ -1,4 +1,8 @@
 import logging
+import os
+import getpass
+import string
+import random
 
 from django.core.management.base import BaseCommand
 
@@ -20,7 +24,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         """ Setup DB with supported Detectors and models"""
-
         # DETECTORS
         # first, erase existing detector_machines
         dets = Detector.objects.all()

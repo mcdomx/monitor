@@ -5,7 +5,13 @@ This application is designed to monitor a video stream and log the occurrence of
 
 Logging and Monitoring
 ----------------------
-The application supports two distinct types of activities for each type of object detected in the video stream; Logging and Monitoring.  Logging is the action of storing the counts of detected objects in the video stream.  The resulting log can be used to analyze traffic patterns.  Monitoring will trigger an action when a defined object is detected in the video stream.  For example, if an elephant is detected, a message can be sent or the frame image can be saved. (Currently, monitoring actions are not setup and intended for a future release.)
+The application supports two distinct types of activities for each type of object detected in the video stream; Logging and Monitoring.
+
+Logging
+    Logging is the action of storing the counts of detected objects in the video stream.  The resulting log can be used to analyze traffic patterns.
+
+Monitoring
+    Monitoring will trigger an action when a defined object is detected in the video stream.  For example, if an elephant is detected, a message can be sent or the frame image can be saved. (Currently, monitoring actions are not setup and intended for a future release.)
 
 A web font-end provides the most appealing and simple interface to the monitor but the monitor can also be controlled via rest calls and the progress can be seen in a terminal window.
 
@@ -13,35 +19,52 @@ Architecture
 ------------
 The application uses Django to publish pages and handle API requests.  A Postgres database is used to store configuration information as well as data collected by the Monitor.  In an effort to structure the application so that it can later be converted to a series of microservices, the Postgres database is run in a Docker container.
 
-Application components communicate across the backend using Kafka and the Django back-end communicates with web clients using WebSockets.
+Communications
+    Application components communicate across the backend using Kafka and the Django back-end communicates with web clients using WebSockets.
 
-The application employs a concept of a Monitor which is a user-named combination of a Video Feed and a Detector.  The video feed is the link to the video source and the Detector is a configured object which includes an object detector which will detect objects in a video feed.  3 services are defined which independently perform actions based on the Monitor:
+Services
+    The application employs a concept of a Monitor which is a user-named combination of a Video Feed and a Detector.  The video feed is the link to the video source and the Detector is a configured object which includes an object detector which will detect objects in a video feed.  5 services are defined which are designed to operate independently:
 
-#. Monitor Service
-This is the primary service that is necessary for any other service to operate.  The Monitor Service will initiate the video stream and other services that are configured for the monitor.  This service serves as the top-level coordinator for a Monitor and its supporting services.
+1. Monitor Service
+    This is the primary service that is necessary for any other service to operate.  The Monitor Service will initiate the video stream and other services that are configured for the monitor.  This service serves as the top-level coordinator for a Monitor and its supporting services.
 
-The monitor service runs as a thread, so an instantiated service is a one-time object.  Once the thread is stopped, it cannot be restarted and will be destroyed.  A new instance of the service is instantiated each time the service is restarted.  Configurations for the service are persistent and stored in the database, so new instances of the Monitor will have the same settings as the last time the monitor was used.
+    The monitor service runs as a thread, so an instantiated service is a one-time object.  Once the thread is stopped, it cannot be restarted and will be destroyed.  A new instance of the service is instantiated each time the service is restarted.  Configurations for the service are persistent and stored in the database, so new instances of the Monitor will have the same settings as the last time the monitor was used.
 
-#. Log Service
-The Log Service will collect data from a detector through Kafka messages and subsequently store the logged data into the application's database. Logged data can be used later to create models which can predict future appearance of objects or simply used to identify traffic patterns.  A detector may be capable of detecting a long list of objects, but the Log Service can be configured to store a subset of items from the detector.  By default, the Log Service will write to the database each minute, but this frequency can be changed.
+2. Video Detection Service
+    This is the service that will capture images from a video stream and will deliver them to a Detector Machine where object detection is performed.  The application is designed so that this service can be replaced by another custom class that may perform detections on other sources of data such as an audio stream or a text stream.  The application currently only supports video detection.
 
-#. Chart Service
-The Chart Service will collect data from the Monitor Service and publish a chart to the web client that displays the number of detected instances over time.  The time zone and time horizon on the x-axis of this chart can be configured.
+    This Video Detection Service will start a Detector Machine which performs the work of extracting data from the video stream.
 
-#. Notification Service (future)
-The Notification service will perform a notification action (alert, email, text message, etc) based on the presence of a particular object detected in the video stream.  Where logging will record each instance of a detected object, the Notification Service will broadcast a notification the moment that an object is detected.  This service can be used as an 'alarm' or 'alert'; for example, if there is an elephant in your front yard.
+3. Log Service
+    The Log Service will collect data from a detector through Kafka messages and subsequently store the logged data into the application's database. Logged data can be used later to create models which can predict future appearance of objects or simply used to identify traffic patterns.  A detector may be capable of detecting a long list of objects, but the Log Service can be configured to store a subset of items from the detector.  By default, the Log Service will write to the database each minute, but this frequency can be changed.
+
+4. Chart Service
+    The Chart Service will collect data from the Monitor Service and publish a chart to the web client that displays the number of detected instances over time.  The time zone and time horizon on the x-axis of this chart can be configured.
+
+5. Notification Service (future)
+    The Notification service will perform a notification action (alert, email, text message, etc) based on the presence of a particular object detected in the video stream.  Where logging will record each instance of a detected object, the Notification Service will broadcast a notification the moment that an object is detected.  This service can be used as an 'alarm' or 'alert'; for example, if there is an elephant in your front yard.
 
 A small hierarchy of objects are necessary to organize data collected by a Monitor.  A Monitor is defined as a combination of a Video Feed and a Detector.  A Monitor is created by a user and given a unique name.  Data is retrieved via a reference to the Monitor.  The detector can be changed once a Monitor has been defined, but the monitor name and the video feed remain fixed.
 
 
+Getting Started
+===============
+
 Environment Setup
 -----------------
-The application relies on a ``.env`` file in the root.  This file supports the following environment variables:
+
+The application relies on a ``.env`` file in the root.  The creation of this file is simplified by running the following command:
+::
+
+    python manage.py create_env
+
+
+This file supports the following environment variables:
 
 *optional variables:*
 ::
 
-    export VERBOSITY=DEBUG
+    export VERBOSITY=INFO
 
 
 *required variables:*
@@ -137,3 +160,23 @@ Changes to the Postgres or Kafka services can be made by updating the docker-com
 
 -  Update variables and values in the ``docker-compose.yaml`` file in
    the ``infrastructure`` directory.
+
+
+Start Application
+-----------------
+The application can be started via:
+
+::
+
+    python manage.py runserver
+
+Using this command, the application will be published to http://127.0.0.1:8000
+
+Alternatively, you can define the IP address and port used by the application.  If you set the IP address t the host computer's IP address, you will be able to access the application from any machine on the local network:
+
+::
+
+    python manage.py runserver 10.0.0.1:12345
+
+
+
