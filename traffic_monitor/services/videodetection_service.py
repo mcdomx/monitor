@@ -160,8 +160,11 @@ class VideoDetectionService(ServiceAbstract, ABC):
 
                 timer.reset()
 
-            cap.grab()  # only read every other frame
-            success, frame = cap.read()
+            try:
+                cap.grab()  # only read every other frame
+                success, frame = cap.read()
+            except Exception as e:
+                continue
 
             # if detector is ready, place frame in
             # queue for the detector to pick up
@@ -187,12 +190,10 @@ class VideoDetectionService(ServiceAbstract, ABC):
                         # if queue is full skip, drop an image to make room
                         _ = self.input_image_queue.get()
                         self.input_image_queue.put(frame, block=False)
-                        continue
 
         # stop the detector service
         self.detector.stop()
         self.detector.join()
-
         self.consumer.close()
         logger.info(f"[{self.monitor_name}] Stopped video detection service.")
 

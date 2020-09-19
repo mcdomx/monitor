@@ -69,6 +69,79 @@
                                 });
         }
 
+        function setup_selection_table(monitor_name, type) {
+            {# Used to setup a log or notification table of checkboxes  #}
+            {# that can turn on or off each trained object of a given monitor_name. #}
+            {# Supported type values are 'log' and 'notification'. #}
+            const url = 'get_trained_objects?monitor_name=' + monitor_name
+            fetch(url)
+                .then(response => response.json())
+                .then(data => { make_table(data); })
+                .then( () => update_config_objects(monitor_name))
+                .catch(function(error) {
+                                    console.log("Could not get data: get_trained_objects() failed. : " + error);
+                                })
+
+            async function make_table(data) {
+                let monitor_config = await get_monitor_config("{{ monitor_name }}")
+                let class_colors = monitor_config['class_colors']
+
+                {#Clear the table#}
+                let table = document.querySelector('#' + type + '_table');
+                table.innerHTML = ''
+                for (let o in data) {
+                    let row = make_row(data[o], class_colors[data[o]]);
+                    add_row(row);}
+
+                function make_row(o, color) {
+                    {# Create class name column #}
+                    let c1 = document.createElement("td");
+                    {# $(<#id>) retrieves a DOM element by id#}
+                    {#c1.innerHTML = `${o}`;#}
+                    c1.innerHTML = "<span style='height:10px; width:10px; border-radius:50%; background-color: rgb(" + color[0] + "," + color[1] + "," + color[2] +"); display: inline-block'></span>&nbsp" + `${o}`;
+                    c1.className = 'py-2';
+
+                    {# Create checkbox column #}
+                    let check_box = document.createElement("input");
+                    check_box.type = 'checkbox';
+                    check_box.className = 'config_object ' + type + '_objects ' + o.replace(' ', '_');
+                    check_box.setAttribute('data-obj', o);
+                    check_box.checked = false;
+                    check_box.onclick = function() {toggle_box(o);}
+
+                    let c2 = document.createElement("td");
+                    c2.appendChild(check_box);
+                    c2.className = "text-center py-2";
+
+                    let table_row = document.createElement('tr');
+                    table_row.appendChild(c1);
+                    table_row.appendChild(c2);
+
+                    return table_row
+                 }
+
+                function add_row(table_row) {
+                    let table = document.querySelector('#' + type + '_table');
+                    table.appendChild(table_row)
+                }
+
+                function toggle_box(obj) {
+                    let url = 'toggle_' + type + '_objects/';
+                    url += '?monitor_name={{ monitor_name }}&objects=' + obj;
+                    fetch(url)
+                        .catch( (err) => {console.log("Toggle Error: " + err);} );
+                }
+            }
+        }
+
+
+
+
+
+
+
+
+
         document.addEventListener('DOMContentLoaded', () => {
             setup_config_socket('{{monitor_name}}');
             update_config_objects('{{monitor_name}}');
