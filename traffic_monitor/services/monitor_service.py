@@ -149,13 +149,13 @@ class MonitorService(threading.Thread):
         if not self.running:
             return
         logger.error(f"{self.__class__.__name__:25}: subscriber on_revoke triggered.  Resetting consumer.")
-        consumer = Consumer({
-            'bootstrap.servers': '127.0.0.1:9092',
-            'group.id': 'monitorgroup',
-            'auto.offset.reset': 'earliest'
-        })
+        # consumer = Consumer({
+        #     'bootstrap.servers': '127.0.0.1:9092',
+        #     'group.id': 'monitorgroup',
+        #     'auto.offset.reset': 'earliest'
+        # })
         self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self._on_revoke)
-        partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p) for p in range(3)]
+        partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p, OFFSET_END) for p in range(3)]
         self.consumer.assign(partitions)
         return consumer, partitions
 

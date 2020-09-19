@@ -25,7 +25,7 @@
             socket.onmessage = function(e) {
                 const data = JSON.parse(e.data).counts;
                 const utctime = new Date(JSON.parse(e.data).time_stamp);
-                let time_stamp = utctime.toLocaleString()
+                let time_stamp = utctime.toLocaleDateString() + " " +utctime.toTimeString();
 
                 let logtable = document.getElementById("logtable");
                 let i = 0;
@@ -54,12 +54,12 @@
 
                     i++;
 
-                {#If list is longer than 100, remove oldest item from the bottom of list#}
-                var num_elems = document.getElementById("logtable").childElementCount;
+                    {#If list is longer than 100, remove oldest item from the bottom of list#}
+                    var num_elems = document.getElementById("logtable").childElementCount;
 
-                if (num_elems > 10) {
-                    logtable.removeChild(logtable.childNodes[10]);
-                }
+                    if (num_elems > 10) {
+                        logtable.removeChild(logtable.childNodes[10]);
+                    }
 
                 }
             }
@@ -93,8 +93,27 @@
 
             let menu_header1 = document.createElement('p');
             menu_header1.className = "dropdown-header";
-            menu_header1.innerText = "Logging Intervals:";
+            menu_header1.innerText = "Logged Objects:";
             menulisting.appendChild(menu_header1);
+
+            let elem = document.createElement('a');
+            elem.className = "dropdown-item py-0";
+            elem.setAttribute('role', "presentation");
+            elem.href = '#';
+            elem.onclick = () => {
+                $('#logmodal').modal();
+            };
+            elem.innerText = "Select log objects...";
+            menulisting.appendChild(elem);
+
+            let div = document.createElement('div');
+            div.className = "dropdown-divider";
+            menulisting.appendChild(div);
+
+            let menu_header2 = document.createElement('p');
+            menu_header2.className = "dropdown-header";
+            menu_header2.innerText = "Logging Intervals:";
+            menulisting.appendChild(menu_header2);
 
             let intervals = [{'desc': '1 minute', 'value': '60'}, {
                 'desc': '2 minutes',
@@ -116,11 +135,89 @@
             }
         }
 
+        function toggle_box(elemid) {
+            let split_elemid = elemid.split("__");
+            let action = split_elemid[0];
+            let obj = split_elemid[1];
+            let url = null;
+            if (action==='log') {
+                url = 'toggle_log_objects/'
+            }
+            if (action==='not') {
+                url = 'toggle_notification_objects/'
+            }
+            if (url === null) {
+                return
+            }
+
+            url += '?monitor_name={{ monitor_name }}&objects=' + obj.replace('_', ' ')
+
+            fetch(url);
+        }
+
+
+        function setup_log_table(monitor_name) {
+        {#    Get data to put in table #}
+            const url = 'get_trained_objects?monitor_name=' + monitor_name
+            fetch(url)
+                .then(response => response.json())
+                .then(data => { make_log_table(data); })
+                .then( () => update_config_objects(monitor_name))
+                .catch(function(error) {
+                                    console.log("Could not get data: get_trained_objects() failed. : " + error);
+                                })
+        }
+
+        async function make_log_table(data) {
+            let monitor_config = await get_monitor_config("{{ monitor_name }}")
+            let class_colors = monitor_config['class_colors']
+
+            {#Clear the table#}
+            let table = document.querySelector("#log_table");
+            table.innerHTML = ''
+            for (let o in data) {
+                let row = make_log_class_row(data[o], class_colors[data[o]]);
+                add_log_table_row(row);}
+        }
+
+        function make_log_class_row(o, color) {
+            {# Create class name column #}
+            let c1 = document.createElement("td");
+            {# $(<#id>) retrieves a DOM element by id#}
+            {#c1.innerHTML = `${o}`;#}
+            c1.innerHTML = "<span style='height:10px; width:10px; border-radius:50%; background-color: rgb(" + color[0] + "," + color[1] + "," + color[2] +"); display: inline-block'></span>&nbsp" + `${o}`;
+            c1.className = 'py-2';
+
+            {# Create checkbox column #}
+            let check_box = document.createElement("input");
+            check_box.type = 'checkbox';
+            check_box.className = 'config_object log_objects ' + o.replace(' ', '_');
+            check_box.setAttribute('data-obj', o);
+            check_box.checked = false;
+            check_box.onclick = function() {toggle_box('log__' + o.replace(' ', '_'));}
+
+            let c2 = document.createElement("td");
+            c2.appendChild(check_box);
+            c2.className = "text-center py-2";
+
+            let table_row = document.createElement('tr');
+            table_row.appendChild(c1);
+            table_row.appendChild(c2);
+
+            return table_row
+        }
+
+        function add_log_table_row(table_row) {
+                let table = document.querySelector("#log_table");
+                table.appendChild(table_row)
+        }
+
         {#On load, setup the channel to get communications from the server #}
         document.addEventListener('DOMContentLoaded', () => {
             {#Update the table of elements to monitor and log#}
             update_logsocket('{{monitor_name}}');
             setup_logging_dropdown_menu('{{monitor_name}}');
+            setup_log_table('{{monitor_name}}');
         })
 
     </script>
@@ -141,5 +238,41 @@
             </table>
         </div>
     </div>
+
+    {#    MODAL    #}
+    <div class="modal fade" id="logmodal" tabindex="-1" role="dialog" aria-labelledby="logmodal" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="logmodaltitle">Select log objects ...</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th class="text-left">Object</th>
+                                    <th class="text-center">Log</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="log_table">
+                            </tbody>
+
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+{#                    <button type="button" class="btn btn-primary">Save changes</button>#}
+                </div>
+        </div>
+     </div>
+   </div>
+
+
 
 {% endblock content %}

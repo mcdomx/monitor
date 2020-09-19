@@ -76,7 +76,6 @@ class DetectorMachineAbstract(ServiceAbstract):
 
         timer = ElapsedTime()
 
-
         while self.running:
             try:
                 # keep the consumer alive by regular polling

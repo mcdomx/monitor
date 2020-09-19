@@ -39,4 +39,7 @@ class ChannelFactory:
             self.consumers.update({url: consumer})
 
         def remove(self, url):
-            self.consumers.pop(url)
+            try:
+                self.consumers.pop(url)
+            except KeyError as e:
+                return

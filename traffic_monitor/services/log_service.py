@@ -7,7 +7,7 @@ time interval and save the entries to database.
 import logging
 import json
 import datetime
-import time
+import pytz
 from abc import ABC
 
 from django.core.serializers.json import DjangoJSONEncoder
@@ -102,7 +102,7 @@ class LogService(ServiceAbstract, ABC):
                 if channel:
                     # this sends message to ay front end that has created a WebSocket
                     # with the respective channel_url address
-                    msg = {'time_stamp': time_stamp,
+                    msg = {'time_stamp': time_stamp,  # .astimezone(pytz.timezone(self.monitor_config.get('charting_time_zone'))),
                            'monitor_name': self.monitor_name,
                            'counts': interval_counts_dict}
                     channel.send(text_data=DjangoJSONEncoder().encode(msg))

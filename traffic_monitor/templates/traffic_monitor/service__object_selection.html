@@ -129,23 +129,21 @@
         document.addEventListener('DOMContentLoaded', () => {
             {#Update the table of elements to monitor and log#}
             setup_table('{{monitor_name}}');
-            {#update_configsocket('{{monitor_name}}');#}
         })
     </script>
 
     <div class="card-body" style="height: 360px; overflow-y: auto">
         <div class="table-responsive">
             <table class="table table-striped">
-                <thead style="position: sticky">
+                <thead>
                     <tr>
-                        <th style="position: sticky;">Object</th>
-                        <th style="position: sticky;" class="text-center"><button class="btn btn-primary" id="btn-monitor" type="button" onclick="toggle_all('mon')">Monitor</button></th>
-                        <th style="position: sticky;" class="text-center"><button class="btn btn-primary" id="btn-log" type="button" onclick="toggle_all('log')">&nbsp&nbsp Log &nbsp&nbsp</button></th>
+                        <th class="text-left">Object</th>
+                        <th class="text-center">Notify</th>
+                        <th class="text-center">Log</th>
                     </tr>
                 </thead>
 
-                <tbody id="notlogtable" style="height: 200px; overflow-y: scroll;">
-
+                <tbody id="notlogtable">
                 </tbody>
 
             </table>
