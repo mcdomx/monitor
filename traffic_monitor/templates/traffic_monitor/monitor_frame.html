@@ -69,6 +69,11 @@
                                 });
         }
 
+        function clear_log(log_type) {
+            let log = document.getElementById(log_type + '_output');
+            log.innerHTML = '';
+        }
+
         function setup_selection_table(monitor_name, type) {
             {# Used to setup a log or notification table of checkboxes  #}
             {# that can turn on or off each trained object of a given monitor_name. #}
@@ -166,8 +171,9 @@
         {%  include 'traffic_monitor/service__logging.html' with monitor_name=monitor_name section_id="monitor_log" %}
     </div>
 
-    <div class= "col-12 col-md-6" id="monitor_selection">
-        {%  include 'traffic_monitor/service__object_selection.html' with monitor_name=monitor_name section_id="monitor_selection" %}
+    <div class= "col-12 col-md-6" id="monitor_notification">
+{#        {%  include 'traffic_monitor/service__object_selection.html' with monitor_name=monitor_name section_id="monitor_selection" %}#}
+        {%  include 'traffic_monitor/service__notification.html' with monitor_name=monitor_name section_id="monitor_notification" %}
     </div>
 </div>
 

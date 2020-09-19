@@ -100,8 +100,18 @@
             elem.onclick = () => {
                 $('#logmodal').modal();
             };
-            elem.innerText = "Select log objects...";
+            elem.innerText = "Select objects...";
             menulisting.appendChild(elem);
+
+            let clr_elem = document.createElement('a');
+            clr_elem.className = "dropdown-item py-0";
+            clr_elem.setAttribute('role', "presentation");
+            clr_elem.href = '#';
+            clr_elem.onclick = () => {
+                clear_log('log');
+            };
+            clr_elem.innerText = "Clear log";
+            menulisting.appendChild(clr_elem);
 
             let div = document.createElement('div');
             div.className = "dropdown-divider";
@@ -109,7 +119,7 @@
 
             let menu_header2 = document.createElement('p');
             menu_header2.className = "dropdown-header";
-            menu_header2.innerText = "Logging Intervals:";
+            menu_header2.innerText = "Logging Interval:";
             menulisting.appendChild(menu_header2);
 
             let intervals = [{'desc': '1 minute', 'value': '60'}, {

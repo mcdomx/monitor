@@ -60,23 +60,20 @@ class LogService(ServiceAbstract, ABC):
 
             msg = self.poll_kafka(0)
             if msg is not None:
-                # continue
                 key_msg = self.handle_message(msg)
-                if key_msg is None:
-                    continue
+                if key_msg is not None:
+                    msg_key, msg_value = key_msg
 
-                msg_key, msg_value = key_msg
+                    logger.info(f"Log Service is handling message for {self.monitor_name}:")
+                    logger.info(f"\tKEY: {msg_key}")
+                    logger.info(f"\tMSG: {msg_value}")
 
-                logger.info(f"Log Service is handling message for {self.monitor_name}:")
-                logger.info(f"\tKEY: {msg_key}")
-                logger.info(f"\tMSG: {msg_value}")
+                # the log service will capture data from detector_detection messages
+                # if msg_key != 'detector_detection':
+                    # time_stamp_type, time_stamp = msg.timestamp()
 
-            # the log service will capture data from detector_detection messages
-            # if msg_key != 'detector_detection':
-                # time_stamp_type, time_stamp = msg.timestamp()
-
-                capture_count += 1
-                log_interval_detections += msg_value
+                    capture_count += 1
+                    log_interval_detections += msg_value
 
             # if the time reached the the logging interval
             if timer.get() >= self.monitor_config.get('log_interval'):
@@ -102,7 +99,7 @@ class LogService(ServiceAbstract, ABC):
                 if channel:
                     # this sends message to ay front end that has created a WebSocket
                     # with the respective channel_url address
-                    msg = {'time_stamp': time_stamp,  # .astimezone(pytz.timezone(self.monitor_config.get('charting_time_zone'))),
+                    msg = {'time_stamp': time_stamp,
                            'monitor_name': self.monitor_name,
                            'counts': interval_counts_dict}
                     channel.send(text_data=DjangoJSONEncoder().encode(msg))
@@ -119,7 +116,6 @@ class LogService(ServiceAbstract, ABC):
                 self.condition.acquire()
                 self.condition.wait(1)
                 self.condition.release()
-                # time.sleep(.5)
 
         self.consumer.close()
         logger.info(f"[{self.monitor_name}] Stopped log service.")

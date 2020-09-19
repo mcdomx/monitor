@@ -1,0 +1,177 @@
+{% extends 'traffic_monitor/section_wrapper.html' %}
+
+{% block title %}Notification Log{% endblock title %}
+
+{% block content %}
+    {% csrf_token %}
+
+    <script type="text/javascript">
+
+        async function update_notificationsocket(monitor_name) {
+            {# A socket is created that will be used to capture messages from #}
+            {# the backend. When updates are received the web page is updated #}
+            {# with the respective log information. #}
+
+            const socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/notification/' + monitor_name + '/')
+
+            let monitor_config = await get_monitor_config("{{ monitor_name }}")
+            let class_colors = monitor_config['class_colors']
+
+            {# Clear anything already in the detections log #}
+            let notificationoutput = document.getElementById("notification_output");
+            notificationoutput.innerHTML = ''
+
+            {# Update Log #}
+            socket.onmessage = function(e) {
+                const data = JSON.parse(e.data).notification_data;
+                const utctime = new Date(JSON.parse(e.data).time_stamp);
+                let time_stamp = utctime.toLocaleDateString() + " " +utctime.toTimeString();
+
+                let notificationoutput = document.getElementById("notification_output");
+
+                console.log('NOTIFICATION:'+ data);
+                let color = class_colors[data];
+                let notificationentry = document.createElement("tr");
+
+                let c1 = document.createElement("td");
+                c1.className = 'py-1'
+                c1.innerHTML = time_stamp;
+                notificationentry.appendChild(c1);
+
+                let c2 = document.createElement("td");
+                c2.className = 'py-1'
+                c2.innerHTML = "<span style='height:10px; width:10px; border-radius:50%; background-color: rgb(" + color[0] + "," + color[1] + "," + color[2] +"); display: inline-block'></span>&nbsp" + data;
+                notificationentry.appendChild(c2);
+                notificationoutput.insertBefore(notificationentry, notificationoutput.childNodes[0]);
+
+                {#If list is longer than 100, remove oldest item from the bottom of list#}
+                var num_elems = document.getElementById("notification_table").childElementCount;
+
+                if (num_elems > 100) {
+                    notificationoutput.removeChild(notificationoutput.childNodes[10]);
+                }
+
+            }
+
+
+            socket.onclose = function(e) {
+                console.log("notification socket closed!");
+            }
+
+            socket.onopen = function(e) {
+                console.log("notification socket opened!");
+            }
+
+        }
+
+        {#function set_log_interval(monitor_name, interval) {#}
+        {#    let elems = document.getElementsByClassName('config_object log_interval')#}
+        {#    let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'#}
+        {#    for (let e in elems) {#}
+        {#        if (elems.hasOwnProperty(e)) {#}
+        {#            elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"#}
+        {#        }#}
+        {#    }#}
+        {#    const url ='set_log_interval?monitor_name=' + monitor_name + '&value=' + interval;#}
+        {#    fetch(url);#}
+
+        async function setup_notification_dropdown_menu(monitor_name) {
+            {# Update the parent's 'dropdown-menu' tag with <a> links #}
+            let menulisting = document.getElementById('{{ section_id }}').getElementsByClassName('dropdown-menu')[0]
+            menulisting.innerText = '';
+
+            let menu_header1 = document.createElement('p');
+            menu_header1.className = "dropdown-header";
+            menu_header1.innerText = "Notification Objects:";
+            menulisting.appendChild(menu_header1);
+
+            let elem = document.createElement('a');
+            elem.className = "dropdown-item py-0";
+            elem.setAttribute('role', "presentation");
+            elem.href = '#';
+            elem.onclick = () => {
+                $('#notificationmodal').modal();
+            };
+            elem.innerText = "Select objects...";
+            menulisting.appendChild(elem);
+
+            {#let div = document.createElement('div');#}
+            {#div.className = "dropdown-divider";#}
+            {#menulisting.appendChild(div);#}
+
+            let clr_elem = document.createElement('a');
+            clr_elem.className = "dropdown-item py-0";
+            clr_elem.setAttribute('role', "presentation");
+            clr_elem.href = '#';
+            clr_elem.onclick = () => {
+                clear_log('notification');
+            };
+            clr_elem.innerText = "Clear log";
+            menulisting.appendChild(clr_elem);
+
+
+
+        }
+
+        {#On load, setup the channel to get communications from the server #}
+        document.addEventListener('DOMContentLoaded', () => {
+            {#Update the table of elements to monitor and log#}
+            update_notificationsocket('{{monitor_name}}');
+            setup_notification_dropdown_menu('{{monitor_name}}');
+            setup_selection_table('{{monitor_name}}', 'notification');
+        })
+
+    </script>
+
+    <div class="card-body" style="height: 360px; overflow-y: auto">
+        <div class="table-responsive">
+            <table class="table">
+                <thead style="text-align: left">
+                    <tr>
+                        <th>Time</th>
+                        <th>Detected Object</th>
+                    </tr>
+                </thead>
+
+                <tbody id="notification_output">
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+
+    {#    MODAL    #}
+    <div class="modal fade" id="notificationmodal" tabindex="-1" role="dialog" aria-labelledby="notificationmodal" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="notificationmodaltitle">Select notification objects ...</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th class="text-left">Object</th>
+                                    <th class="text-center">Notify</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="notification_table">
+                            </tbody>
+
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary btn-small" data-dismiss="modal">Close</button>
+{#                    <button type="button" class="btn btn-primary">Save changes</button>#}
+                </div>
+        </div>
+     </div>
+   </div>
+
+{% endblock content %}
