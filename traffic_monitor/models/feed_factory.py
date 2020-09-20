@@ -2,7 +2,7 @@ import logging
 import pafy
 import cv2 as cv
 import numpy as np
-import json
+import pytz
 
 from traffic_monitor.models.model_feed import Feed
 
@@ -128,6 +128,9 @@ class FeedFactory:
         def create(cam: str, time_zone: str, description: str) -> dict:
 
             try:
+                if time_zone not in pytz.all_timezones:
+                    raise Exception(f"{time_zone} is not a valid time_zone.  Valid timezones: {pytz.all_timezones}")
+
                 url = FeedFactory().get_url(cam=cam)
                 obj: Feed = Feed.objects.create(cam=cam, url=url, description=description, time_zone=time_zone)
                 obj.save()

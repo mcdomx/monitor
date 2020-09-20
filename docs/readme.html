@@ -85,8 +85,12 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Traffic Monitor</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#logging-and-monitoring">Logging and Monitoring</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#web-front-end">Web Front-End</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#api">API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#getting-started">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#environment-setup">Environment Setup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#database-and-kafka-messaging-services">Database and Kafka Messaging Services</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#initialize-database">Initialize Database</a></li>
@@ -95,11 +99,10 @@
 <li class="toctree-l3"><a class="reference internal" href="#change-database-and-kafka-configuration">Change Database and Kafka Configuration</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#start-application">Start Application</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="detectors.html">Detectors</a></li>
-<li class="toctree-l1"><a class="reference internal" href="services.html">Services</a></li>
 </ul>
 
             
@@ -166,32 +169,85 @@
   <div class="section" id="traffic-monitor">
 <span id="readme"></span><h1>Traffic Monitor<a class="headerlink" href="#traffic-monitor" title="Permalink to this headline">¶</a></h1>
 <p>This application is designed to monitor a video stream and log the occurrence of detect objects in it. Detections are recorded in a database so that they can be used to analyze the frequency of objects over time. This data can be used to train a model which can predict patterns.</p>
-<div class="section" id="logging-and-monitoring">
-<h2>Logging and Monitoring<a class="headerlink" href="#logging-and-monitoring" title="Permalink to this headline">¶</a></h2>
-<p>The application supports two distinct types of activities for each type of object detected in the video stream; Logging and Monitoring.  Logging is the action of storing the counts of detected objects in the video stream.  The resulting log can be used to analyze traffic patterns.  Monitoring will trigger an action when a defined object is detected in the video stream.  For example, if an elephant is detected, a message can be sent or the frame image can be saved. (Currently, monitoring actions are not setup and intended for a future release.)</p>
+<p>The application supports two distinct types of activities for each type of object detected in the video stream; Logging and Monitoring.</p>
+<dl class="simple">
+<dt>Logging</dt><dd><p>Logging is the action of storing the counts of detected objects in the video stream.  The resulting log can be used to analyze traffic patterns.</p>
+</dd>
+<dt>Monitoring</dt><dd><p>Monitoring will trigger an action when a defined object is detected in the video stream.  For example, if an elephant is detected, a message can be sent or the frame image can be saved. (Currently, monitoring actions are not setup and intended for a future release.)</p>
+</dd>
+</dl>
 <p>A web font-end provides the most appealing and simple interface to the monitor but the monitor can also be controlled via rest calls and the progress can be seen in a terminal window.</p>
+<div class="section" id="web-front-end">
+<h2>Web Front-End<a class="headerlink" href="#web-front-end" title="Permalink to this headline">¶</a></h2>
+<a class="reference internal image-reference" href="_images/all_services.png"><img alt="Home Screen" src="_images/all_services.png" style="width: 600px;" /></a>
+<p><strong>Home</strong>: Service activity is shown in separate sections.</p>
+<a class="reference internal image-reference" href="_images/monitor_configuration.png"><img alt="Configuration" src="_images/monitor_configuration.png" style="width: 300px;" /></a>
+<p><strong>Monitor Configuration</strong>: (not shown in the screen shot above). The monitor configuration displays the current values used by the monitor.  As items are changed using the popup menus or via the API, these values are updated in the web page.</p>
+<a class="reference internal image-reference" href="_images/detector_service.png"><img alt="Detector" src="_images/detector_service.png" style="width: 300px;" /></a>
+<p><strong>Detector</strong>: Each detected image is displayed.  The popup menu is used to adjust detector sleep time and the level of confidence used.  Increasing sleep time will reduce the burden on the CPU.</p>
+<a class="reference internal image-reference" href="_images/chart_service.png"><img alt="Chart" src="_images/chart_service.png" style="width: 300px;" /></a>
+<p><strong>Chart</strong>: At each log interval the chart is updated.  The popup menu can be used to adjust the x-axis time horizon or the time zone that the time is displayed in.  Additionally, logged items can be toggled for inclusion in the charted values.</p>
+<a class="reference internal image-reference" href="_images/log_service.png"><img alt="Log" src="_images/log_service.png" style="width: 300px;" /></a>
+<p><strong>Log</strong>: Logged items are presented with the most recently logged item first.  Items shown are items that have been added to the database.  Using the popup menu, logged items can be toggled and the interval used to log items to the database can be adjusted.</p>
+<a class="reference internal image-reference" href="_images/notification_service.png"><img alt="Notification" src="_images/notification_service.png" style="width: 300px;" /></a>
+<p><strong>Notification</strong>: Notified items are shown with the time that they were identified by the detector.  These items are not stored in the database.  The popup menu can be used to toggle the items that are presented in the notification log.</p>
+</div>
+<div class="section" id="api">
+<h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+<p>The application supports an API which can be used to setup, configure, start and stop monitors.  See the API documentation for details.</p>
 </div>
 <div class="section" id="architecture">
 <h2>Architecture<a class="headerlink" href="#architecture" title="Permalink to this headline">¶</a></h2>
 <p>The application uses Django to publish pages and handle API requests.  A Postgres database is used to store configuration information as well as data collected by the Monitor.  In an effort to structure the application so that it can later be converted to a series of microservices, the Postgres database is run in a Docker container.</p>
-<p>Application components communicate across the backend using Kafka and the Django back-end communicates with web clients using WebSockets.</p>
-<p>The application employs a concept of a Monitor which is a user-named combination of a Video Feed and a Detector.  The video feed is the link to the video source and the Detector is a configured object which includes an object detector which will detect objects in a video feed.  3 services are defined which independently perform actions based on the Monitor:</p>
-<p>#. Monitor Service
-This is the primary service that is necessary for any other service to operate.  The Monitor Service will initiate the video stream and other services that are configured for the monitor.  This service serves as the top-level coordinator for a Monitor and its supporting services.</p>
+<dl class="simple">
+<dt>Communications</dt><dd><p>Application components communicate across the backend using Kafka and the Django back-end communicates with web clients using WebSockets.</p>
+</dd>
+<dt>Services</dt><dd><p>The application employs a concept of a Monitor which is a user-named combination of a Video Feed and a Detector.  The video feed is the link to the video source and the Detector is a configured object which includes an object detector which will detect objects in a video feed.  5 services are defined which are designed to operate independently:</p>
+</dd>
+</dl>
+<ol class="arabic">
+<li><dl>
+<dt>Monitor Service</dt><dd><p>This is the primary service that is necessary for any other service to operate.  The Monitor Service will initiate the video stream and other services that are configured for the monitor.  This service serves as the top-level coordinator for a Monitor and its supporting services.</p>
 <p>The monitor service runs as a thread, so an instantiated service is a one-time object.  Once the thread is stopped, it cannot be restarted and will be destroyed.  A new instance of the service is instantiated each time the service is restarted.  Configurations for the service are persistent and stored in the database, so new instances of the Monitor will have the same settings as the last time the monitor was used.</p>
-<p>#. Log Service
-The Log Service will collect data from a detector through Kafka messages and subsequently store the logged data into the application’s database. Logged data can be used later to create models which can predict future appearance of objects or simply used to identify traffic patterns.  A detector may be capable of detecting a long list of objects, but the Log Service can be configured to store a subset of items from the detector.  By default, the Log Service will write to the database each minute, but this frequency can be changed.</p>
-<p>#. Chart Service
-The Chart Service will collect data from the Monitor Service and publish a chart to the web client that displays the number of detected instances over time.  The time zone and time horizon on the x-axis of this chart can be configured.</p>
-<p>#. Notification Service (future)
-The Notification service will perform a notification action (alert, email, text message, etc) based on the presence of a particular object detected in the video stream.  Where logging will record each instance of a detected object, the Notification Service will broadcast a notification the moment that an object is detected.  This service can be used as an ‘alarm’ or ‘alert’; for example, if there is an elephant in your front yard.</p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>Video Detection Service</dt><dd><p>This is the service that will capture images from a video stream and will deliver them to a Detector Machine where object detection is performed.  The application is designed so that this service can be replaced by another custom class that may perform detections on other sources of data such as an audio stream or a text stream.  The application currently only supports video detection.</p>
+<p>This Video Detection Service will start a Detector Machine which performs the work of extracting data from the video stream.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Log Service</dt><dd><p>The Log Service will collect data from a detector through Kafka messages and subsequently store the logged data into the application’s database. Logged data can be used later to create models which can predict future appearance of objects or simply used to identify traffic patterns.  A detector may be capable of detecting a long list of objects, but the Log Service can be configured to store a subset of items from the detector.  By default, the Log Service will write to the database each minute, but this frequency can be changed.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Chart Service</dt><dd><p>The Chart Service will collect data from the Monitor Service and publish a chart to the web client that displays the number of detected instances over time.  The time zone and time horizon on the x-axis of this chart can be configured.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Notification Service (future)</dt><dd><p>The Notification service will perform a notification action (alert, email, text message, etc) based on the presence of a particular object detected in the video stream.  Where logging will record each instance of a detected object, the Notification Service will broadcast a notification the moment that an object is detected.  This service can be used as an ‘alarm’ or ‘alert’; for example, if there is an elephant in your front yard.</p>
+</dd>
+</dl>
+</li>
+</ol>
 <p>A small hierarchy of objects are necessary to organize data collected by a Monitor.  A Monitor is defined as a combination of a Video Feed and a Detector.  A Monitor is created by a user and given a unique name.  Data is retrieved via a reference to the Monitor.  The detector can be changed once a Monitor has been defined, but the monitor name and the video feed remain fixed.</p>
 </div>
+</div>
+<div class="section" id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="environment-setup">
 <h2>Environment Setup<a class="headerlink" href="#environment-setup" title="Permalink to this headline">¶</a></h2>
-<p>The application relies on a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file in the root.  This file supports the following environment variables:</p>
+<p>The application relies on a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file in the root.  The creation of this file is simplified by running the following command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">create_env</span>
+</pre></div>
+</div>
+<p>This file supports the following environment variables:</p>
 <p><em>optional variables:</em></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">VERBOSITY</span><span class="o">=</span><span class="n">DEBUG</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">VERBOSITY</span><span class="o">=</span><span class="n">INFO</span>
 </pre></div>
 </div>
 <p><em>required variables:</em></p>
@@ -275,6 +331,18 @@ The Notification service will perform a notification action (alert, email, text 
 <li><p>Update variables and values in the <code class="docutils literal notranslate"><span class="pre">docker-compose.yaml</span></code> file in
 the <code class="docutils literal notranslate"><span class="pre">infrastructure</span></code> directory.</p></li>
 </ul>
+</div>
+</div>
+<div class="section" id="start-application">
+<h2>Start Application<a class="headerlink" href="#start-application" title="Permalink to this headline">¶</a></h2>
+<p>The application can be started via:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">runserver</span>
+</pre></div>
+</div>
+<p>Using this command, the application will be published to <a class="reference external" href="http://127.0.0.1:8000">http://127.0.0.1:8000</a></p>
+<p>Alternatively, you can define the IP address and port used by the application.  If you set the IP address t the host computer’s IP address, you will be able to access the application from any machine on the local network:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">runserver</span> <span class="mf">10.0</span><span class="o">.</span><span class="mf">0.1</span><span class="p">:</span><span class="mi">12345</span>
+</pre></div>
 </div>
 </div>
 </div>

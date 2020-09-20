@@ -271,8 +271,11 @@ class MonitorServiceManager:
 
         @staticmethod
         def set_value(monitor_name, field, value):
-            value = MonitorFactory().set_value(monitor_name, field, value)
-            return {'monitor_name': monitor_name, field: value}
+            try:
+                value = MonitorFactory().set_value(monitor_name, field, value)
+                return {'monitor_name': monitor_name, field: value}
+            except Exception as e:
+                return {'error': f"Could not set {field}: {value}"}
 
         @staticmethod
         def _get_services_from_config(monitor_config: dict) -> list:

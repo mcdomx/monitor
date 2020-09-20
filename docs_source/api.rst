@@ -3,7 +3,7 @@ API Reference
 
 .. Note::
 
-   API functions called from command line.
+   HTTP API functions called from a browser.
 
 
 .. contents:: Modules

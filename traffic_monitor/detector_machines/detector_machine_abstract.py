@@ -122,9 +122,7 @@ class DetectorMachineAbstract(ServiceAbstract):
                     logger.info(f"[{self.name}] Unhandled Exception publishing detection data: {e.args}")
                     logger.info(traceback.print_stack())
 
-                # # sleep to let the timer expire
-                # time.sleep(max(0, self.detection_interval - timer.get()))
-                # timer.reset()
+                # sleep
                 time.sleep(self.monitor_config.get('detector_sleep_throttle', 1))
                 self.is_ready = True
 

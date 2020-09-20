@@ -12,8 +12,6 @@ Traffic Monitor
 
    readme
    api
-   detectors
-   services
 
 
 Indices and tables

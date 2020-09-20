@@ -36,7 +36,6 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Detectors" href="detectors.html" />
     <link rel="prev" title="Traffic Monitor" href="readme.html" /> 
 </head>
 
@@ -85,9 +84,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="readme.html">Traffic Monitor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="readme.html#getting-started">Getting Started</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="detectors.html">Detectors</a></li>
-<li class="toctree-l1"><a class="reference internal" href="services.html">Services</a></li>
 </ul>
 
             
@@ -155,49 +153,160 @@
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>API functions called from command line.</p>
+<p>HTTP API functions called from a browser.</p>
 </div>
 <span class="target" id="module-views.api"></span><dl class="py function">
 <dt id="views.api.create_monitor">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">create_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.create_monitor" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>request</strong> – The HTML request</p>
+<dd><p>Create a new monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/create_monitor?
+name=&lt;unique name assigned to monitor&gt;&amp;
+detector_name=&lt;name of detector&gt;&amp;
+detector_model=&lt;existing detector model name&gt;&amp;
+feed_id=&lt;id of existing feed&gt;&amp;
+log_objects=&lt;comma-separated list of objects (optional)&gt;&amp;
+notification_objects=&lt;comma-separated list of objects (optional)&gt;&amp;
+charting_objects=&lt;comma-separated list of objects (optional)&gt;&amp;
+charting_time_zone=&lt;pytz time zone to display chart (optional)&gt;&amp;
+charting_time_horizon=&lt;x-axis time horizon for charting (optional)&gt;</p>
 </dd>
 </dl>
-<p>See the parameter descriptions below for constraints and defaults for each parameter.
-:return:</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – The HTML request. See the parameter descriptions below for constraints and defaults for each parameter.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt id="views.api.create_stream">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">create_stream</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.create_stream" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Create a video stream.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/create_stream?cam=&lt;camera URL&gt;&amp;
+time_zone=&lt;pytz time zone&gt;&amp;
+description=&lt;user defined&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that requires ‘cam’, ‘time_zone’ and ‘description’ arguments. The ‘cam’ argument can be any http address to a video stream or a short-hand youtube video hash. The ‘time_zone’ represents the timezone where the video is sourced from.  A ‘description’ is a free-form description of the stream.  Stream address and time zones will be validated before being saved. If validation fails, an error will be returned.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dictionary of the stream settings that have been set or an error if the stream could not be validated.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.detector_confidence">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">detector_confidence</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.detector_confidence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the confidence that a detector should use when recognizing an object.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/detector_confidence?
+monitor_name=&lt;monitor name&gt;&amp;
+value=&lt;confidence value from 0 to 1 to set&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ and ‘value’ argument. ‘value’ represents the new confidence. The ‘value’ is expected to be a float value between 0 and 1 (inclusive).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The new value after being set or the old value if it was not set.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="views.api.detector_sleep_throttle">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">detector_sleep_throttle</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.detector_sleep_throttle" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Set the number of seconds that a detector should sleep after performing a detection.  Increasing this value will
+lower the number of detections performed per minute and lower the CPU burden.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/detector_sleep_throttle?
+monitor_name=&lt;monitor name&gt;&amp;
+value=&lt;throttle value in seconds to set&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ and ‘value’ argument. ‘value’ represents the new sleep time to be set.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The new value after being set or the old value if it was not set.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="views.api.get_active_monitors">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_active_monitors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_active_monitors" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Retrieve the currently active monitors hosted by the application.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_active_monitors</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Dictionary of active monitors where each key is the monitor name and value is a dictionary of k,v pairs of monitor parameters and respective values.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="views.api.get_all_log_objects">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_all_log_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_all_log_objects" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Get a distinct list of all objects that have been logged by a monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_all_log_objects?
+monitor_name=&lt;monitor name&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request with a monitor_name argument.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of distinct objects that have been logged by a monitor.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="views.api.get_chart">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_chart</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_chart" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Return a JSON serialized Bokeh chart.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_chart?
+monitor_name=&lt;monitor name&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a monitor_name argument.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A JSON serialized Bokeh chart.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="views.api.get_detectors">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_detectors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_detectors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a dictionary of all available detector_machines.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_detectors</p>
+</dd>
+</dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>request</strong> – HTML Request. (not used for this function)</p>
@@ -211,27 +320,86 @@
 <dl class="py function">
 <dt id="views.api.get_log_objects">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_log_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_log_objects" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Retrieve a list of the objects that a monitor will save to the log.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_log_objects?
+monitor_name=&lt;monitor name&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that includes a ‘monitor_name’ argument.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of objects that a named monitor will log.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="views.api.get_monitor">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_monitor" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Return that configuration values of a specified monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_monitor?name=&lt;monitor name&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ argument.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The full set of configured values for a monitor.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="views.api.get_monitors">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_monitors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_monitors" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Return a list of all monitors configured in the application.  Each list element is a dictionary representing
+the k,v argument/values for each monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_monitors</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of dictionaries where each dictionary includes the k,v pairs of the monitor values.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="views.api.get_notification_objects">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_notification_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_notification_objects" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Get a distinct list of all objects that will trigger notifications for a monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_notification_objects?
+monitor_name=&lt;monitor name&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request with a ‘monitor_name’ argument.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of distinct objects that will trigger a notification.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="views.api.get_streams">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_streams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_streams" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a dictionary of all available video streams.</p>
+<dd><p>Return a dictionary of all available video streams configured for the application.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_streams</p>
+</dd>
+</dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>request</strong> – HTML Request. (not used for this function)</p>
@@ -245,64 +413,17 @@
 <dl class="py function">
 <dt id="views.api.get_trained_objects">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_trained_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_trained_objects" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="views.api.set_chart_objects">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_chart_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_chart_objects" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="views.api.set_chart_time_horizon">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_chart_time_horizon</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_chart_time_horizon" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="views.api.set_chart_time_zone">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_chart_time_zone</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_chart_time_zone" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="views.api.set_charting_options">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_charting_options</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.set_charting_options" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="views.api.set_log_interval">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_log_interval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_log_interval" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="views.api.set_log_objects">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_log_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_log_objects" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="views.api.set_notification_objects">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_notification_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_notification_objects" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="views.api.start_monitor">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">start_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.start_monitor" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="views.api.stop_monitor">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">stop_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.stop_monitor" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="views.api.toggle_all">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">toggle_all</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em>, <em class="sig-param"><span class="n">monitor_id</span></em>, <em class="sig-param"><span class="n">action</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.toggle_all" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="views.api.toggle_box">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">toggle_box</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.toggle_box" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Return a list of objects trained by a detector.  The detector can be determined by a ‘monitor_name’
+or ‘detector_name’.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_trained_objects?
+monitor_name=&lt;monitor name&gt;&amp;
+detector_name=&lt;detector name&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>request</strong> – </p>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request the expects either a ‘detector_name’ or ‘monitor_name’ argument.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p></p>
@@ -311,34 +432,269 @@
 </dd></dl>
 
 <dl class="py function">
+<dt id="views.api.set_chart_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_chart_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_chart_objects" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the ‘charting_objects’ of a monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/set_chart_objects?
+monitor_name=&lt;monitor name&gt;&amp;
+objects=&lt;comma-separated list of objects to toggle&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ and ‘objects’ arguments.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The new list of items after being set.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.set_chart_time_horizon">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_chart_time_horizon</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_chart_time_horizon" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the x-axis (time horizon) of a chart.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/set_chart_time_horizon?
+monitor_name=&lt;monitor name&gt;&amp;
+value=&lt;time horizon to set&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ and ‘value’ argument. ‘value’ represents the new time horizon to be set. Valid time horizons are: ‘day’, ‘week’, ‘month’, ‘year’, or an integer representing a number of most recent hours to display.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The new value after being set or the old value if it was not set.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.set_chart_time_zone">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_chart_time_zone</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_chart_time_zone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the time zone of a chart.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/set_chart_time_zone?
+monitor_name=&lt;monitor name&gt;&amp;
+value=&lt;time zone to set&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ and ‘value’ argument. ‘value’ represents the new time zone to be used. Time zones must adhere to the list of valid time zones supported by the pytz module.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The new value after being set or the old value if it was not set.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.set_log_interval">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_log_interval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_log_interval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the logging interval of a monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/set_log_interval?
+monitor_name=&lt;monitor name&gt;&amp;
+value=&lt;log interval value to set&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ and ‘value’ argument. ‘value’ represents the new log interval to be set.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The new value after being set or the old value if it was not set.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.set_log_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_log_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_log_objects" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the ‘log_objects’ of a monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/set_log_objects?
+monitor_name=&lt;monitor name&gt;&amp;
+objects=&lt;comma-separated list of objects to toggle&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ and ‘objects’ arguments.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The new list of items after being set.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.set_notification_objects">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">set_notification_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.set_notification_objects" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the ‘notification_objects’ of a monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/set_notification_objects?
+monitor_name=&lt;monitor name&gt;&amp;
+objects=&lt;comma-separated list of objects to toggle&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ and ‘objects’ arguments.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The new list of items after being set.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.start_monitor">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">start_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.start_monitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start a monitor.  Once started, the monitor will begin performing that actions of each enabled service in a
+loop that can be stopped with stop_monitor().</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/start_monitor?
+monitor_name=&lt;monitor name&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a monitor_name argument.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A message indicating the status of the monitor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.stop_monitor">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">stop_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.stop_monitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stops an active monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/stop_monitor?
+monitor_name=&lt;monitor name&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a monitor_name argument.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A message indicating the status of the monitor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="views.api.toggle_chart_objects">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">toggle_chart_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.toggle_chart_objects" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Add or remove objects from the ‘charting_objects’ list in a monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/toggle_chart_objects?
+monitor_name=&lt;monitor name&gt;&amp;
+objects=&lt;comma-separated list of objects to toggle&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ and ‘objects’ arguments.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The new list of objects after being toggled.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="views.api.toggle_log_objects">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">toggle_log_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.toggle_log_objects" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Add or remove objects from the ‘log_objects’ list in a monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/toggle_log_objects?
+monitor_name=&lt;monitor name&gt;&amp;
+objects=&lt;comma-separated list of objects to toggle&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ and ‘objects’ arguments.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The new list of objects after being toggled.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="views.api.toggle_notification_objects">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">toggle_notification_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.toggle_notification_objects" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="views.api.toggle_objects">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">toggle_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em>, <em class="sig-param"><span class="n">field</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.toggle_objects" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Add or remove objects from the ‘notification_objects’ list in a monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/toggle_notification_objects?
+monitor_name=&lt;monitor name&gt;&amp;
+objects=&lt;comma-separated list of objects to toggle&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ and ‘objects’ arguments.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The new list of objects after being toggled.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="views.api.toggle_service">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">toggle_service</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.toggle_service" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Toggle a service on or off depending on its current status.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/toggle_service?
+monitor_name=&lt;monitor name&gt;&amp;
+service=&lt;name of service to toggle on or off ‘log’|’notification’|’chart’&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ and ‘service’ argument. Supported services are ‘log’, ‘notification’ and ‘chart’.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The status of the service after toggle is complete.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="views.api.update_monitor">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">update_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.update_monitor" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Update parameter values of a monitor.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/update_monitor?
+detector_name=&lt;name of detector&gt;&amp;
+detector_model=&lt;existing detector model name&gt;&amp;
+feed_id=&lt;id of existing feed&gt;&amp;
+log_objects=&lt;comma-separated list of objects (optional)&gt;&amp;
+notification_objects=&lt;comma-separated list of objects (optional)&gt;&amp;
+charting_objects=&lt;comma-separated list of objects (optional)&gt;&amp;
+charting_time_zone=&lt;pytz time zone to display chart (optional)&gt;&amp;
+charting_time_horizon=&lt;x-axis time horizon for charting (optional)&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ and argument=value parameter settings for each parameter to set.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The full list of parameters for the monitor after settings have been applied.</p>
+</dd>
+</dl>
+</dd></dl>
 
 </div>
 
@@ -349,8 +705,6 @@
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="detectors.html" class="btn btn-neutral float-right" title="Detectors" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="readme.html" class="btn btn-neutral float-left" title="Traffic Monitor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

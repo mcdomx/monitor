@@ -87,15 +87,41 @@ class VideoDetectionService(ServiceAbstract, ABC):
         return q.get()
 
     def handle_message(self, msg):
-        return None
+        """
+        The abstract service will make the config changes, here we
+        restart the detector if the detector changed
+        :param msg:
+        :return:
+        """
+        key = msg.key().decode('utf-8')
+        if key == 'config_change':
+            decoded_msg = json.JSONDecoder().decode(msg.value().decode('utf-8'))
+            f = decoded_msg.get('function')
+            # not all 'config_change' messages call 'set_value' - 'keep_alive' is possible
+            # we don't reset the detector for keep_alive messages
+            if f is not 'set_value':
+                return
+
+            update_kwargs = decoded_msg.get('kwargs')
+            if not update_kwargs:
+                return
+            fields = [d.get('field') for d in update_kwargs]
+            if 'detector_name' in fields or 'detector_model' in fields:
+                # restart detector
+                logger.info(f"Resetting detector with update configuration: {update_kwargs}")
+                self.detector.stop()
+                self.detector.join()
+                self._set_detector()
+                self.detector.start()
+
 
     def run(self):
         """
         This will start the service by calling threading.Thread.start()
         Frames will be placed in respective queues.
         """
-        # set source of video stream
         try:
+            # set source of video stream
             cap = cv.VideoCapture(self.monitor_config.get('feed_url'))
 
             # start the detector machine
@@ -105,12 +131,6 @@ class VideoDetectionService(ServiceAbstract, ABC):
             logger.error(f"[{self.__class__.__name__}] Failed to create a video stream.")
             logger.error(e)
             return
-
-        # logger.info(f"Starting video detection service for id: {self.monitor_name}")
-        # logger.info(f"Video detection service running for {self.monitor_name}: {self.running}")
-        # logger.info(f"Video Capture Opened: {cap.isOpened()}")
-
-        timer = ElapsedTime()
 
         while self.running and cap.isOpened():
 
@@ -131,39 +151,18 @@ class VideoDetectionService(ServiceAbstract, ABC):
             except queue.Empty:
                 pass
 
-            # keep the consumer alive by regular polling
-            if timer.get() > 0:
-                msg = self.poll_kafka(0)
+            # poll to check for config changes
+            msg = self.poll_kafka(0)
 
-                # if the detector setting changed, we need to create and start a new detector
-                if msg is not None:
-                    key = msg.key().decode('utf-8')
-                    if key == 'config_change':
-                        decoded_msg = json.JSONDecoder().decode(msg.value().decode('utf-8'))
-                        f = decoded_msg.get('function')
-                        # not all 'config_change' messages call 'set_value' - 'keep_alive' is possible
-                        # we don't reset the detector for keep_alive messages
-                        if f is not 'set_value':
-                            continue
-
-                        update_kwargs = decoded_msg.get('kwargs')
-                        if not update_kwargs:
-                            continue
-                        fields = [d.get('field') for d in update_kwargs]
-                        if 'detector_name' in fields or 'detector_model' in fields:
-                            # restart detector
-                            logger.info(f"Resetting detector with update configuration: {update_kwargs}")
-                            self.detector.stop()
-                            self.detector.join()
-                            self._set_detector()
-                            self.detector.start()
-
-                timer.reset()
+            # if the detector setting changed, we need to create and start a new detector
+            if msg is not None:
+                self.handle_message(msg)
 
             try:
                 cap.grab()  # only read every other frame
                 success, frame = cap.read()
             except Exception as e:
+                logger.info(f"{self.__class__.__name__}: Could not pull image: {e}")
                 continue
 
             # if detector is ready, place frame in

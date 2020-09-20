@@ -3,8 +3,6 @@ Traffic Monitor
 
 This application is designed to monitor a video stream and log the occurrence of detect objects in it. Detections are recorded in a database so that they can be used to analyze the frequency of objects over time. This data can be used to train a model which can predict patterns.
 
-Logging and Monitoring
-----------------------
 The application supports two distinct types of activities for each type of object detected in the video stream; Logging and Monitoring.
 
 Logging
@@ -14,6 +12,48 @@ Monitoring
     Monitoring will trigger an action when a defined object is detected in the video stream.  For example, if an elephant is detected, a message can be sent or the frame image can be saved. (Currently, monitoring actions are not setup and intended for a future release.)
 
 A web font-end provides the most appealing and simple interface to the monitor but the monitor can also be controlled via rest calls and the progress can be seen in a terminal window.
+
+Web Front-End
+-------------
+.. image:: ../docs_static/images/all_services.png
+  :width: 600
+  :alt: Home Screen
+
+**Home**: Service activity is shown in separate sections.
+
+.. image:: ../docs_static/images/monitor_configuration.png
+  :width: 300
+  :alt: Configuration
+
+**Monitor Configuration**: (not shown in the screen shot above). The monitor configuration displays the current values used by the monitor.  As items are changed using the popup menus or via the API, these values are updated in the web page.
+
+.. image:: ../docs_static/images/detector_service.png
+  :width: 300
+  :alt: Detector
+
+**Detector**: Each detected image is displayed.  The popup menu is used to adjust detector sleep time and the level of confidence used.  Increasing sleep time will reduce the burden on the CPU.
+
+.. image:: ../docs_static/images/chart_service.png
+  :width: 300
+  :alt: Chart
+
+**Chart**: At each log interval the chart is updated.  The popup menu can be used to adjust the x-axis time horizon or the time zone that the time is displayed in.  Additionally, logged items can be toggled for inclusion in the charted values.
+
+.. image:: ../docs_static/images/log_service.png
+  :width: 300
+  :alt: Log
+
+**Log**: Logged items are presented with the most recently logged item first.  Items shown are items that have been added to the database.  Using the popup menu, logged items can be toggled and the interval used to log items to the database can be adjusted.
+
+.. image:: ../docs_static/images/notification_service.png
+  :width: 300
+  :alt: Notification
+
+**Notification**: Notified items are shown with the time that they were identified by the detector.  These items are not stored in the database.  The popup menu can be used to toggle the items that are presented in the notification log.
+
+API
+---
+The application supports an API which can be used to setup, configure, start and stop monitors.  See the API documentation for details.
 
 Architecture
 ------------
