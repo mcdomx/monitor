@@ -13,13 +13,16 @@
     <link rel="stylesheet" href="../../static/assets/fonts/fontawesome-all.min.css">
 
     <link href="http://cdn.pydata.org/bokeh/release/bokeh-1.0.4.min.css" rel="stylesheet" type="text/css">
-{#    <link href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-1.0.4.min.css" rel="stylesheet" type="text/css">#}
 
   </head>
 
     <body class="bg-dark">
         <div id="monitor_frame" class="p-3">
-            {% include 'traffic_monitor/monitor_frame.html' with monitor_name=monitor_name %}
+            {% if monitor_name %}
+                {% include 'traffic_monitor/monitor_frame.html' with monitor_name=monitor_name %}
+            {% else %}
+                {% include 'traffic_monitor/selection_frame.html' %}
+            {% endif %}
         </div>
     </body>
 
@@ -32,10 +35,6 @@
         <script src="../../static/assets/js/theme.js"></script>
 
         <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-2.2.1.min.js"></script>
-{#        <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-widgets-2.0.2.min.js"></script>#}
-{#        <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-tables-2.0.2.min.js"></script>#}
-{#        <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-gl-2.0.2.min.js"></script>#}
-{#        <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-api-2.0.2.min.js"></script>#}
     </footer>
 
 </html>

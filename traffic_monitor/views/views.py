@@ -31,7 +31,8 @@ def _parse_args(request, *args):
 
 
 def index_view(request):
-    kwargs = _parse_args(request, 'monitor_name')
+    # kwargs = _parse_args(request, 'monitor_name')
+    kwargs = _parse_args(request)
 
     return render(request, 'traffic_monitor/base.html', kwargs)
 
