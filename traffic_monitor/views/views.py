@@ -4,6 +4,7 @@ import io
 import time
 from PIL import Image
 import numpy as np
+import logging
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
@@ -13,6 +14,9 @@ from traffic_monitor.websocket_channels import TestVideoChannel
 from traffic_monitor.websocket_channels_factory import ChannelFactory
 
 from django.shortcuts import render
+
+
+logger = logging.getLogger('view')
 
 
 def _parse_args(request, *args):
@@ -105,18 +109,16 @@ def start_test_video_stream(request):
 
         channel: TestVideoChannel = ChannelFactory().get(channel_url)
         if channel:
-            while cap.isOpened():
+            while cap.isOpened() and ChannelFactory().get(channel_url):
                 time.sleep(.03)
                 success, frame = cap.read()
                 if success:
                     msg = {'image': _convert_imgarray_to_inmem_base64_jpg(frame), 'shape': frame.shape}
                     channel.send(text_data=DjangoJSONEncoder().encode(msg))
 
-        print("CHANNEL CLOSED")
+        logger.info("TEST VIDEO CHANNEL LOOP STOPPED")
         channel.close()
+        return JsonResponse({'success': True, 'message': 'Stopped test video stream.'}, safe=False)
 
     except Exception as e:
         return JsonResponse({'success': False, 'message': 'Could not get video stream from URL.'}, safe=False)
-
-
-

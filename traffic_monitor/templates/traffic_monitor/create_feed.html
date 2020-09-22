@@ -46,23 +46,58 @@
             }
         }
 
+        function get_pytz_timezone() {
+            let tz_region = document.getElementById('time_zone_regions').value;
+            let tz = document.getElementById('time_zones').value;
+            return tz_region + '/' + tz;
+        }
+
+        function parse_dict_to_div(dict) {
+        {#    Use result as .innterHTML value #}
+            let rv = '';
+            for (let o in dict) {
+                if (o === 'url') { continue }
+                rv = rv + "<span style='font-weight: bold'>" + o + "</span>: <span style='font-weight: normal'>" + dict[o] + "</span><br>";
+            }
+            return rv;
+        }
+
+
         async function create_feed() {
-            let cam = document.getElementById('cam').value;
-            let time_zone = document.getElementById('time_zone').value;
-            let description = document.getElementById('description').value;
+            {# Make sure that a description was entered #}
+            let description = document.getElementById('feed_description').value;
+            if (description === "") {
+                let e = document.getElementById('stream_result');
+                e.innerText = "A description is required!";
+                e.className = "alert alert-danger mt-3";
+                return
+            }
+
+            {# Close the socket #}
+            TEST_SOCKET.close();
+
+            {# Hide the test feed and input #}
+            let e_desc = document.getElementById('feed_description_block');
+            e_desc.hidden = true;
+
+            {# Set variables to save #}
+            let cam = document.getElementById('cam_input').value;
+            let time_zone = get_pytz_timezone();
+
+
             const url = "create_stream?cam=" + cam + "&time_zone=" + time_zone + "&description=" + description;
 
             return await fetch(url).then(data => {
                 return data.json();})
                 .then( (rv) => {
-                    let e = document.getElementById('create_feed_result');
-                    let key = Object.keys(rv)[0];
-                    if (key==='error') {
-                        e.innerText = key + ": " + rv[key];
-                        e.className = "alert alert-danger mt-3";
-                    } else {
-                        e.innerText = "Feed '" + rv[key] + "' created!";
+                    let e = document.getElementById('stream_result');
+                    {#let key = Object.keys(rv)[0];#}
+                    if (rv['success']) {
+                        e.innerHTML = "<p>Feed Created!</p><div class='ml-2'" + parse_dict_to_div(rv['message']) + "</div>";
                         e.className = "alert alert-success mt-3";
+                    } else {
+                        e.innerHTML = "<p>Feed Creation Failed!</p><p>" + rv['message'] + "</p>";
+                        e.className = "alert alert-danger mt-3";
                     }
                     e.hidden = false;
                 } )
@@ -107,23 +142,24 @@
 
             }
 
+        let TEST_SOCKET;
         function setup_test_video_socket(cam) {
 
-            const test_socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/test_video/' + cam + '/')
+            TEST_SOCKET = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/test_video/' + cam + '/')
 
             {# Receive Update #}
-            test_socket.onmessage = function (e) {
+            TEST_SOCKET.onmessage = function (e) {
                 let image_array = JSON.parse(e.data).image;
                 let elem = document.getElementById('test_video_feed')
                 elem.src = "data:image/jpg;base64," + image_array;
             }
 
-            test_socket.onclose = function (e) {
-                test_socket.close();
+            TEST_SOCKET.onclose = function (e) {
+                TEST_SOCKET.close();
                 console.log("test video socket closed!")
             }
 
-            test_socket.onopen = function (e) {
+            TEST_SOCKET.onopen = function (e) {
                 console.log("test video socket opened!")
             }
         }
@@ -143,7 +179,7 @@
 
     </script>
 
-    <div class="card-body" style="height: 70%; overflow-y: auto; font-size: 24px">
+    <div class="card-body" style="height: 75%; overflow-y: auto; font-size: 24px">
         <div style="display: inline-block; width: 100%">
             <div>Enter a URL or Youtube hash:</div>
             <input type="text" id="cam_input" style="width: 100%">
@@ -152,15 +188,19 @@
             <button class="btn btn-primary my-3" onclick="test_stream()">Test</button>
         </div>
 
+        {# This reports the results of the user's URL input #}
         <div id="stream_result" class="" role="alert" style="font-size: 16px" hidden>
             ...
         </div>
 
-        <div>
-            <img id='test_video_feed' style="max-height: 100%; height: auto; max-width: 100%" src="">
-        </div>
-
+        {# Initiall hidden.  Once a successful feed is available, this allows user to describe the feed. #}
         <div id="feed_description_block" style="display: inline-block; width: 100%" hidden>
+
+            {# This is a test feed of the video, if successful #}
+            <div>
+                <img id='test_video_feed' style="max-height: 100%; height: auto; max-width: 100%" src="">
+            </div>
+
             <div>Feed Description:</div>
             <input type="text" id="feed_description" style="width: 100%">
             <div style="display: inline-block; width: 49%">
@@ -175,6 +215,8 @@
 
                 </select>
             </div>
+
+            {# Save the feed to the database #}
             <div style="text-align: right;">
                 <button class="btn btn-primary my-3" onclick="create_feed()">Create</button>
             </div>

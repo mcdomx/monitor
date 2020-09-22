@@ -57,7 +57,7 @@ def get_chart(monitor_config: dict):
                                                                                                'class_name',
                                                                                                'count')
     if len(rs) == 0:
-        return None
+        return {'success': False, 'message': "No data available for parameters selected. Wait for detections or change parameters."}
 
     df = pd.DataFrame(rs)
     df.rename(columns={'count': 'counts'}, inplace=True)
@@ -69,7 +69,7 @@ def get_chart(monitor_config: dict):
         df = df.set_index('time_stamp').tz_convert(monitor_config.get('time_zone')).tz_localize(None)
 
     if len(df) == 0:
-        return 'No data for time period.  Wait for detections ... '
+        return {'success': False, 'message': "No data available for parameters selected. Wait for detections or change parameters."}
 
     # Define the blank canvas of the Bokeh plot that data will be layered on top of
     fig = figure(

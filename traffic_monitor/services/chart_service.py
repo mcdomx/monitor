@@ -35,8 +35,6 @@ class ChartService(ServiceAbstract, ABC):
 
     def handle_message(self, msg):
         """
-        If the configuration changes, we should redraw the chart by sending
-        a message through the ChartChannel.
         :param msg:
         :return:
         """

@@ -135,7 +135,7 @@ class FeedFactory:
                 obj: Feed = Feed.objects.create(cam=cam, url=url, description=description, time_zone=time_zone)
                 obj.save()
                 logger.info(f"Created new feed entry for: {cam}")
-                return obj.__dict__
+                return {'success': True, 'message': obj.__dict__}
             except Exception as e:
                 logger.error(e)
                 return {'success': False, 'message': e.args}

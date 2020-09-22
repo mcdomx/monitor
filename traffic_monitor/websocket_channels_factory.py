@@ -38,6 +38,11 @@ class ChannelFactory:
         def add(self, url: str, consumer: WebsocketConsumer):
             self.consumers.update({url: consumer})
 
+        def close(self, url: str):
+            ch: WebsocketConsumer = self.get(url)
+            ch.close()
+            self.remove(url)
+
         def remove(self, url):
             try:
                 self.consumers.pop(url)

@@ -25,7 +25,12 @@
                 const item = JSON.parse(e.data)
                 target_div.innerHTML = ''
                 target_div.setAttribute('data-url', url);
-                Bokeh.embed.embed_item(item, 'plot-area');
+                if (item['success'] === false) {
+                    target_div.innerHTML = item['message'];
+                    setup_charting_dropdown_menu('{{ monitor_name }}');
+                } else {
+                    Bokeh.embed.embed_item(item, 'plot-area');
+                }
             }
 
             chartSocket.onclose = function(e) {
