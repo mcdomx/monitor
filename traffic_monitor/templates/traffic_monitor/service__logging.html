@@ -71,17 +71,17 @@
 
         }
 
-        function set_log_interval(monitor_name, interval) {
-            let elems = document.getElementsByClassName('config_object log_interval')
-            let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'
-            for (let e in elems) {
-                if (elems.hasOwnProperty(e)) {
-                    elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"
-                }
-            }
-            const url ='set_log_interval?monitor_name=' + monitor_name + '&value=' + interval;
-            fetch(url);
-        }
+        {#function set_log_interval(monitor_name, interval) {#}
+        {#    let elems = document.getElementsByClassName('config_object log_interval')#}
+        {#    let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'#}
+        {#    for (let e in elems) {#}
+        {#        if (elems.hasOwnProperty(e)) {#}
+        {#            elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"#}
+        {#        }#}
+        {#    }#}
+        {#    const url ='set_log_interval?monitor_name=' + monitor_name + '&value=' + interval;#}
+        {#    fetch(url);#}
+
 
         async function setup_logging_dropdown_menu(monitor_name) {
             {# Update the parent's 'dropdown-menu' tag with <a> links #}
@@ -135,7 +135,8 @@
                 elem.setAttribute('role', "presentation");
                 elem.href = '#';
                 elem.onclick = () => {
-                    set_log_interval(monitor_name, intervals[i]['value'])
+                    {#set_log_interval(monitor_name, intervals[i]['value'])#}
+                    set_config_value('set_log_interval', monitor_name, 'log_interval', intervals[i]['value'])
                 };
                 elem.innerText = intervals[i]['desc'];
                 menulisting.appendChild(elem);

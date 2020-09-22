@@ -91,14 +91,14 @@
 
     <div class="card-body" style="height: 30%; overflow-y: auto; font-size: 24px">
         <div style="display: inline-block; width: 49%">
-            <div>Select detector:</div>
-            <select id="select_detector" style="width: 100%">
+            <label for="select_detector">Select detector:</label>
+            <select id="select_detector" name="select_detector" style="width: 100%">
 
             </select>
         </div>
         <div style="display: inline-block; width: 49%">
-            <div>Select feed:</div>
-            <select id="select_feed" style="width: 100%">
+            <label for="select_feed">Select feed:</label>
+            <select id="select_feed" name="select_feed" style="width: 100%">
 
             </select>
         </div>
@@ -107,8 +107,8 @@
         </div>
 
         <div style="display: inline-block; width: 100%">
-            <div>Monitor Name:</div>
-            <input type="text" id="monitor_name" style="width: 100%">
+            <label for="monitor_name">Monitor Name:</label>
+            <input type="text" id="monitor_name" name ="monitor_name" style="width: 100%">
         </div>
         <div style="text-align: right">
             <button class="btn btn-primary my-3" onclick="create_monitor()">Create</button>

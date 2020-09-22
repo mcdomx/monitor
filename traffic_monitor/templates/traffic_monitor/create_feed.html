@@ -64,6 +64,8 @@
 
 
         async function create_feed() {
+            {# Use API call to create feed #}
+
             {# Make sure that a description was entered #}
             let description = document.getElementById('feed_description').value;
             if (description === "") {
@@ -80,18 +82,15 @@
             let e_desc = document.getElementById('feed_description_block');
             e_desc.hidden = true;
 
-            {# Set variables to save #}
+            {# Set url variables and call url #}
             let cam = document.getElementById('cam_input').value;
             let time_zone = get_pytz_timezone();
-
-
             const url = "create_stream?cam=" + cam + "&time_zone=" + time_zone + "&description=" + description;
 
             return await fetch(url).then(data => {
                 return data.json();})
                 .then( (rv) => {
                     let e = document.getElementById('stream_result');
-                    {#let key = Object.keys(rv)[0];#}
                     if (rv['success']) {
                         e.innerHTML = "<p>Feed Created!</p><div class='ml-2'" + parse_dict_to_div(rv['message']) + "</div>";
                         e.className = "alert alert-success mt-3";
@@ -108,6 +107,8 @@
         }
 
         function test_stream() {
+            {# Start a test based on user input #}
+
             let cam = document.getElementById('cam_input').value;
             let e = document.getElementById('stream_result');
             e.hidden = true;
@@ -115,6 +116,7 @@
             let e_desc = document.getElementById('feed_description_block');
             e_desc.hidden = true;
 
+            {# Use API to see if value is a valid video stream source #}
             fetch("test_video?cam=" + cam)
             .then( rv => {return rv.json()})
             .then( msg => {
@@ -165,6 +167,7 @@
         }
 
         function start_test_video_stream(cam) {
+            {# Use API to start a stream #}
             let url = "start_test_video_stream?cam=" + cam + "&channel_url=" + "/ws/traffic_monitor/test_video/" + cam + "/";
 
             fetch(url)
@@ -181,8 +184,8 @@
 
     <div class="card-body" style="height: 75%; overflow-y: auto; font-size: 24px">
         <div style="display: inline-block; width: 100%">
-            <div>Enter a URL or Youtube hash:</div>
-            <input type="text" id="cam_input" style="width: 100%">
+            <label for="cam_input">Enter a URL or Youtube hash:</label>
+            <input type="text" id="cam_input" name="cam_input" style="width: 100%">
         </div>
         <div style="text-align: right">
             <button class="btn btn-primary my-3" onclick="test_stream()">Test</button>
@@ -201,17 +204,17 @@
                 <img id='test_video_feed' style="max-height: 100%; height: auto; max-width: 100%" src="">
             </div>
 
-            <div>Feed Description:</div>
-            <input type="text" id="feed_description" style="width: 100%">
+            <label for="feed_description">Feed Description:</label>
+            <input type="text" id="feed_description" name="feed_description" style="width: 100%">
             <div style="display: inline-block; width: 49%">
-                <div>Select Time Zone Region:</div>
-                <select id="time_zone_regions" style="width: 100%">
+                <label for="time_zone_regions">Select Time Zone Region:</label>
+                <select id="time_zone_regions" name="time_zone_regions" style="width: 100%">
 
                 </select>
             </div>
             <div style="display: inline-block; width: 49%">
-                <div>Select Time Zone:</div>
-                <select id="time_zones" style="width: 100%">
+                <label for="time_zones">Select Time Zone:</label>
+                <select id="time_zones" name="time_zones" style="width: 100%">
 
                 </select>
             </div>

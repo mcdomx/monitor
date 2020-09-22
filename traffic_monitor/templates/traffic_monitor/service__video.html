@@ -30,29 +30,29 @@
             }
         }
 
-        function set_detector_sleep_throttle(monitor_name, seconds) {
-            let elems = document.getElementsByClassName('config_object detector_sleep_throttle')
-            let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'
-            for (let e in elems) {
-                if (elems.hasOwnProperty(e)) {
-                    elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"
-                }
-            }
-            const url ='set_detector_sleep_throttle?monitor_name=' + monitor_name + '&value=' + seconds;
-            fetch(url);
-        }
+        {#function set_detector_sleep_throttle(monitor_name, seconds) {#}
+        {#    let elems = document.getElementsByClassName('config_object detector_sleep_throttle')#}
+        {#    let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'#}
+        {#    for (let e in elems) {#}
+        {#        if (elems.hasOwnProperty(e)) {#}
+        {#            elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"#}
+        {#        }#}
+        {#    }#}
+        {#    const url ='set_detector_sleep_throttle?monitor_name=' + monitor_name + '&value=' + seconds;#}
+        {#    fetch(url);#}
 
-        function set_detector_confidence(monitor_name, confidence) {
-            let elems = document.getElementsByClassName('config_object detector_confidence')
-            let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'
-            for (let e in elems) {
-                if (elems.hasOwnProperty(e)) {
-                    elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"
-                }
-            }
-            const url ='set_detector_confidence?monitor_name=' + monitor_name + '&value=' + confidence;
-            fetch(url);
-        }
+
+        {#function set_detector_confidence(monitor_name, confidence) {#}
+        {#    let elems = document.getElementsByClassName('config_object detector_confidence')#}
+        {#    let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'#}
+        {#    for (let e in elems) {#}
+        {#        if (elems.hasOwnProperty(e)) {#}
+        {#            elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"#}
+        {#        }#}
+        {#    }#}
+        {#    const url ='set_detector_confidence?monitor_name=' + monitor_name + '&value=' + confidence;#}
+        {#    fetch(url);#}
+
 
         async function setup_detection_dropdown_menu(monitor_name) {
             {# Update the parent's 'dropdown-menu' tag with <a> links #}
@@ -76,7 +76,8 @@
                 elem.setAttribute('role', "presentation");
                 elem.href = '#';
                 elem.onclick = () => {
-                    set_detector_sleep_throttle(monitor_name, seconds[s]['value'])
+                    {#set_detector_sleep_throttle(monitor_name, seconds[s]['value'])#}
+                    set_config_value('set_detector_sleep_throttle', monitor_name, 'detector_sleep_throttle', seconds[s]['value'])
                 };
                 elem.innerText = seconds[s]['desc'];
                 menulisting.appendChild(elem);
@@ -103,7 +104,8 @@
                 elem.setAttribute('role', "presentation");
                 elem.href = '#';
                 elem.onclick = () => {
-                    set_detector_confidence(monitor_name, conf[c]['value'])
+                    {#set_detector_confidence(monitor_name, conf[c]['value'])#}
+                    set_config_value('set_detector_confidence', monitor_name, 'detector_confidence', conf[c]['value'])
                 };
                 elem.innerText = conf[c]['desc'];
                 menulisting.appendChild(elem);

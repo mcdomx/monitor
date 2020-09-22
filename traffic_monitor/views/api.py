@@ -646,6 +646,10 @@ def get_chart(request):
 def get_timezones(request):
     """
     Return a list of all the supported timezone values.
+
+    API Call:
+        /get_timezones
+
     :return: List of support timezone values
     """
     tzlist = pytz.all_timezones

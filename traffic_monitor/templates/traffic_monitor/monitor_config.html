@@ -9,10 +9,9 @@
 
         function start_monitor(monitor_name) {
             let elems = document.getElementsByClassName('config_object is_active')
-            let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'
             for (let e in elems) {
                 if (elems.hasOwnProperty(e)) {
-                    elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"
+                    elems[e].innerHTML = "<i class='fa fa-spinner fa-spin'></i>";
                 }
             }
             fetch("start_monitor?monitor_name="+monitor_name).then( () => update_config_objects('{{monitor_name}}'))
@@ -20,10 +19,9 @@
 
         function stop_monitor(monitor_name) {
             let elems = document.getElementsByClassName('config_object is_active')
-            let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'
             for (let e in elems) {
                 if (elems.hasOwnProperty(e)) {
-                    elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"
+                    elems[e].innerHTML = "<i class='fa fa-spinner fa-spin'></i>";
                 }
             }
             fetch("stop_monitor?monitor_name="+monitor_name).then( () => update_config_objects('{{monitor_name}}'))
@@ -31,10 +29,9 @@
 
         function toggle_service(monitor_name, service, class_name) {
             let elems = document.getElementsByClassName('config_object '+ class_name)
-            let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'
             for (let e in elems) {
                 if (elems.hasOwnProperty(e)) {
-                    elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"
+                    elems[e].innerHTML = "<i class='fa fa-spinner fa-spin'></i>";
                 }
             }
             fetch("toggle_service?monitor_name="+monitor_name+"&service="+service).then( () => update_config_objects('{{monitor_name}}'))
