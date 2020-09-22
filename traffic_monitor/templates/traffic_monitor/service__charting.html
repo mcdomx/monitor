@@ -78,7 +78,9 @@
 
         function toggle_chart_object(monitor_name, obj) {
             const url = 'toggle_chart_objects?monitor_name=' + monitor_name + '&objects=' + obj;
-            fetch(url).then(() => force_chart_update(monitor_name));
+            fetch(url)
+                .then(() => force_chart_update(monitor_name))
+                .then(() => setup_charting_dropdown_menu(monitor_name));
         }
 
         async function setup_charting_dropdown_menu(monitor_name) {
@@ -139,6 +141,7 @@
             let all_logged_objects = await fetch(url).then(data => {
                                                                         return data.json();
                                                                     })
+            let chart_objects = monitor_config['charting_objects'];
             for (let lo in all_logged_objects) {
                 if (all_logged_objects.hasOwnProperty(lo)) {
                     let elem = document.createElement('a');
@@ -148,7 +151,7 @@
                     elem.onclick = () => {
                         toggle_chart_object(monitor_name, all_logged_objects[lo])
                     };
-                    elem.innerText = all_logged_objects[lo];
+                    elem.innerHTML = "<i class='far " + (chart_objects.includes(all_logged_objects[lo]) ? 'fa-check-square' : 'fa-square') + " '></i><span>&nbsp</span><span>" + all_logged_objects[lo] + "</span>";
                     menulisting.appendChild(elem);
                 }
             }
