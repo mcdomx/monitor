@@ -1,0 +1,198 @@
+{%  extends 'traffic_monitor/section_wrapper.html' %}
+
+{% block title %}Create Feed{% endblock %}
+
+{% block content %}
+{#    Include the service html here #}
+    {% csrf_token %}
+
+    <script type="text/javascript">
+
+        async function get_timezones() {
+            const url = 'get_timezones'
+            return await fetch(url).then(data => {
+                return data.json();
+            }).catch( function(error) {
+                                    console.log("Could not get data: get_timezones() failed. : " + error);
+                                });
+        }
+
+        async function update_countries_dropdown() {
+            let TIMEZONES = await get_timezones();
+            let tz_regions = Object.keys(TIMEZONES);
+            let e = document.getElementById('time_zone_regions');
+
+            for (let r in tz_regions) {
+                let o = document.createElement('option');
+                o.value = tz_regions[r];
+                o.innerText = tz_regions[r];
+                e.appendChild(o);
+            }
+            e.onchange = () => update_timezones_dropdown(TIMEZONES[e.value]);
+            {# 6jlkpF6-BbA #}
+            update_timezones_dropdown(TIMEZONES[e.value]);
+        }
+
+        function update_timezones_dropdown(zones) {
+
+            let e = document.getElementById('time_zones');
+            e.innerHTML = '';
+
+            for (let z in zones) {
+                let o = document.createElement('option');
+                o.value = zones[z];
+                o.innerText = zones[z];
+                e.appendChild(o);
+            }
+        }
+
+        async function create_feed() {
+            let cam = document.getElementById('cam').value;
+            let time_zone = document.getElementById('time_zone').value;
+            let description = document.getElementById('description').value;
+            const url = "create_stream?cam=" + cam + "&time_zone=" + time_zone + "&description=" + description;
+
+            return await fetch(url).then(data => {
+                return data.json();})
+                .then( (rv) => {
+                    let e = document.getElementById('create_feed_result');
+                    let key = Object.keys(rv)[0];
+                    if (key==='error') {
+                        e.innerText = key + ": " + rv[key];
+                        e.className = "alert alert-danger mt-3";
+                    } else {
+                        e.innerText = "Feed '" + rv[key] + "' created!";
+                        e.className = "alert alert-success mt-3";
+                    }
+                    e.hidden = false;
+                } )
+                .catch( function(error) {
+                                        console.log("Could not get data: create_feed() failed. : " + error);
+                                      });
+
+        }
+
+        function test_stream() {
+            let cam = document.getElementById('cam_input').value;
+            let e = document.getElementById('stream_result');
+            e.hidden = true;
+
+            let e_desc = document.getElementById('feed_description_block');
+            e_desc.hidden = true;
+
+            fetch("test_video?cam=" + cam)
+            .then( rv => {return rv.json()})
+            .then( msg => {
+                            if (msg['success'])
+                                {
+                                    e.innerText = "URL stream is readable!";
+                                    e.className = "alert alert-success mt-3";
+                                    setup_test_video_socket(cam);
+                                    start_test_video_stream(cam);
+                                    e_desc.hidden = false;
+                                    update_countries_dropdown();
+                                }
+                            else
+                                {
+                                    e.innerText = msg['message'];
+                                    e.className = "alert alert-danger mt-3";
+                                }
+                            e.hidden = false;
+                          } )
+            .catch( err => {
+                                e.innerText = "ERR:" + err;
+                                e.className = "alert alert-danger mt-3";
+                                e.hidden = false;
+                           })
+
+            }
+
+        function setup_test_video_socket(cam) {
+
+            const test_socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/test_video/' + cam + '/')
+
+            {# Receive Update #}
+            test_socket.onmessage = function (e) {
+                let image_array = JSON.parse(e.data).image;
+                let elem = document.getElementById('test_video_feed')
+                elem.src = "data:image/jpg;base64," + image_array;
+            }
+
+            test_socket.onclose = function (e) {
+                test_socket.close();
+                console.log("test video socket closed!")
+            }
+
+            test_socket.onopen = function (e) {
+                console.log("test video socket opened!")
+            }
+        }
+
+        function start_test_video_stream(cam) {
+            let url = "start_test_video_stream?cam=" + cam + "&channel_url=" + "/ws/traffic_monitor/test_video/" + cam + "/";
+
+            fetch(url)
+            .catch( err => {
+                let e_err = document.getElementById('stream_result');
+                e_err.innerText = err;
+                e_err.className = "alert alert-danger mt-3";
+                e_err.hidden = false;
+            } )
+
+        }
+
+    </script>
+
+    <div class="card-body" style="height: 70%; overflow-y: auto; font-size: 24px">
+        <div style="display: inline-block; width: 100%">
+            <div>Enter a URL or Youtube hash:</div>
+            <input type="text" id="cam_input" style="width: 100%">
+        </div>
+        <div style="text-align: right">
+            <button class="btn btn-primary my-3" onclick="test_stream()">Test</button>
+        </div>
+
+        <div id="stream_result" class="" role="alert" style="font-size: 16px" hidden>
+            ...
+        </div>
+
+        <div>
+            <img id='test_video_feed' style="max-height: 100%; height: auto; max-width: 100%" src="">
+        </div>
+
+        <div id="feed_description_block" style="display: inline-block; width: 100%" hidden>
+            <div>Feed Description:</div>
+            <input type="text" id="feed_description" style="width: 100%">
+            <div style="display: inline-block; width: 49%">
+                <div>Select Time Zone Region:</div>
+                <select id="time_zone_regions" style="width: 100%">
+
+                </select>
+            </div>
+            <div style="display: inline-block; width: 49%">
+                <div>Select Time Zone:</div>
+                <select id="time_zones" style="width: 100%">
+
+                </select>
+            </div>
+            <div style="text-align: right;">
+                <button class="btn btn-primary my-3" onclick="create_feed()">Create</button>
+            </div>
+        </div>
+
+
+
+    </div>
+
+    <div class="card-footer" >
+        <div class="row">
+            <div class="col-6" style="text-align: left">
+                <a href="/" ><< Back to Monitor Selection</a> <br>
+                <a href="createmonitor" ><< Back to Monitor Creation</a>
+            </div>
+            
+        </div>
+    </div>
+
+
+{% endblock content %}

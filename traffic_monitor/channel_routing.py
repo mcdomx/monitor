@@ -10,4 +10,5 @@ websocket_urlpatterns = [
     # path('ws/traffic_monitor/toggle_service/<str>/', websocket_channels.ServiceToggle),
     path('ws/traffic_monitor/notification/<str>/', websocket_channels.NotificationChannel),
     path('ws/traffic_monitor/video/<str>/', websocket_channels.VideoChannel),
+    path('ws/traffic_monitor/test_video/<cam>/', websocket_channels.TestVideoChannel),
 ]

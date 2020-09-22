@@ -1,0 +1,132 @@
+{%  extends 'traffic_monitor/section_wrapper.html' %}
+
+{% block title %}Create Monitor{% endblock %}
+
+{% block content %}
+{#    Include the service html here #}
+    {% csrf_token %}
+
+    <script type="text/javascript">
+
+        async function get_detectors() {
+            const url = 'get_detectors'
+            return await fetch(url).then(data => {
+                return data.json();
+            }).catch( function(error) {
+                                    console.log("Could not get data: get_detectors() failed. : " + error);
+                                });
+        }
+
+        async function get_feeds() {
+            const url = 'get_streams'
+            return await fetch(url).then(data => {
+                return data.json();
+            }).catch( function(error) {
+                                    console.log("Could not get data: get_feeds() failed. : " + error);
+                                });
+        }
+
+        async function setup_detectors_dropdown() {
+            let detectors = await get_detectors();
+            let e = document.getElementById('select_detector');
+
+            for (let d in detectors) {
+                let o = document.createElement('option');
+                o.value = detectors[d]['detector_id'];
+                o.innerText = detectors[d]['detector_id'];
+                e.appendChild(o);
+            }
+
+
+        }
+
+        async function setup_feeds_dropdown() {
+            let feeds = await get_feeds();
+            let e = document.getElementById('select_feed');
+
+            for (let d in feeds) {
+                let o = document.createElement('option');
+                o.value = feeds[d]['cam'];
+                o.innerText = feeds[d]['description'];
+                e.appendChild(o);
+            }
+
+        }
+
+        async function create_monitor() {
+            let feed = document.getElementById('select_feed').value;
+            let detector = document.getElementById('select_detector').value.split("__");
+            let detector_name = detector[0];
+            let detector_model = detector[1];
+            let monitor_name = document.getElementById('monitor_name').value;
+            const url = "create_monitor?name=" + monitor_name + "&detector_name=" + detector_name + "&detector_model=" + detector_model + "&feed_id=" + feed;
+
+            return await fetch(url).then(data => {
+                return data.json();})
+                .then( (rv) => {
+                    let e = document.getElementById('create_result');
+                    let key = Object.keys(rv)[0];
+                    if (key==='error') {
+                        e.innerText = key + ": " + rv[key];
+                        e.className = "alert alert-danger mt-3";
+                    } else {
+                        e.innerText = "Monitor '" + rv[key] + "' created!";
+                        e.className = "alert alert-success mt-3";
+                    }
+                    e.hidden = false;
+                } )
+                .catch( function(error) {
+                                        console.log("Could not get data: create_monitor() failed. : " + error);
+                                      });
+
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setup_detectors_dropdown();
+            setup_feeds_dropdown();
+        })
+
+    </script>
+
+    <div class="card-body" style="height: 30%; overflow-y: auto; font-size: 24px">
+        <div style="display: inline-block; width: 49%">
+            <div>Select detector:</div>
+            <select id="select_detector" style="width: 100%">
+
+            </select>
+        </div>
+        <div style="display: inline-block; width: 49%">
+            <div>Select feed:</div>
+            <select id="select_feed" style="width: 100%">
+
+            </select>
+        </div>
+        <div style="font-size: 12px; text-align: right" class="mr-4">
+            <a href="createstream" >new feed</a>
+        </div>
+
+        <div style="display: inline-block; width: 100%">
+            <div>Monitor Name:</div>
+            <input type="text" id="monitor_name" style="width: 100%">
+        </div>
+        <div style="text-align: right">
+            <button class="btn btn-primary my-3" onclick="create_monitor()">Create</button>
+        </div>
+        <div id="create_result" class="" role="alert" style="font-size: 16px" hidden>
+            ...
+        </div>
+
+
+    </div>
+    <div class="card-footer" >
+        <div class="row">
+            <div class="col-6" style="text-align: left">
+                <a href="/" ><< Back to Monitor Selection</a>
+            </div>
+
+        </div>
+    </div>
+
+
+{% endblock content %}

@@ -8,166 +8,170 @@
 {# Examples:#}
 {# <div class='config_change monitor_name'></div>  This will be filled with the value of 'monitor_name' for a configuration dictionary #}
 {# <input type='checkbox' class='config_change chart_objects' data-obj='car'/> This will check the input box if the 'chart_objects' dictionary element is included #}
+{# This file lays out the monitor selection #}
+{%  extends 'traffic_monitor/base.html' %}
 
-<script type="text/javascript">
+{% block frame %}
+    {#    Include the service html here #}
+    {% csrf_token %}
 
-        async function update_config_objects(monitor_name) {
-            let config = await get_monitor_config(monitor_name);
-            for (let key in config) {
-                if (config.hasOwnProperty(key)) {
-                    let elems = document.getElementsByClassName('config_object '+ key);
-                    {# if elements exist, let's update them #}
-                    if (elems.length) {
-                        {# checkbox lists are a special case: key=log_object, notification_objects, chart_objects#}
+    <script type="text/javascript">
 
-                        for (let e in elems) {
-                            if (elems.hasOwnProperty(e)) {
-                                if (key === 'log_objects' || key === 'notification_objects' || key === 'chart_objects') {
-                                    elems[e].checked = !!config[key].includes(elems[e].dataset.obj);
-                                } else {
-                                    elems[e].innerText = config[key];
+            async function update_config_objects(monitor_name) {
+                let config = await get_monitor_config(monitor_name);
+                for (let key in config) {
+                    if (config.hasOwnProperty(key)) {
+                        let elems = document.getElementsByClassName('config_object '+ key);
+                        {# if elements exist, let's update them #}
+                        if (elems.length) {
+                            {# checkbox lists are a special case: key=log_object, notification_objects, chart_objects#}
+
+                            for (let e in elems) {
+                                if (elems.hasOwnProperty(e)) {
+                                    if (key === 'log_objects' || key === 'notification_objects' || key === 'chart_objects') {
+                                        elems[e].checked = !!config[key].includes(elems[e].dataset.obj);
+                                    } else {
+                                        elems[e].innerText = config[key];
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
 
-        function setup_config_socket(monitor_name) {
-            const config_change_socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/')
-            {# Receive Update #}
-            config_change_socket.onmessage = function (e) {
-                console.log("config_change_socket socket got a message!")
-                update_config_objects('{{ monitor_name }}')
+            function setup_config_socket(monitor_name) {
+                const config_change_socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/')
+                {# Receive Update #}
+                config_change_socket.onmessage = function (e) {
+                    console.log("config_change_socket socket got a message!")
+                    update_config_objects('{{ monitor_name }}')
+                }
+
+                config_change_socket.onclose = function (e) {
+                    console.log("config_change_socket socket closed!")
+                }
+
+                config_change_socket.onopen = function (e) {
+                    console.log('config_change_socket socket opened at ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/')
+                }
             }
 
-            config_change_socket.onclose = function (e) {
-                console.log("config_change_socket socket closed!")
+            async function get_monitor_config(monitor_name) {
+                const url = 'get_monitor?name=' + monitor_name
+                return await fetch(url).then(data => {
+                    return data.json();
+                }).catch( function(error) {
+                                        console.log("Could not get data: get_monitor_config() failed. : " + error);
+                                    });
             }
 
-            config_change_socket.onopen = function (e) {
-                console.log('config_change_socket socket opened at ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/')
+            async function get_monitor_config_value(monitor_name, field) {
+                const url = 'get_monitor?name=' + monitor_name + '&field=' + field;
+                return await fetch(url).then(data => {
+                    return data.json();
+                }).catch( function(error) {
+                                        console.log("Could not get data: get_monitor_config() failed. : " + error);
+                                    });
             }
-        }
 
-        async function get_monitor_config(monitor_name) {
-            const url = 'get_monitor?name=' + monitor_name
-            return await fetch(url).then(data => {
-                return data.json();
-            }).catch( function(error) {
-                                    console.log("Could not get data: get_monitor_config() failed. : " + error);
-                                });
-        }
+            function clear_log(log_type) {
+                let log = document.getElementById(log_type + '_output');
+                log.innerHTML = '';
+            }
 
-        async function get_monitor_config_value(monitor_name, field) {
-            const url = 'get_monitor?name=' + monitor_name + '&field=' + field;
-            return await fetch(url).then(data => {
-                return data.json();
-            }).catch( function(error) {
-                                    console.log("Could not get data: get_monitor_config() failed. : " + error);
-                                });
-        }
+            function setup_selection_table(monitor_name, type) {
+                {# Used to setup a log or notification table of checkboxes  #}
+                {# that can turn on or off each trained object of a given monitor_name. #}
+                {# Supported type values are 'log' and 'notification'. #}
+                const url = 'get_trained_objects?monitor_name=' + monitor_name
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => { make_table(data); })
+                    .then( () => update_config_objects(monitor_name))
+                    .catch(function(error) {
+                                        console.log("Could not get data: get_trained_objects() failed. : " + error);
+                                    })
 
-        function clear_log(log_type) {
-            let log = document.getElementById(log_type + '_output');
-            log.innerHTML = '';
-        }
+                async function make_table(data) {
+                    let monitor_config = await get_monitor_config("{{ monitor_name }}")
+                    let class_colors = monitor_config['class_colors']
 
-        function setup_selection_table(monitor_name, type) {
-            {# Used to setup a log or notification table of checkboxes  #}
-            {# that can turn on or off each trained object of a given monitor_name. #}
-            {# Supported type values are 'log' and 'notification'. #}
-            const url = 'get_trained_objects?monitor_name=' + monitor_name
-            fetch(url)
-                .then(response => response.json())
-                .then(data => { make_table(data); })
-                .then( () => update_config_objects(monitor_name))
-                .catch(function(error) {
-                                    console.log("Could not get data: get_trained_objects() failed. : " + error);
-                                })
-
-            async function make_table(data) {
-                let monitor_config = await get_monitor_config("{{ monitor_name }}")
-                let class_colors = monitor_config['class_colors']
-
-                {#Clear the table#}
-                let table = document.querySelector('#' + type + '_table');
-                table.innerHTML = ''
-                for (let o in data) {
-                    let row = make_row(data[o], class_colors[data[o]]);
-                    add_row(row);}
-
-                function make_row(o, color) {
-                    {# Create class name column #}
-                    let c1 = document.createElement("td");
-                    {# $(<#id>) retrieves a DOM element by id#}
-                    {#c1.innerHTML = `${o}`;#}
-                    c1.innerHTML = "<span style='height:10px; width:10px; border-radius:50%; background-color: rgb(" + color[0] + "," + color[1] + "," + color[2] +"); display: inline-block'></span>&nbsp" + `${o}`;
-                    c1.className = 'py-2';
-
-                    {# Create checkbox column #}
-                    let check_box = document.createElement("input");
-                    check_box.type = 'checkbox';
-                    check_box.className = 'config_object ' + type + '_objects ' + o.replace(' ', '_');
-                    check_box.setAttribute('data-obj', o);
-                    check_box.checked = false;
-                    check_box.onclick = function() {toggle_box(o);}
-
-                    let c2 = document.createElement("td");
-                    c2.appendChild(check_box);
-                    c2.className = "text-center py-2";
-
-                    let table_row = document.createElement('tr');
-                    table_row.appendChild(c1);
-                    table_row.appendChild(c2);
-
-                    return table_row
-                 }
-
-                function add_row(table_row) {
+                    {#Clear the table#}
                     let table = document.querySelector('#' + type + '_table');
-                    table.appendChild(table_row)
-                }
+                    table.innerHTML = ''
+                    for (let o in data) {
+                        let row = make_row(data[o], class_colors[data[o]]);
+                        add_row(row);}
 
-                function toggle_box(obj) {
-                    let url = 'toggle_' + type + '_objects/';
-                    url += '?monitor_name={{ monitor_name }}&objects=' + obj;
-                    fetch(url)
-                        .catch( (err) => {console.log("Toggle Error: " + err);} );
+                    function make_row(o, color) {
+                        {# Create class name column #}
+                        let c1 = document.createElement("td");
+                        {# $(<#id>) retrieves a DOM element by id#}
+                        {#c1.innerHTML = `${o}`;#}
+                        c1.innerHTML = "<span style='height:10px; width:10px; border-radius:50%; background-color: rgb(" + color[0] + "," + color[1] + "," + color[2] +"); display: inline-block'></span>&nbsp" + `${o}`;
+                        c1.className = 'py-2';
+
+                        {# Create checkbox column #}
+                        let check_box = document.createElement("input");
+                        check_box.type = 'checkbox';
+                        check_box.className = 'config_object ' + type + '_objects ' + o.replace(' ', '_');
+                        check_box.setAttribute('data-obj', o);
+                        check_box.checked = false;
+                        check_box.onclick = function() {toggle_box(o);}
+
+                        let c2 = document.createElement("td");
+                        c2.appendChild(check_box);
+                        c2.className = "text-center py-2";
+
+                        let table_row = document.createElement('tr');
+                        table_row.appendChild(c1);
+                        table_row.appendChild(c2);
+
+                        return table_row
+                     }
+
+                    function add_row(table_row) {
+                        let table = document.querySelector('#' + type + '_table');
+                        table.appendChild(table_row)
+                    }
+
+                    function toggle_box(obj) {
+                        let url = 'toggle_' + type + '_objects/';
+                        url += '?monitor_name={{ monitor_name }}&objects=' + obj;
+                        fetch(url)
+                            .catch( (err) => {console.log("Toggle Error: " + err);} );
+                    }
                 }
             }
-        }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            setup_config_socket('{{monitor_name}}');
-            update_config_objects('{{monitor_name}}');
-        })
+            document.addEventListener('DOMContentLoaded', () => {
+                setup_config_socket('{{monitor_name}}');
+                update_config_objects('{{monitor_name}}');
+            })
 
-</script>
+    </script>
 
-<div class="row">
-    <div class= "col-12" id="monitor_config">
-        {%  include 'traffic_monitor/monitor_config.html' with monitor_name=monitor_name section_id="monitor_config" %}
+    <div class="row">
+        <div class= "col-12" id="monitor_config">
+            {%  include 'traffic_monitor/monitor_config.html' with monitor_name=monitor_name section_id="monitor_config" %}
+        </div>
+
+        <div class= "col-12 col-md-6" id="monitor_video">
+            {%  include 'traffic_monitor/service__video.html' with monitor_name=monitor_name section_id="monitor_video" %}
+        </div>
+
+        <div class= "col-12 col-md-6" id="monitor_chart">
+            {%  include 'traffic_monitor/service__charting.html' with monitor_name=monitor_name section_id="monitor_chart" %}
+        </div>
+
+        <div class= "col-12 col-md-6" id="monitor_log">
+            {%  include 'traffic_monitor/service__logging.html' with monitor_name=monitor_name section_id="monitor_log" %}
+        </div>
+
+        <div class= "col-12 col-md-6" id="monitor_notification">
+    {#        {%  include 'traffic_monitor/service__object_selection.html' with monitor_name=monitor_name section_id="monitor_selection" %}#}
+            {%  include 'traffic_monitor/service__notification.html' with monitor_name=monitor_name section_id="monitor_notification" %}
+        </div>
     </div>
-
-    <div class= "col-12 col-md-6" id="monitor_video">
-        {%  include 'traffic_monitor/service__video.html' with monitor_name=monitor_name section_id="monitor_video" %}
-    </div>
-
-    <div class= "col-12 col-md-6" id="monitor_chart">
-        {%  include 'traffic_monitor/service__charting.html' with monitor_name=monitor_name section_id="monitor_chart" %}
-    </div>
-
-    <div class= "col-12 col-md-6" id="monitor_log">
-        {%  include 'traffic_monitor/service__logging.html' with monitor_name=monitor_name section_id="monitor_log" %}
-    </div>
-
-    <div class= "col-12 col-md-6" id="monitor_notification">
-{#        {%  include 'traffic_monitor/service__object_selection.html' with monitor_name=monitor_name section_id="monitor_selection" %}#}
-        {%  include 'traffic_monitor/service__notification.html' with monitor_name=monitor_name section_id="monitor_notification" %}
-    </div>
-</div>
-
-
-
+{% endblock frame %}

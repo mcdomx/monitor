@@ -20,7 +20,6 @@
         async function setup_monitor_dropdown() {
             let monitors = await get_monitors();
             let table = document.getElementById("monitors_list");
-            table.innerText = '';
 
             for (let m in monitors) {
                 let trow = document.createElement('tr');
@@ -52,7 +51,7 @@
 
     </script>
 
-    <div class="card-body" style="height: 360px; overflow-y: auto">
+    <div class="card-body" style="height: 50%; overflow-y: auto">
         <table class="table table-hover">
           <thead>
             <tr style="text-align: left">
@@ -61,10 +60,13 @@
               <th scope="col" >Video Stream</th>
             </tr>
           </thead>
-          <tbody id="monitors_list">
-            ...
+          <tbody id="monitors_list" >
+
           </tbody>
         </table>
+    </div>
+    <div class="card-footer" style="text-align: right">
+        <a href="createmonitor">Create new monitor</a>
     </div>
 
 

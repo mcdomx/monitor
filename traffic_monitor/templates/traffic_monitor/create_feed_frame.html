@@ -1,0 +1,16 @@
+{# This file lays out the feed creation #}
+{%  extends 'traffic_monitor/base.html' %}
+
+{% block frame %}
+    {#    Include the service html here #}
+    {% csrf_token %}
+    <script type="text/javascript">
+
+    </script>
+
+    <div class="row">
+        <div class= "col-12 col-md-10 col-lg-8 col-xl-6 mx-auto" id="create_feed">
+            {%  include 'traffic_monitor/create_feed.html' with section_id="create_feed" %}
+        </div>
+    </div>
+{%  endblock frame %}

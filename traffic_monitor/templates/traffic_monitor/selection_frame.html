@@ -1,14 +1,17 @@
 {# This file lays out the monitor selection #}
+{%  extends 'traffic_monitor/base.html' %}
 
-<script type="text/javascript">
+{% block frame %}
+    {#    Include the service html here #}
+    {% csrf_token %}
 
-</script>
+    <script type="text/javascript">
 
-<div class="row">
-    <div class= "col-12 col-md-10 col-lg-8 col-xl-6 mx-auto" id="select_monitor">
-        {%  include 'traffic_monitor/select_monitor.html' with section_id="select_monitor" %}
+    </script>
+
+    <div class="row">
+        <div class= "col-12 col-md-10 col-lg-8 col-xl-6 mx-auto" id="select_monitor">
+            {%  include 'traffic_monitor/select_monitor.html' with section_id="select_monitor" %}
+        </div>
     </div>
-</div>
-
-
-
+{% endblock frame %}

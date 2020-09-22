@@ -8,6 +8,10 @@ from traffic_monitor.views import api
 urlpatterns = [
     # External Routes
     path("", views.index_view, name="index"),
+    path("createmonitor", views.create_monitor_view, name="createmonitor"),
+    path("createstream", views.create_feed_view, name="createstream"),
+    re_path(r"test_video[\/|\?].*", views.test_video, name='test_video'),
+    re_path(r"start_test_video_stream[\/|\?].*", views.start_test_video_stream, name='start_test_video_stream'),
     # path("table", views.table_view, name="table"),
     # path("profile", views.profile_view, name="profile"),
 
@@ -15,6 +19,7 @@ urlpatterns = [
     # path("video_feed/<int:monitor_id>", video_views.video_feed, name="video_feed"),
 
     # API routes
+    path("get_timezones", api.get_timezones, name="get_timezones"),
     path("get_streams", api.get_streams, name="get_streams"),
     re_path(r"create_stream[\/|\?].*", api.create_stream, name='create_stream'),
     path("get_detectors", api.get_detectors, name="get_detectors"),

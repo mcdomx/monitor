@@ -1,5 +1,6 @@
 import json
 import logging
+import pytz
 from django.http import JsonResponse, HttpResponse
 
 from traffic_monitor.views import chart_views
@@ -638,5 +639,27 @@ def get_chart(request):
     kwargs = _parse_args(request, 'monitor_name')
     monitor_config = MonitorServiceManager().get_monitor_configuration(kwargs.get('monitor_name'))
     rv = chart_views.get_chart(monitor_config)
+
+    return JsonResponse(rv, safe=False)
+
+
+def get_timezones(request):
+    """
+    Return a list of all the supported timezone values.
+    :return: List of support timezone values
+    """
+    tzlist = pytz.all_timezones
+
+    rv = {}
+    for tz in tzlist:
+        split = tz.split('/')
+        c = '/'.join(split[:-1])
+        if c is '':
+            c = "Other"
+        z = split[-1]
+        if c in rv.keys():
+            rv.get(c).append(z)
+        else:
+            rv.update({c: [z]})
 
     return JsonResponse(rv, safe=False)
