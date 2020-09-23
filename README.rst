@@ -9,7 +9,7 @@ Logging
     Logging is the action of storing the counts of detected objects in the video stream.  The resulting log can be used to analyze traffic patterns.
 
 Monitoring
-    Monitoring will trigger an action when a defined object is detected in the video stream.  For example, if an elephant is detected, a message can be sent or the frame image can be saved. (Currently, monitoring actions are not setup and intended for a future release.)
+    Monitoring will trigger an action when a defined object is detected in the video stream.  For example, if an elephant is detected, a message can be sent or the frame image can be saved. (Currently, monitoring will only log detected objects and the time of detection.)
 
 A web font-end provides the most appealing and simple interface to the monitor but the monitor can also be controlled via rest calls and the progress can be seen in a terminal window.
 
@@ -18,77 +18,76 @@ Web Front-End
 
 Monitor Selection (Landing Page)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. image:: ../docs_static/images/monitor_selection.png
-  :width: 600
+.. figure:: ../docs_static/images/monitor_selection.png
+  :figwidth: 600
   :alt: Monitor Selection
 
-**Landing Page**: The site's root presents a list of available monitors to select from.  Either a monitor can be selected or created.
+  **Landing Page**: The site's root presents a list of available monitors to select from.  Either a monitor can be selected or created.
 
 Create Monitor
 ^^^^^^^^^^^^^^
-.. image:: ../docs_static/images/create_monitor.png
-  :width: 600
+.. figure:: ../docs_static/images/create_monitor.png
+  :figwidth: 600
   :alt: Create Monitor
 
-**Create Monitor**: Select a Detector and a Video Feed to define a monitor.  A unique monitor name is required.
+  **Create Monitor**: Select a Detector and a Video Feed to define a monitor.  A unique monitor name is required.
 
 Create Video Feed
 ^^^^^^^^^^^^^^^^^
-.. image:: ../docs_static/images/create_video_feed.png
-  :width: 600
+.. figure:: ../docs_static/images/create_video_feed.png
+  :figwidth: 600
   :alt: Create Video Feed
 
-**Create Video Feed**: A feed can be easily created.  Simply provide the URL or the YouTube hash to a stream.  The application will validate the feed and provide a visual preview.  A description is required and the feed's time zone should be identified.
+  **Create Video Feed**: A feed can be easily created.  Simply provide the URL or the YouTube hash to a stream.  The application will validate the feed and provide a visual preview.  A description is required and the feed's time zone should be identified.
 
 Monitor Home
 ^^^^^^^^^^^^
-.. image:: ../docs_static/images/all_services.png
-  :width: 600
+.. figure:: ../docs_static/images/all_services.png
+  :figwidth: 600
   :alt: Monitor Home Screen
 
-**Monitor Home**: Service activity is shown in separate sections.
+  **Monitor Home**: Service activity is shown in separate sections.  Each tile has customized pop-up menu options.
 
 
 Configuration Tile
 ^^^^^^^^^^^^^^^^^^
-.. image:: ../docs_static/images/monitor_configuration.png
-  :width: 300
+.. figure:: ../docs_static/images/monitor_configuration.png
+  :figwidth: 300
   :alt: Configuration
 
-**Monitor Configuration**: The monitor configuration displays the current values used by the monitor.  As items are changed using the popup menus or via the API, these values are updated in the web page.
+  **Monitor Configuration**: The monitor configuration displays the current values used by the monitor.  As items are changed using each tile's pop-up menus or via the API, these values are updated in the web page.
 
 Detector Tile
 ^^^^^^^^^^^^^
-.. image:: ../docs_static/images/detector_service.png
-  :width: 300
+.. figure:: ../docs_static/images/detector_service.png
+  :figwidth: 300
   :alt: Detector
 
-**Detector**: Each detected image is displayed.  The popup menu is used to adjust detector sleep time and the level of confidence used.  Increasing sleep time will reduce the burden on the CPU.
+  **Detector**: Each detected image is displayed.  The popup menu is used to adjust detector sleep time and the level of confidence used.  Increasing sleep time will reduce the burden on the CPU.
 
 Chart Tile
 ^^^^^^^^^^
-.. image:: ../docs_static/images/chart_service.png
-  :width: 300
+.. figure:: ../docs_static/images/chart_service.png
+  :figwidth: 300
   :alt: Chart
 
-
-**Chart**: At each log interval the chart is updated.  The popup menu can be used to adjust the x-axis time horizon or the time zone that the time is displayed in.  Additionally, logged items can be toggled for inclusion in the charted values.
+  **Chart**: At each log interval the chart is updated.  The popup menu can be used to adjust the x-axis time horizon or the time zone that the time is displayed in.  Additionally, logged items can be toggled for inclusion in the charted values.
 
 Logging Tile
 ^^^^^^^^^^^^
-.. image:: ../docs_static/images/log_service.png
-  :width: 300
+.. figure:: ../docs_static/images/log_service.png
+  :figwidth: 300
   :alt: Log
 
-**Log**: Logged items are presented with the most recently logged item first.  Items shown are items that have been added to the database.  Using the popup menu, logged items can be toggled and the interval used to log items to the database can be adjusted.
+  **Log**: Logged items are presented with the most recently logged item first.  Items shown are items that have been added to the database.  Using the popup menu, logged items can be toggled and the interval used to log items to the database can be adjusted.
 
 Notification Tile
 ^^^^^^^^^^^^^^^^^
-.. image:: ../docs_static/images/notification_service.png
-  :width: 300
+.. figure:: ../docs_static/images/notification_service.png
+  :figwidth: 300
   :alt: Notification
 
-**Notification**: Notified items are shown with the time that they were identified by the detector.  These items are not stored in the database.  The popup menu can be used to toggle the items that are presented in the notification log.
+  **Notification**: Notified items are shown with the time that they were identified by the detector.  These items are not stored in the database.  The popup menu can be used to toggle the items that are presented in the notification log.
 
 API
 ---
@@ -99,10 +98,17 @@ Architecture
 The application uses Django to publish pages and handle API requests.  A Postgres database is used to store configuration information as well as data collected by the Monitor.  In an effort to structure the application so that it can later be converted to a series of microservices, the Postgres database is run in a Docker container.
 
 Communications
-    Application components communicate across the backend using Kafka and the Django back-end communicates with web clients using WebSockets.
+    Back-end (Kafka)
+        Application components communicate across the Django backend using Kafka.
+
+    Back-end > Front-end (Websockets)
+        The Django back-end communicates with web clients using WebSockets.
+
+    Front-end > Back-end (REST API)
+        The front-end web clients communicate to the Django backend using various supported API calls.
 
 Services
-    The application employs a concept of a Monitor which is a user-named combination of a Video Feed and a Detector.  The video feed is the link to the video source and the Detector is a configured object which includes an object detector which will detect objects in a video feed.  5 services are defined which are designed to operate independently:
+    The application is designed as a series of services.  This approach was chosen in an effort to convert the services to micro-services in the future.  5 services are defined which are designed to operate independently:
 
 1. Monitor Service
     This is the primary service that is necessary for any other service to operate.  The Monitor Service will initiate the video stream and other services that are configured for the monitor.  This service serves as the top-level coordinator for a Monitor and its supporting services.
@@ -120,11 +126,10 @@ Services
 4. Chart Service
     The Chart Service will collect data from the Monitor Service and publish a chart to the web client that displays the number of detected instances over time.  The time zone and time horizon on the x-axis of this chart can be configured.
 
-5. Notification Service (future)
+5. Notification Service
     The Notification service will perform a notification action (alert, email, text message, etc) based on the presence of a particular object detected in the video stream.  Where logging will record each instance of a detected object, the Notification Service will broadcast a notification the moment that an object is detected.  This service can be used as an 'alarm' or 'alert'; for example, if there is an elephant in your front yard.
 
-A small hierarchy of objects are necessary to organize data collected by a Monitor.  A Monitor is defined as a combination of a Video Feed and a Detector.  A Monitor is created by a user and given a unique name.  Data is retrieved via a reference to the Monitor.  The detector can be changed once a Monitor has been defined, but the monitor name and the video feed remain fixed.
-
+    NOTE: The current version of the application only supports the logging of notification objects which includes the object and the time that it was detected.  Full implementation of this service is reserved for a future release.
 
 Getting Started
 ===============
