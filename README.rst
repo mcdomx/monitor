@@ -134,6 +134,25 @@ Services
 Getting Started
 ===============
 
+Virtual Environment
+-------------------
+Pipenv is used to manage a virtual environment for this application.  Before launching the virtual environment, Pipenv must be installed locally:
+
+::
+
+    pip install pipenv
+
+Once Pipenv is installed, the virtual environment can be launched from the application's root:
+
+::
+
+    pipenv shell
+
+This will use the application's ``Pipfile`` to load necessary libraries and modules.
+
+The commands listed below assume that you are working in this virtual environment.
+
+
 Environment Setup
 -----------------
 
@@ -142,8 +161,9 @@ The application relies on a ``.env`` file in the root.  The creation of this fil
 
     python manage.py create_env
 
+The notes below explain what is in the ``.env`` file, but if you used the command above to create the file, no additional environment steps are necessary to run the application.
 
-This file supports the following environment variables:
+Th ``.env`` file includes the following variables:
 
 *optional variables:*
 ::
@@ -160,7 +180,7 @@ This file supports the following environment variables:
     export DB_HOST=0.0.0.0  # IP address of database (0.0.0.0 for Docker)
     export DJANGO_SECRET_KEY='<<gobblty_snobblty>>'  # Django secret key (can be anything)
 
-The variables defined in the `.env` file will be included in the environment available in Django and accessible using:
+The variables defined in the ``.env`` file will be included in the environment available in Django and accessible using:
 
 ::
 
