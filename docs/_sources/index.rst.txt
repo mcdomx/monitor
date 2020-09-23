@@ -10,7 +10,7 @@ The Traffic Monitor application will detect objects in a video feed and log, rep
 
 Although the application has been designed to accommodate custom object detection algorithms, the OpenCV implementation of object detection is used with the trained dataset of COCO objects.
 
-.. figure:: ../docs_static/images/all_services.png
+.. figure:: images/all_services.png
   :figwidth: 600
   :alt: Monitor Home Screen
 
