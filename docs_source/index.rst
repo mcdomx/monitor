@@ -6,7 +6,7 @@
 Traffic Monitor
 ===============
 
-Traffic Monitor will monitor a video stream and log, report and chart instances of detected objects.  A variety of objects can selected for tracking as well as the source of the video stream.
+The Traffic Monitor application will detect objects in a video feed and log, report and chart instances of objects that are recognized.  A variety of objects can be selected for tracking as well as the source of the video stream.
 
 Although the application has been designed to accommodate custom object detection algorithms, the OpenCV implementation of object detection is used with the trained dataset of COCO objects.
 
