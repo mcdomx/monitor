@@ -18,7 +18,7 @@ Web Front-End
 
 Monitor Selection (Landing Page)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. figure:: ../docs_static/images/monitor_selection.png
+.. figure:: images/monitor_selection.png
   :figwidth: 600
   :alt: Monitor Selection
 
@@ -26,7 +26,7 @@ Monitor Selection (Landing Page)
 
 Create Monitor
 ^^^^^^^^^^^^^^
-.. figure:: ../docs_static/images/create_monitor.png
+.. figure:: images/create_monitor.png
   :figwidth: 600
   :alt: Create Monitor
 
@@ -34,7 +34,7 @@ Create Monitor
 
 Create Video Feed
 ^^^^^^^^^^^^^^^^^
-.. figure:: ../docs_static/images/create_video_feed.png
+.. figure:: images/create_video_feed.png
   :figwidth: 600
   :alt: Create Video Feed
 
@@ -42,7 +42,7 @@ Create Video Feed
 
 Monitor Home
 ^^^^^^^^^^^^
-.. figure:: ../docs_static/images/all_services.png
+.. figure:: images/all_services.png
   :figwidth: 600
   :alt: Monitor Home Screen
 
@@ -51,7 +51,7 @@ Monitor Home
 
 Configuration Tile
 ^^^^^^^^^^^^^^^^^^
-.. figure:: ../docs_static/images/monitor_configuration.png
+.. figure:: images/monitor_configuration.png
   :figwidth: 300
   :alt: Configuration
 
@@ -59,7 +59,7 @@ Configuration Tile
 
 Detector Tile
 ^^^^^^^^^^^^^
-.. figure:: ../docs_static/images/detector_service.png
+.. figure:: images/detector_service.png
   :figwidth: 300
   :alt: Detector
 
@@ -67,7 +67,7 @@ Detector Tile
 
 Chart Tile
 ^^^^^^^^^^
-.. figure:: ../docs_static/images/chart_service.png
+.. figure:: images/chart_service.png
   :figwidth: 300
   :alt: Chart
 
@@ -75,7 +75,7 @@ Chart Tile
 
 Logging Tile
 ^^^^^^^^^^^^
-.. figure:: ../docs_static/images/log_service.png
+.. figure:: images/log_service.png
   :figwidth: 300
   :alt: Log
 
@@ -83,7 +83,7 @@ Logging Tile
 
 Notification Tile
 ^^^^^^^^^^^^^^^^^
-.. figure:: ../docs_static/images/notification_service.png
+.. figure:: images/notification_service.png
   :figwidth: 300
   :alt: Notification
 
