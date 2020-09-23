@@ -15,36 +15,75 @@ A web font-end provides the most appealing and simple interface to the monitor b
 
 Web Front-End
 -------------
+
+Monitor Selection (Landing Page)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. image:: ../docs_static/images/monitor_selection.png
+  :width: 600
+  :alt: Monitor Selection
+
+**Landing Page**: The site's root presents a list of available monitors to select from.  Either a monitor can be selected or created.
+
+Create Monitor
+^^^^^^^^^^^^^^
+.. image:: ../docs_static/images/create_monitor.png
+  :width: 600
+  :alt: Create Monitor
+
+**Create Monitor**: Select a Detector and a Video Feed to define a monitor.  A unique monitor name is required.
+
+Create Video Feed
+^^^^^^^^^^^^^^^^^
+.. image:: ../docs_static/images/create_video_feed.png
+  :width: 600
+  :alt: Create Video Feed
+
+**Create Video Feed**: A feed can be easily created.  Simply provide the URL or the YouTube hash to a stream.  The application will validate the feed and provide a visual preview.  A description is required and the feed's time zone should be identified.
+
+Monitor Home
+^^^^^^^^^^^^
 .. image:: ../docs_static/images/all_services.png
   :width: 600
-  :alt: Home Screen
+  :alt: Monitor Home Screen
 
-**Home**: Service activity is shown in separate sections.
+**Monitor Home**: Service activity is shown in separate sections.
 
+
+Configuration Tile
+^^^^^^^^^^^^^^^^^^
 .. image:: ../docs_static/images/monitor_configuration.png
   :width: 300
   :alt: Configuration
 
-**Monitor Configuration**: (not shown in the screen shot above). The monitor configuration displays the current values used by the monitor.  As items are changed using the popup menus or via the API, these values are updated in the web page.
+**Monitor Configuration**: The monitor configuration displays the current values used by the monitor.  As items are changed using the popup menus or via the API, these values are updated in the web page.
 
+Detector Tile
+^^^^^^^^^^^^^
 .. image:: ../docs_static/images/detector_service.png
   :width: 300
   :alt: Detector
 
 **Detector**: Each detected image is displayed.  The popup menu is used to adjust detector sleep time and the level of confidence used.  Increasing sleep time will reduce the burden on the CPU.
 
+Chart Tile
+^^^^^^^^^^
 .. image:: ../docs_static/images/chart_service.png
   :width: 300
   :alt: Chart
 
+
 **Chart**: At each log interval the chart is updated.  The popup menu can be used to adjust the x-axis time horizon or the time zone that the time is displayed in.  Additionally, logged items can be toggled for inclusion in the charted values.
 
+Logging Tile
+^^^^^^^^^^^^
 .. image:: ../docs_static/images/log_service.png
   :width: 300
   :alt: Log
 
 **Log**: Logged items are presented with the most recently logged item first.  Items shown are items that have been added to the database.  Using the popup menu, logged items can be toggled and the interval used to log items to the database can be adjusted.
 
+Notification Tile
+^^^^^^^^^^^^^^^^^
 .. image:: ../docs_static/images/notification_service.png
   :width: 300
   :alt: Notification
@@ -53,7 +92,7 @@ Web Front-End
 
 API
 ---
-The application supports an API which can be used to setup, configure, start and stop monitors.  See the API documentation for details.
+The application supports an API which can be used to setup, configure, start and stop monitors.  See the API documentation for details. (:ref:`API Reference`)
 
 Architecture
 ------------

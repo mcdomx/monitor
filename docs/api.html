@@ -150,7 +150,7 @@
            <div itemprop="articleBody">
             
   <div class="section" id="api-reference">
-<h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>HTTP API functions called from a browser.</p>
@@ -406,6 +406,21 @@ monitor_name=&lt;monitor name&gt;</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A JsonResponse dictionary of video streams. {stream: {‘cam’: , ‘time_zone’: , ‘url’: ,’description’: }}</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.get_timezones">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_timezones</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_timezones" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of all the supported timezone values.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_timezones</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>List of support timezone values</p>
 </dd>
 </dl>
 </dd></dl>

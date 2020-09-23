@@ -85,7 +85,18 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Traffic Monitor</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#web-front-end">Web Front-End</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#web-front-end">Web Front-End</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#monitor-selection-landing-page">Monitor Selection (Landing Page)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#create-monitor">Create Monitor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#create-video-feed">Create Video Feed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#monitor-home">Monitor Home</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-tile">Configuration Tile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detector-tile">Detector Tile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chart-tile">Chart Tile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#logging-tile">Logging Tile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#notification-tile">Notification Tile</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#api">API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
 </ul>
@@ -179,22 +190,55 @@
 <p>A web font-end provides the most appealing and simple interface to the monitor but the monitor can also be controlled via rest calls and the progress can be seen in a terminal window.</p>
 <div class="section" id="web-front-end">
 <h2>Web Front-End<a class="headerlink" href="#web-front-end" title="Permalink to this headline">¶</a></h2>
-<a class="reference internal image-reference" href="_images/all_services.png"><img alt="Home Screen" src="_images/all_services.png" style="width: 600px;" /></a>
-<p><strong>Home</strong>: Service activity is shown in separate sections.</p>
+<div class="section" id="monitor-selection-landing-page">
+<h3>Monitor Selection (Landing Page)<a class="headerlink" href="#monitor-selection-landing-page" title="Permalink to this headline">¶</a></h3>
+<a class="reference internal image-reference" href="_images/monitor_selection.png"><img alt="Monitor Selection" src="_images/monitor_selection.png" style="width: 600px;" /></a>
+<p><strong>Landing Page</strong>: The site’s root presents a list of available monitors to select from.  Either a monitor can be selected or created.</p>
+</div>
+<div class="section" id="create-monitor">
+<h3>Create Monitor<a class="headerlink" href="#create-monitor" title="Permalink to this headline">¶</a></h3>
+<a class="reference internal image-reference" href="_images/create_monitor.png"><img alt="Create Monitor" src="_images/create_monitor.png" style="width: 600px;" /></a>
+<p><strong>Create Monitor</strong>: Select a Detector and a Video Feed to define a monitor.  A unique monitor name is required.</p>
+</div>
+<div class="section" id="create-video-feed">
+<h3>Create Video Feed<a class="headerlink" href="#create-video-feed" title="Permalink to this headline">¶</a></h3>
+<a class="reference internal image-reference" href="_images/create_video_feed.png"><img alt="Create Video Feed" src="_images/create_video_feed.png" style="width: 600px;" /></a>
+<p><strong>Create Video Feed</strong>: A feed can be easily created.  Simply provide the URL or the YouTube hash to a stream.  The application will validate the feed and provide a visual preview.  A description is required and the feed’s time zone should be identified.</p>
+</div>
+<div class="section" id="monitor-home">
+<h3>Monitor Home<a class="headerlink" href="#monitor-home" title="Permalink to this headline">¶</a></h3>
+<a class="reference internal image-reference" href="_images/all_services.png"><img alt="Monitor Home Screen" src="_images/all_services.png" style="width: 600px;" /></a>
+<p><strong>Monitor Home</strong>: Service activity is shown in separate sections.</p>
+</div>
+<div class="section" id="configuration-tile">
+<h3>Configuration Tile<a class="headerlink" href="#configuration-tile" title="Permalink to this headline">¶</a></h3>
 <a class="reference internal image-reference" href="_images/monitor_configuration.png"><img alt="Configuration" src="_images/monitor_configuration.png" style="width: 300px;" /></a>
-<p><strong>Monitor Configuration</strong>: (not shown in the screen shot above). The monitor configuration displays the current values used by the monitor.  As items are changed using the popup menus or via the API, these values are updated in the web page.</p>
+<p><strong>Monitor Configuration</strong>: The monitor configuration displays the current values used by the monitor.  As items are changed using the popup menus or via the API, these values are updated in the web page.</p>
+</div>
+<div class="section" id="detector-tile">
+<h3>Detector Tile<a class="headerlink" href="#detector-tile" title="Permalink to this headline">¶</a></h3>
 <a class="reference internal image-reference" href="_images/detector_service.png"><img alt="Detector" src="_images/detector_service.png" style="width: 300px;" /></a>
 <p><strong>Detector</strong>: Each detected image is displayed.  The popup menu is used to adjust detector sleep time and the level of confidence used.  Increasing sleep time will reduce the burden on the CPU.</p>
+</div>
+<div class="section" id="chart-tile">
+<h3>Chart Tile<a class="headerlink" href="#chart-tile" title="Permalink to this headline">¶</a></h3>
 <a class="reference internal image-reference" href="_images/chart_service.png"><img alt="Chart" src="_images/chart_service.png" style="width: 300px;" /></a>
 <p><strong>Chart</strong>: At each log interval the chart is updated.  The popup menu can be used to adjust the x-axis time horizon or the time zone that the time is displayed in.  Additionally, logged items can be toggled for inclusion in the charted values.</p>
+</div>
+<div class="section" id="logging-tile">
+<h3>Logging Tile<a class="headerlink" href="#logging-tile" title="Permalink to this headline">¶</a></h3>
 <a class="reference internal image-reference" href="_images/log_service.png"><img alt="Log" src="_images/log_service.png" style="width: 300px;" /></a>
 <p><strong>Log</strong>: Logged items are presented with the most recently logged item first.  Items shown are items that have been added to the database.  Using the popup menu, logged items can be toggled and the interval used to log items to the database can be adjusted.</p>
+</div>
+<div class="section" id="notification-tile">
+<h3>Notification Tile<a class="headerlink" href="#notification-tile" title="Permalink to this headline">¶</a></h3>
 <a class="reference internal image-reference" href="_images/notification_service.png"><img alt="Notification" src="_images/notification_service.png" style="width: 300px;" /></a>
 <p><strong>Notification</strong>: Notified items are shown with the time that they were identified by the detector.  These items are not stored in the database.  The popup menu can be used to toggle the items that are presented in the notification log.</p>
 </div>
+</div>
 <div class="section" id="api">
 <h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
-<p>The application supports an API which can be used to setup, configure, start and stop monitors.  See the API documentation for details.</p>
+<p>The application supports an API which can be used to setup, configure, start and stop monitors.  See the API documentation for details. (<a class="reference internal" href="api.html#api-reference"><span class="std std-ref">API Reference</span></a>)</p>
 </div>
 <div class="section" id="architecture">
 <h2>Architecture<a class="headerlink" href="#architecture" title="Permalink to this headline">¶</a></h2>
