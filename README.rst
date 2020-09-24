@@ -241,8 +241,8 @@ To stop both the database and Kafka containers:
 
     docker-compose down
 
-Deleting Database
-^^^^^^^^^^^^^^^^^
+Deleting the Database
+^^^^^^^^^^^^^^^^^^^^^
 In the event that you want to delete the database and start over, follow the steps below.
 
 ::
@@ -253,8 +253,8 @@ In the event that you want to delete the database and start over, follow the ste
 -  Delete all migrations in the ``migrations`` directory.
 
 
-Change Database and Kafka Configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changing the Database and Kafka Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Changes to the Postgres or Kafka services can be made by updating the docker-compose.yaml file:
 
 -  Update variables and values in the ``docker-compose.yaml`` file in

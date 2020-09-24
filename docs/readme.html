@@ -106,9 +106,9 @@
 <li class="toctree-l2"><a class="reference internal" href="#environment-setup">Environment Setup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#database-and-kafka-messaging-services">Database and Kafka Messaging Services</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#initialize-database">Initialize Database</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#stop-the-database-and-kafka-containers">Stop the Database and Kafka Containers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#delete-database">Delete Database</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#change-database-and-kafka-configuration">Change Database and Kafka Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stopping-the-database-and-kafka-containers">Stopping the Database and Kafka Containers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#deleting-the-database">Deleting the Database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#changing-the-database-and-kafka-configuration">Changing the Database and Kafka Configuration</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#start-application">Start Application</a></li>
@@ -378,8 +378,8 @@
 </pre></div>
 </div>
 </div>
-<div class="section" id="stop-the-database-and-kafka-containers">
-<h3>Stop the Database and Kafka Containers<a class="headerlink" href="#stop-the-database-and-kafka-containers" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="stopping-the-database-and-kafka-containers">
+<h3>Stopping the Database and Kafka Containers<a class="headerlink" href="#stopping-the-database-and-kafka-containers" title="Permalink to this headline">¶</a></h3>
 <p>To stop both the database and Kafka containers:</p>
 <ul class="simple">
 <li><p>Run the following from the <code class="docutils literal notranslate"><span class="pre">infratructure</span></code> directory:</p></li>
@@ -388,8 +388,8 @@
 </pre></div>
 </div>
 </div>
-<div class="section" id="delete-database">
-<h3>Delete Database<a class="headerlink" href="#delete-database" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="deleting-the-database">
+<h3>Deleting the Database<a class="headerlink" href="#deleting-the-database" title="Permalink to this headline">¶</a></h3>
 <p>In the event that you want to delete the database and start over, follow the steps below.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">down</span>
 <span class="n">docker</span> <span class="n">volume</span> <span class="n">remove</span> <span class="n">infrastructure_monitor_data</span>
@@ -399,8 +399,8 @@
 <li><p>Delete all migrations in the <code class="docutils literal notranslate"><span class="pre">migrations</span></code> directory.</p></li>
 </ul>
 </div>
-<div class="section" id="change-database-and-kafka-configuration">
-<h3>Change Database and Kafka Configuration<a class="headerlink" href="#change-database-and-kafka-configuration" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="changing-the-database-and-kafka-configuration">
+<h3>Changing the Database and Kafka Configuration<a class="headerlink" href="#changing-the-database-and-kafka-configuration" title="Permalink to this headline">¶</a></h3>
 <p>Changes to the Postgres or Kafka services can be made by updating the docker-compose.yaml file:</p>
 <ul class="simple">
 <li><p>Update variables and values in the <code class="docutils literal notranslate"><span class="pre">docker-compose.yaml</span></code> file in
@@ -414,7 +414,7 @@ the <code class="docutils literal notranslate"><span class="pre">infrastructure<
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">runserver</span>
 </pre></div>
 </div>
-<p>Using this command, the application will be published to <a class="reference external" href="http://127.0.0.1:8000">http://127.0.0.1:8000</a></p>
+<p>Using this command, the application will be published to <a class="reference external" href="http://127.0.0.1:8000">http://127.0.0.1:8000</a>.</p>
 <p>Alternatively, you can define the IP address and port used by the application.  If you set the IP address t the host computer’s IP address, you will be able to access the application from any machine on the local network:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">runserver</span> <span class="mf">10.0</span><span class="o">.</span><span class="mf">0.1</span><span class="p">:</span><span class="mi">12345</span>
 </pre></div>
