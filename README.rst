@@ -231,8 +231,8 @@ The first time that you start the database, it will need to be initialized with 
     python manage.py createsuperuser
     python manage.py setup_database
 
-Stop the Database and Kafka Containers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Stopping the Database and Kafka Containers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 To stop both the database and Kafka containers:
 
 -  Run the following from the ``infratructure`` directory:
@@ -241,8 +241,8 @@ To stop both the database and Kafka containers:
 
     docker-compose down
 
-Delete Database
-^^^^^^^^^^^^^^^
+Deleting Database
+^^^^^^^^^^^^^^^^^
 In the event that you want to delete the database and start over, follow the steps below.
 
 ::
@@ -269,7 +269,7 @@ Once the docker containers running Zookepper, Kafka and Postgres are running, th
 
     python manage.py runserver
 
-Using this command, the application will be published to http://127.0.0.1:8000
+Using this command, the application will be published to http://127.0.0.1:8000.
 
 Alternatively, you can define the IP address and port used by the application.  If you set the IP address t the host computer's IP address, you will be able to access the application from any machine on the local network:
 
