@@ -367,3 +367,7 @@ class MonitorServiceManager:
             rv.update({'is_active': is_active})
 
             return rv
+
+        @staticmethod
+        def get_logged_data(kwargs) -> dict:
+            return MonitorFactory().get_logged_data(kwargs)

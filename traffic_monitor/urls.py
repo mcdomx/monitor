@@ -54,17 +54,9 @@ urlpatterns = [
 
     re_path(r"toggle_service[\/|\?].*", api.toggle_service, name="toggle_service"),
 
-    # re_path(r"create_monitor_service[\/|\?].*", api.create_monitor_service, name='create_monitor_service'),
-    # path("get_monitor_services", api.get_monitor_services, name="get_monitor_services"),
-    # re_path(r"get_monitor_service[\/|\?].*", api.get_monitor_service, name='get_monitor_service'),
-
-
-    # path("get_class_data/<int:monitor_id>", api.get_class_data, name="get_class_data"),
-    # path("toggle_box", api.toggle_box, name="toggle_box"),
-    # path("toggle_all/<int:monitor_id>/<action>", api.toggle_all, name="toggle_all"),
-
     re_path(r"get_chart[\/|\?].*", api.get_chart, name="get_chart"),
-    # path("get_chart/<int:monitor_id>", api.get_chart, name="get_chart"),
+
+    re_path(r"get_logged_data[\/|\?].*", api.get_logged_data, name="get_logged_data"),
 
 
 

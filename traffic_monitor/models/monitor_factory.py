@@ -1,11 +1,12 @@
 import logging
 import json
+import datetime
 
 from confluent_kafka import Producer
 
 from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.models.feed_factory import FeedFactory
-# from traffic_monitor.websocket_channels import ConfigChange
+from traffic_monitor.models.model_logentry import LogEntry
 from channels.generic.websocket import WebsocketConsumer
 
 from traffic_monitor.websocket_channels_factory import ChannelFactory
@@ -288,3 +289,43 @@ class MonitorFactory:
                     'charting_objects': monitor.charting_objects,
                     'charting_time_zone': monitor.charting_time_zone,
                     'class_colors': monitor.class_colors}
+
+        @staticmethod
+        def get_logged_data(kwargs) -> dict:
+            monitor_name = kwargs.get('monitor_name')
+            _filter = {'monitor__name': monitor_name}
+
+            try:
+                m = Monitor.objects.get(pk=monitor_name)
+            except Monitor.DoesNotExist:
+                return {'success': False, 'message': f"'{monitor_name}' does not exist"}
+            except Exception as e:
+                return {'success': False, 'message': f"'{monitor_name}' -> Unknown error retrieving monitor."}
+
+            try:
+                start_date = kwargs.get('start_date', None)
+                if start_date:
+                    start_date = datetime.datetime.fromisoformat(start_date)
+                    start_date = datetime.datetime.combine(start_date.date(), start_date.time(), tzinfo=datetime.timezone.utc)
+                    _filter.update({'time_stamp__gte': start_date})
+
+                end_date = kwargs.get('end_date', None)
+                if end_date:
+                    end_date = datetime.datetime.fromisoformat(end_date)
+                    end_date = datetime.datetime.combine(end_date.date(), end_date.time(), tzinfo=datetime.timezone.utc)
+                    _filter.update({'time_stamp__lte': end_date})
+
+                objects = kwargs.get('objects', None)
+                if objects:
+                    objects = [o.strip() for o in objects.split(",")]
+                    _filter.update({'class_name__in': objects})
+
+            except Exception as e:
+                return {'success': False, 'message': f"'{monitor_name}' -> Unable to filter arguments."}
+
+            try:
+                print(_filter)
+                rs = LogEntry.objects.filter(**_filter)
+                return {'success': True, 'message': list(rs.values())}
+            except Exception as e:
+                return {'success': False, 'message': f"'{monitor_name}' -> Unable to get Log entries. {e.args}"}

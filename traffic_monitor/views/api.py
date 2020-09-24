@@ -1,6 +1,10 @@
 import json
 import logging
 import pytz
+import datetime
+import csv
+
+from django.utils.encoding import smart_str
 from django.http import JsonResponse, HttpResponse
 
 from traffic_monitor.views import chart_views
@@ -667,3 +671,60 @@ def get_timezones(request):
             rv.update({c: [z]})
 
     return JsonResponse(rv, safe=False)
+
+
+# https://www.pythoncircle.com/post/190/how-to-download-data-as-csv-and-excel-file-in-django/
+def get_logged_data(request):
+    """
+    Return all the data logged for a provided monitor.  Without any 'objects', 'start_data' or 'end_date', all items are assumed for the missing parameters.
+
+    API Call:
+        /get_logged_data?
+        monitor_name=<monitor name>&
+        start_date=<YYYY-MM-DD>&
+        end_date=<YYYY-MM-DD>&
+        objects=<comma separated list of objects to return>
+
+    :param request: request: HTTP request that expects a monitor_name argument.
+    :return: A CSV file of logged entries corresponding the provided monitor and filtering arguments
+    """
+    try:
+        kwargs = _parse_args(request, 'monitor_name')
+        monitor_name = kwargs.get('monitor_name')
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': e.args})
+
+    # return JsonResponse(MonitorServiceManager().get_logged_data(kwargs), safe=False)
+
+    # get data
+    rv_data = MonitorServiceManager().get_logged_data(kwargs)
+
+    # if retrieval failed
+    if not rv_data['success']:
+        return JsonResponse(rv_data, safe=False)
+
+    # get the pay load of data
+    rv_data = rv_data['message']
+
+    # response content type
+    response = HttpResponse(content_type='text/csv')
+
+    # file name
+    file_name = f"{datetime.datetime.now().strftime('%Y-%m-%d')}_{monitor_name}.csv"
+    response['Content-Disposition'] = f"attachment; filename=\"{file_name}\""
+
+    writer = csv.writer(response, csv.excel)
+    response.write(u'\ufeff'.encode('utf8'))
+
+    # write the headers
+    header_items = list(rv_data[0].keys())
+    writer.writerow([smart_str(u"{}".format(h)) for h in header_items])
+
+    # write entries
+    for entry in rv_data:
+        writer.writerow([smart_str(entry[h]) for h in header_items])
+
+    return response
+
+
+
