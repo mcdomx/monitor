@@ -1,7 +1,17 @@
 Traffic Monitor
 ===============
 
-This application is designed to monitor a video stream and log the occurrence of detect objects in it. Detections are recorded in a database so that they can be used to analyze the frequency of objects over time. This data can be used to train a model which can predict patterns.
+Project documentaiton is available in a navigable format with API reference details at the project's Git Project Page: http://mcdomx.github.io/monitor/.
+
+The Traffic Monitor application will detect objects in a video feed and log, report and chart instances of objects that are recognized.  A variety of objects can be selected for tracking as well as the source of the video stream.
+
+Although the application has been designed to accommodate custom object detection algorithms, the OpenCV implementation of object detection is used with the default dataset of trained COCO objects.
+
+.. figure:: images/all_services.png
+  :figwidth: 600
+  :alt: Monitor Home Screen
+
+  **Monitor Home**: Example home page of a running monitor.
 
 The application supports two distinct types of activities for each type of object detected in the video stream; Logging and Monitoring.
 
@@ -19,7 +29,7 @@ Web Front-End
 Monitor Selection (Landing Page)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. figure:: images/monitor_selection.png
-  :figwidth: 600
+  :figwidth: 300
   :alt: Monitor Selection
 
   **Landing Page**: The site's root presents a list of available monitors to select from.  Either a monitor can be selected or created.
@@ -27,7 +37,7 @@ Monitor Selection (Landing Page)
 Create Monitor
 ^^^^^^^^^^^^^^
 .. figure:: images/create_monitor.png
-  :figwidth: 600
+  :figwidth: 300
   :alt: Create Monitor
 
   **Create Monitor**: Select a Detector and a Video Feed to define a monitor.  A unique monitor name is required.
@@ -35,7 +45,7 @@ Create Monitor
 Create Video Feed
 ^^^^^^^^^^^^^^^^^
 .. figure:: images/create_video_feed.png
-  :figwidth: 600
+  :figwidth: 300
   :alt: Create Video Feed
 
   **Create Video Feed**: A feed can be easily created.  Simply provide the URL or the YouTube hash to a stream.  The application will validate the feed and provide a visual preview.  A description is required and the feed's time zone should be identified.
@@ -134,6 +144,15 @@ Services
 Getting Started
 ===============
 
+The first step is to clone the GitHub repo for this project:
+
+::
+
+    git clone https://github.com/mcdomx/monitor.git
+
+This will copy the relevant project folders and files into a new folder called ``monitor``.  This folder will be referred to as the 'project root' in the documentation below.
+
+
 Virtual Environment
 -------------------
 Pipenv is used to manage a virtual environment for this application.  Before launching the virtual environment, Pipenv must be installed locally:
@@ -142,7 +161,7 @@ Pipenv is used to manage a virtual environment for this application.  Before lau
 
     pip install pipenv
 
-Once Pipenv is installed, the virtual environment can be launched from the application's root:
+Once Pipenv is installed, the virtual environment can be launched from the project root directory:
 
 ::
 
@@ -156,7 +175,7 @@ The commands listed below assume that you are working in this virtual environmen
 Environment Setup
 -----------------
 
-The application relies on a ``.env`` file in the root.  The creation of this file is simplified by running the following command:
+The application relies on a ``.env`` file in the root.  The creation of this file is simplified by running the following command from the project root:
 ::
 
     python manage.py create_env
@@ -200,15 +219,6 @@ Both the Postgres and Kafka services are configured to run in docker containers 
 
 Any data stored in these services will persist locally and will be available the next time that you start the containers from the same machine.
 
-Alteratively, the database or kafka containers can be started individually; however, note that the application requires both to function:
-
-::
-
-    docker-compose up db
-
-    docker-compose up zookeeper
-    docker-compose up kafka
-
 Initialize Database
 ^^^^^^^^^^^^^^^^^^^
 The first time that you start the database, it will need to be initialized with Django.
@@ -231,15 +241,6 @@ To stop both the database and Kafka containers:
 
     docker-compose down
 
-Alternatively, either service can be individually stopped:
-
-::
-
-    docker-compose down db
-
-    docker-compose down kafka
-    docker-compose down zookeeper
-
 Delete Database
 ^^^^^^^^^^^^^^^
 In the event that you want to delete the database and start over, follow the steps below.
@@ -249,14 +250,8 @@ In the event that you want to delete the database and start over, follow the ste
    docker-compose down
    docker volume remove infrastructure_monitor_data
 
--  Delete all migrations in the ``migrations`` directory:
+-  Delete all migrations in the ``migrations`` directory.
 
-::
-
-    docker-compose up
-    python manage.py migrate
-    python manage.py createsuperuser
-    python manage.py setup_database
 
 Change Database and Kafka Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -268,7 +263,7 @@ Changes to the Postgres or Kafka services can be made by updating the docker-com
 
 Start Application
 -----------------
-The application can be started via:
+Once the docker containers running Zookepper, Kafka and Postgres are running, the application can be started via:
 
 ::
 

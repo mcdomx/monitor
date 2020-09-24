@@ -10,7 +10,7 @@ API Reference
 
 .. contents:: Modules
   :local:
-  :depth: 2
+  :depth: 1
 
 .. automodule:: views.api
    :members:

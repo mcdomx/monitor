@@ -180,7 +180,13 @@
             
   <div class="section" id="traffic-monitor">
 <span id="readme"></span><h1>Traffic Monitor<a class="headerlink" href="#traffic-monitor" title="Permalink to this headline">¶</a></h1>
-<p>This application is designed to monitor a video stream and log the occurrence of detect objects in it. Detections are recorded in a database so that they can be used to analyze the frequency of objects over time. This data can be used to train a model which can predict patterns.</p>
+<p>Project documentaiton is available in a navigable format with API reference details at the project’s Git Project Page: <a class="reference external" href="http://mcdomx.github.io/monitor/">http://mcdomx.github.io/monitor/</a>.</p>
+<p>The Traffic Monitor application will detect objects in a video feed and log, report and chart instances of objects that are recognized.  A variety of objects can be selected for tracking as well as the source of the video stream.</p>
+<p>Although the application has been designed to accommodate custom object detection algorithms, the OpenCV implementation of object detection is used with the default dataset of trained COCO objects.</p>
+<div class="figure align-default" id="id1" style="width: 600px">
+<img alt="Monitor Home Screen" src="_images/all_services.png" />
+<p class="caption"><span class="caption-text"><strong>Monitor Home</strong>: Example home page of a running monitor.</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</div>
 <p>The application supports two distinct types of activities for each type of object detected in the video stream; Logging and Monitoring.</p>
 <dl class="simple">
 <dt>Logging</dt><dd><p>Logging is the action of storing the counts of detected objects in the video stream.  The resulting log can be used to analyze traffic patterns.</p>
@@ -193,65 +199,65 @@
 <h2>Web Front-End<a class="headerlink" href="#web-front-end" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="monitor-selection-landing-page">
 <h3>Monitor Selection (Landing Page)<a class="headerlink" href="#monitor-selection-landing-page" title="Permalink to this headline">¶</a></h3>
-<div class="figure align-default" id="id1" style="width: 600px">
+<div class="figure align-default" id="id2" style="width: 300px">
 <img alt="Monitor Selection" src="_images/monitor_selection.png" />
-<p class="caption"><span class="caption-text"><strong>Landing Page</strong>: The site’s root presents a list of available monitors to select from.  Either a monitor can be selected or created.</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text"><strong>Landing Page</strong>: The site’s root presents a list of available monitors to select from.  Either a monitor can be selected or created.</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
 </div>
 </div>
 <div class="section" id="create-monitor">
 <h3>Create Monitor<a class="headerlink" href="#create-monitor" title="Permalink to this headline">¶</a></h3>
-<div class="figure align-default" id="id2" style="width: 600px">
+<div class="figure align-default" id="id3" style="width: 300px">
 <img alt="Create Monitor" src="_images/create_monitor.png" />
-<p class="caption"><span class="caption-text"><strong>Create Monitor</strong>: Select a Detector and a Video Feed to define a monitor.  A unique monitor name is required.</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text"><strong>Create Monitor</strong>: Select a Detector and a Video Feed to define a monitor.  A unique monitor name is required.</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
 </div>
 </div>
 <div class="section" id="create-video-feed">
 <h3>Create Video Feed<a class="headerlink" href="#create-video-feed" title="Permalink to this headline">¶</a></h3>
-<div class="figure align-default" id="id3" style="width: 600px">
+<div class="figure align-default" id="id4" style="width: 300px">
 <img alt="Create Video Feed" src="_images/create_video_feed.png" />
-<p class="caption"><span class="caption-text"><strong>Create Video Feed</strong>: A feed can be easily created.  Simply provide the URL or the YouTube hash to a stream.  The application will validate the feed and provide a visual preview.  A description is required and the feed’s time zone should be identified.</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text"><strong>Create Video Feed</strong>: A feed can be easily created.  Simply provide the URL or the YouTube hash to a stream.  The application will validate the feed and provide a visual preview.  A description is required and the feed’s time zone should be identified.</span><a class="headerlink" href="#id4" title="Permalink to this image">¶</a></p>
 </div>
 </div>
 <div class="section" id="monitor-home">
 <h3>Monitor Home<a class="headerlink" href="#monitor-home" title="Permalink to this headline">¶</a></h3>
-<div class="figure align-default" id="id4" style="width: 600px">
+<div class="figure align-default" id="id5" style="width: 600px">
 <img alt="Monitor Home Screen" src="_images/all_services.png" />
-<p class="caption"><span class="caption-text"><strong>Monitor Home</strong>: Service activity is shown in separate sections.  Each tile has customized pop-up menu options.</span><a class="headerlink" href="#id4" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text"><strong>Monitor Home</strong>: Service activity is shown in separate sections.  Each tile has customized pop-up menu options.</span><a class="headerlink" href="#id5" title="Permalink to this image">¶</a></p>
 </div>
 </div>
 <div class="section" id="configuration-tile">
 <h3>Configuration Tile<a class="headerlink" href="#configuration-tile" title="Permalink to this headline">¶</a></h3>
-<div class="figure align-default" id="id5" style="width: 300px">
+<div class="figure align-default" id="id6" style="width: 300px">
 <img alt="Configuration" src="_images/monitor_configuration.png" />
-<p class="caption"><span class="caption-text"><strong>Monitor Configuration</strong>: The monitor configuration displays the current values used by the monitor.  As items are changed using each tile’s pop-up menus or via the API, these values are updated in the web page.</span><a class="headerlink" href="#id5" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text"><strong>Monitor Configuration</strong>: The monitor configuration displays the current values used by the monitor.  As items are changed using each tile’s pop-up menus or via the API, these values are updated in the web page.</span><a class="headerlink" href="#id6" title="Permalink to this image">¶</a></p>
 </div>
 </div>
 <div class="section" id="detector-tile">
 <h3>Detector Tile<a class="headerlink" href="#detector-tile" title="Permalink to this headline">¶</a></h3>
-<div class="figure align-default" id="id6" style="width: 300px">
+<div class="figure align-default" id="id7" style="width: 300px">
 <img alt="Detector" src="_images/detector_service.png" />
-<p class="caption"><span class="caption-text"><strong>Detector</strong>: Each detected image is displayed.  The popup menu is used to adjust detector sleep time and the level of confidence used.  Increasing sleep time will reduce the burden on the CPU.</span><a class="headerlink" href="#id6" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text"><strong>Detector</strong>: Each detected image is displayed.  The popup menu is used to adjust detector sleep time and the level of confidence used.  Increasing sleep time will reduce the burden on the CPU.</span><a class="headerlink" href="#id7" title="Permalink to this image">¶</a></p>
 </div>
 </div>
 <div class="section" id="chart-tile">
 <h3>Chart Tile<a class="headerlink" href="#chart-tile" title="Permalink to this headline">¶</a></h3>
-<div class="figure align-default" id="id7" style="width: 300px">
+<div class="figure align-default" id="id8" style="width: 300px">
 <img alt="Chart" src="_images/chart_service.png" />
-<p class="caption"><span class="caption-text"><strong>Chart</strong>: At each log interval the chart is updated.  The popup menu can be used to adjust the x-axis time horizon or the time zone that the time is displayed in.  Additionally, logged items can be toggled for inclusion in the charted values.</span><a class="headerlink" href="#id7" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text"><strong>Chart</strong>: At each log interval the chart is updated.  The popup menu can be used to adjust the x-axis time horizon or the time zone that the time is displayed in.  Additionally, logged items can be toggled for inclusion in the charted values.</span><a class="headerlink" href="#id8" title="Permalink to this image">¶</a></p>
 </div>
 </div>
 <div class="section" id="logging-tile">
 <h3>Logging Tile<a class="headerlink" href="#logging-tile" title="Permalink to this headline">¶</a></h3>
-<div class="figure align-default" id="id8" style="width: 300px">
+<div class="figure align-default" id="id9" style="width: 300px">
 <img alt="Log" src="_images/log_service.png" />
-<p class="caption"><span class="caption-text"><strong>Log</strong>: Logged items are presented with the most recently logged item first.  Items shown are items that have been added to the database.  Using the popup menu, logged items can be toggled and the interval used to log items to the database can be adjusted.</span><a class="headerlink" href="#id8" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text"><strong>Log</strong>: Logged items are presented with the most recently logged item first.  Items shown are items that have been added to the database.  Using the popup menu, logged items can be toggled and the interval used to log items to the database can be adjusted.</span><a class="headerlink" href="#id9" title="Permalink to this image">¶</a></p>
 </div>
 </div>
 <div class="section" id="notification-tile">
 <h3>Notification Tile<a class="headerlink" href="#notification-tile" title="Permalink to this headline">¶</a></h3>
-<div class="figure align-default" id="id9" style="width: 300px">
+<div class="figure align-default" id="id10" style="width: 300px">
 <img alt="Notification" src="_images/notification_service.png" />
-<p class="caption"><span class="caption-text"><strong>Notification</strong>: Notified items are shown with the time that they were identified by the detector.  These items are not stored in the database.  The popup menu can be used to toggle the items that are presented in the notification log.</span><a class="headerlink" href="#id9" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text"><strong>Notification</strong>: Notified items are shown with the time that they were identified by the detector.  These items are not stored in the database.  The popup menu can be used to toggle the items that are presented in the notification log.</span><a class="headerlink" href="#id10" title="Permalink to this image">¶</a></p>
 </div>
 </div>
 </div>
@@ -309,13 +315,18 @@
 </div>
 <div class="section" id="getting-started">
 <h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
+<p>The first step is to clone the GitHub repo for this project:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">mcdomx</span><span class="o">/</span><span class="n">monitor</span><span class="o">.</span><span class="n">git</span>
+</pre></div>
+</div>
+<p>This will copy the relevant project folders and files into a new folder called <code class="docutils literal notranslate"><span class="pre">monitor</span></code>.  This folder will be referred to as the ‘project root’ in the documentation below.</p>
 <div class="section" id="virtual-environment">
 <h2>Virtual Environment<a class="headerlink" href="#virtual-environment" title="Permalink to this headline">¶</a></h2>
 <p>Pipenv is used to manage a virtual environment for this application.  Before launching the virtual environment, Pipenv must be installed locally:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">pipenv</span>
 </pre></div>
 </div>
-<p>Once Pipenv is installed, the virtual environment can be launched from the application’s root:</p>
+<p>Once Pipenv is installed, the virtual environment can be launched from the project root directory:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pipenv</span> <span class="n">shell</span>
 </pre></div>
 </div>
@@ -324,7 +335,7 @@
 </div>
 <div class="section" id="environment-setup">
 <h2>Environment Setup<a class="headerlink" href="#environment-setup" title="Permalink to this headline">¶</a></h2>
-<p>The application relies on a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file in the root.  The creation of this file is simplified by running the following command:</p>
+<p>The application relies on a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file in the root.  The creation of this file is simplified by running the following command from the project root:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">create_env</span>
 </pre></div>
 </div>
@@ -355,13 +366,6 @@
 </pre></div>
 </div>
 <p>Any data stored in these services will persist locally and will be available the next time that you start the containers from the same machine.</p>
-<p>Alteratively, the database or kafka containers can be started individually; however, note that the application requires both to function:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">up</span> <span class="n">db</span>
-
-<span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">up</span> <span class="n">zookeeper</span>
-<span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">up</span> <span class="n">kafka</span>
-</pre></div>
-</div>
 <div class="section" id="initialize-database">
 <h3>Initialize Database<a class="headerlink" href="#initialize-database" title="Permalink to this headline">¶</a></h3>
 <p>The first time that you start the database, it will need to be initialized with Django.</p>
@@ -383,13 +387,6 @@
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">down</span>
 </pre></div>
 </div>
-<p>Alternatively, either service can be individually stopped:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">down</span> <span class="n">db</span>
-
-<span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">down</span> <span class="n">kafka</span>
-<span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">down</span> <span class="n">zookeeper</span>
-</pre></div>
-</div>
 </div>
 <div class="section" id="delete-database">
 <h3>Delete Database<a class="headerlink" href="#delete-database" title="Permalink to this headline">¶</a></h3>
@@ -399,14 +396,8 @@
 </pre></div>
 </div>
 <ul class="simple">
-<li><p>Delete all migrations in the <code class="docutils literal notranslate"><span class="pre">migrations</span></code> directory:</p></li>
+<li><p>Delete all migrations in the <code class="docutils literal notranslate"><span class="pre">migrations</span></code> directory.</p></li>
 </ul>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">up</span>
-<span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">migrate</span>
-<span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">createsuperuser</span>
-<span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">setup_database</span>
-</pre></div>
-</div>
 </div>
 <div class="section" id="change-database-and-kafka-configuration">
 <h3>Change Database and Kafka Configuration<a class="headerlink" href="#change-database-and-kafka-configuration" title="Permalink to this headline">¶</a></h3>
@@ -419,7 +410,7 @@ the <code class="docutils literal notranslate"><span class="pre">infrastructure<
 </div>
 <div class="section" id="start-application">
 <h2>Start Application<a class="headerlink" href="#start-application" title="Permalink to this headline">¶</a></h2>
-<p>The application can be started via:</p>
+<p>Once the docker containers running Zookepper, Kafka and Postgres are running, the application can be started via:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">runserver</span>
 </pre></div>
 </div>
