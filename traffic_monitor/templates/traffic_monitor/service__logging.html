@@ -71,18 +71,6 @@
 
         }
 
-        {#function set_log_interval(monitor_name, interval) {#}
-        {#    let elems = document.getElementsByClassName('config_object log_interval')#}
-        {#    let spinner_icon = '../../static/assets/img/ajax_loader_blue_350.gif'#}
-        {#    for (let e in elems) {#}
-        {#        if (elems.hasOwnProperty(e)) {#}
-        {#            elems[e].innerHTML = "<img src=" + spinner_icon + " height='16'>"#}
-        {#        }#}
-        {#    }#}
-        {#    const url ='set_log_interval?monitor_name=' + monitor_name + '&value=' + interval;#}
-        {#    fetch(url);#}
-
-
         async function setup_logging_dropdown_menu(monitor_name) {
             {# Update the parent's 'dropdown-menu' tag with <a> links #}
             let menulisting = document.getElementById('{{ section_id }}').getElementsByClassName('dropdown-menu')[0]
@@ -198,7 +186,6 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-primary btn-small" data-dismiss="modal">Close</button>
-{#                    <button type="button" class="btn btn-primary">Save changes</button>#}
                 </div>
         </div>
      </div>

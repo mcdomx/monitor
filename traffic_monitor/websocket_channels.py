@@ -69,6 +69,37 @@ class LogChannel(WebsocketConsumer):
         logger.info("Log Channel Closed!")
 
 
+class LogDataChannel(WebsocketConsumer):
+    """
+    Create a Channels-Redis consumer for logging.  The backend
+    can send messages by calling update() and the front end
+    can connect to this consumer via a WebSocket.
+    """
+    def connect(self):
+        """
+        connect() is called when the web-client creates a WebSocket object.
+        The creation of a WebSocket object will automatically call this function
+        with a 'scope' parameter which includes the 'path' of the socket.
+        To create a channel, the web-client should use JavaScript to instantiate
+        a WebSocket object:
+
+        const socket = new WebSocket('ws://' + window.location.host + '/' + <socket_address> + '/')
+
+        After this is created, the back-end can send messages to the front-end by
+        calling update() on the channel object created here.
+
+        :return:
+        """
+        ChannelFactory().add(url=self.scope.get('path'), consumer=self)
+        logger.info("STARTING LOGDATA CHANNEL")
+        self.accept()
+
+    def disconnect(self, code):
+        ChannelFactory().remove(self.scope.get('path'))
+        self.close()
+        logger.info("LogData Channel Closed!")
+
+
 class ChartChannel(WebsocketConsumer):
 
     def connect(self):

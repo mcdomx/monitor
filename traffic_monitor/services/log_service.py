@@ -11,12 +11,14 @@ import pytz
 from abc import ABC
 
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Min, Max, Count
 
 from traffic_monitor.models.model_logentry import LogEntry
 from traffic_monitor.services.service_abstract import ServiceAbstract
 from traffic_monitor.services.elapsed_time import ElapsedTime
-from traffic_monitor.websocket_channels import LogChannel
+from traffic_monitor.websocket_channels import LogChannel, LogDataChannel
 from traffic_monitor.websocket_channels_factory import ChannelFactory
+
 
 logger = logging.getLogger('log_service')
 
@@ -41,6 +43,8 @@ class LogService(ServiceAbstract, ABC):
         self.subject_name = f"logservice__{monitor_config.get('monitor_name')}"
         # self.log_interval = 120  # freq (in sec) in detections are logged
         self.channel_url = f"/ws/traffic_monitor/log/{monitor_config.get('monitor_name')}/"  # websocket channel address
+        self.logdata_channel_url = f"/ws/traffic_monitor/logdata/{monitor_config.get('monitor_name')}/"
+        self._update_logdata_channel()  # update the logdata before starting
 
     def handle_message(self, msg) -> (str, object):
         msg_key = msg.key().decode('utf-8')
@@ -49,6 +53,31 @@ class LogService(ServiceAbstract, ABC):
             msg_value = json.JSONDecoder().decode(msg.value().decode('utf-8'))
 
             return msg_key, msg_value
+
+    def _update_log_channel(self, time_stamp, interval_counts_dict):
+        log_channel: LogChannel = ChannelFactory().get(self.channel_url)
+        # only use the channel if a channel has been created
+        if log_channel:
+            # this sends message to ay front end that has created a WebSocket
+            # with the respective channel_url address
+            msg = {'time_stamp': time_stamp,
+                   'monitor_name': self.monitor_name,
+                   'counts': interval_counts_dict}
+            log_channel.send(text_data=DjangoJSONEncoder().encode(msg))
+
+    def _update_logdata_channel(self):
+        logdata_channel: LogDataChannel = ChannelFactory().get(self.logdata_channel_url)
+        if logdata_channel:
+            # get the LogEntry statistics
+            _filter = LogEntry.objects.filter(monitor__name='MyMonitor')
+            earliest_date = list(_filter.aggregate(Min('time_stamp')).values())[0].strftime("%Y-%m-%d %H:%M:%S %Z")
+            latest_date = list(_filter.aggregate(Max('time_stamp')).values())[0].strftime("%Y-%m-%d %H:%M:%S %Z")
+            num_records = list(_filter.aggregate(Count('time_stamp')).values())[0]
+
+            msg = {'earliest_log_date': earliest_date,
+                   'latest_log_date': latest_date,
+                   'num_log_records': num_records}
+            logdata_channel.send(text_data=DjangoJSONEncoder().encode(msg))
 
     def run(self):
         timer = ElapsedTime()
@@ -94,15 +123,10 @@ class LogService(ServiceAbstract, ABC):
                 logger.info(f"Monitor: {self.monitor_name} Did not log: {[x for x in objs_unique.difference(set(self.monitor_config.get('log_objects')))]}")
 
                 # send web-client updates using the Channels-Redis websocket
-                channel: LogChannel = ChannelFactory().get(self.channel_url)
-                # only use the channel if a channel has been created
-                if channel:
-                    # this sends message to ay front end that has created a WebSocket
-                    # with the respective channel_url address
-                    msg = {'time_stamp': time_stamp,
-                           'monitor_name': self.monitor_name,
-                           'counts': interval_counts_dict}
-                    channel.send(text_data=DjangoJSONEncoder().encode(msg))
+                self._update_log_channel(time_stamp, interval_counts_dict)
+
+                # Send the logging database statistics to the front end
+                self._update_logdata_channel()
 
                 # reset variables for next observation
                 log_interval_detections.clear()

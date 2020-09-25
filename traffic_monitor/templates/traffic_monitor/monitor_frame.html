@@ -58,15 +58,17 @@
             }
 
             function set_config_value(url_stem, monitor_name, field, value) {
-            let elems = document.getElementsByClassName('config_object ' + field);
-            for (let e in elems) {
-                if (elems.hasOwnProperty(e)) {
-                    elems[e].innerHTML = "<i class='fa fa-spinner fa-spin'></i>";
+                let elems = document.getElementsByClassName('config_object ' + field);
+
+                for (let e in elems) {
+                    if (elems.hasOwnProperty(e)) {
+                        elems[e].innerHTML = "<i class='fa fa-spinner fa-spin'></i>";
+                    }
                 }
-            }
-            const url = url_stem +'?monitor_name=' + monitor_name + '&value=' + value;
-            fetch(url)
-            .catch( err => {console.log("Could not set: " + url)} );
+
+                const url = url_stem +'?monitor_name=' + monitor_name + '&value=' + value;
+                fetch(url)
+                .catch( err => {console.log("Could not set: " + url)} );
             }
 
             async function get_monitor_config(monitor_name) {
@@ -165,8 +167,12 @@
     </script>
 
     <div class="row">
-        <div class= "col-12" id="monitor_config">
+        <div class= "col-12 col-md-6" id="monitor_config">
             {%  include 'traffic_monitor/monitor_config.html' with monitor_name=monitor_name section_id="monitor_config" %}
+        </div>
+
+        <div class= "col-12 col-md-6" id="monitor_datadownload">
+            {%  include 'traffic_monitor/service__datadownload.html' with monitor_name=monitor_name section_id="monitor_datadownload" %}
         </div>
 
         <div class= "col-12 col-md-6" id="monitor_video">

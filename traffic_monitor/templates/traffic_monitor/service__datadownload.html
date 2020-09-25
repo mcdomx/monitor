@@ -1,0 +1,108 @@
+{% extends 'traffic_monitor/section_wrapper.html' %}
+
+{% block title %}Download Log Data{% endblock title %}
+
+{% block content %}
+    {% csrf_token %}
+
+    <script type="text/javascript">
+
+        async function update_logdata_objects(logdata) {
+            for (let key in logdata) {
+                if (logdata.hasOwnProperty(key)) {
+                    let elems = document.getElementsByClassName('config_object '+ key);
+                    {#if elements exist, let's update them #}
+                    if (elems.length) {
+                         for (let e in elems) {
+                            if (elems.hasOwnProperty(e)) {
+                                elems[e].innerText = logdata[key];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function setup_logdata_socket(monitor_name) {
+            const logdata_socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/logdata/' + monitor_name + '/')
+
+            {# Receive Update #}
+            logdata_socket.onmessage = function (e) {
+                console.log("logdata_socket socket got a message!")
+                const logdata = JSON.parse(e.data);
+
+
+                update_logdata_objects(logdata);
+            }
+
+            logdata_socket.onclose = function (e) {
+                console.log("logdata_socket socket closed!")
+            }
+
+            logdata_socket.onopen = function (e) {
+                console.log('logdata_socket socket opened at ' + logdata_socket.url)
+            }
+        }
+
+
+        {#On load, setup the channel to get communications from the server #}
+        document.addEventListener('DOMContentLoaded', () => {
+            setup_logdata_socket('{{ monitor_name }}')
+        })
+
+    </script>
+
+    <div class="card-body" style="height: 360px; overflow-y: auto">
+        <div class="col-12 border border-secondary rounded bg-light my-1" style="height: 50%">
+            <div>Monitor Data Statistics</div>
+            <div class="row">
+                <div class='ml-3' style="font-weight: bolder; width: 175px">Earliest Log Date:</div><div class="config_object earliest_log_date">-</div>
+            </div>
+            <div class="row">
+                <div class='ml-3' style="font-weight: bolder; width: 175px">Most Recent Log Date:</div><div class="config_object latest_log_date">-</div>
+            </div>
+            <div class="row">
+                <div class='ml-3' style="font-weight: bolder; width: 175px">Num Log Records:</div><div class="config_object num_log_records">-</div>
+            </div>
+        </div>
+
+        <div class="col-12 border border-secondary rounded bg-light my-1" style="height: 50%">
+            Download Monitor Logged Data
+        </div>
+
+    </div>
+
+    {#    MODAL    #}
+    <div class="modal fade" id="datadownloadmodal" tabindex="-1" role="dialog" aria-labelledby="datadownloadmodal" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="datadownloadmodalTitle">Select download objects ...</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th class="text-left">Object</th>
+                                    <th class="text-center">Notify</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="notification_table">
+                            </tbody>
+
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary btn-small" data-dismiss="modal">Close</button>
+                </div>
+        </div>
+     </div>
+   </div>
+
+{% endblock content %}

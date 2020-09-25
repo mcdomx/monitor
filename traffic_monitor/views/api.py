@@ -694,7 +694,7 @@ def get_logged_data(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': e.args})
 
-    # return JsonResponse(MonitorServiceManager().get_logged_data(kwargs), safe=False)
+    # return JsonResponse(MonitorServiceManager().get_loggedtermin_data(kwargs), safe=False)
 
     # get data
     rv_data = MonitorServiceManager().get_logged_data(kwargs)
