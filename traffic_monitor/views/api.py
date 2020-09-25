@@ -674,7 +674,7 @@ def get_timezones(request):
 
 
 # https://www.pythoncircle.com/post/190/how-to-download-data-as-csv-and-excel-file-in-django/
-def get_logged_data(request):
+def get_logged_data_csv(request):
     """
     Return all the data logged for a provided monitor.  Without any 'objects', 'start_data' or 'end_date', all items are assumed for the missing parameters.
 
@@ -694,10 +694,8 @@ def get_logged_data(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': e.args})
 
-    # return JsonResponse(MonitorServiceManager().get_loggedtermin_data(kwargs), safe=False)
-
     # get data
-    rv_data = MonitorServiceManager().get_logged_data(kwargs)
+    rv_data = MonitorServiceManager().get_logged_data_csv(kwargs)
 
     # if retrieval failed
     if not rv_data['success']:
@@ -725,6 +723,28 @@ def get_logged_data(request):
         writer.writerow([smart_str(entry[h]) for h in header_items])
 
     return response
+
+
+def get_logdata_info(request):
+    """
+    Retrieve statistical data about the logged data for a monitor (earliest_log_date, latest_log_date, num_log_records)
+
+    API Call:
+        /get_logdata_info?
+        monitor_name=<monitor name>
+
+    :param request: HTTP request.
+    :return: Dictionary with three keys: earliest_log_date, latest_log_date, num_log_records.  Dates are in ISO format YYYY-MM-DD.
+    """
+    try:
+        kwargs = _parse_args(request, 'monitor_name')
+        monitor_name = kwargs.get('monitor_name')
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': e.args})
+
+    rv = MonitorServiceManager().get_logdata_info(monitor_name)
+    return JsonResponse(rv, safe=False)
+
 
 
 

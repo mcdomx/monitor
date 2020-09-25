@@ -12,11 +12,6 @@ urlpatterns = [
     path("createstream", views.create_feed_view, name="createstream"),
     re_path(r"test_video[\/|\?].*", views.test_video, name='test_video'),
     re_path(r"start_test_video_stream[\/|\?].*", views.start_test_video_stream, name='start_test_video_stream'),
-    # path("table", views.table_view, name="table"),
-    # path("profile", views.profile_view, name="profile"),
-
-    # Internal Routes
-    # path("video_feed/<int:monitor_id>", video_views.video_feed, name="video_feed"),
 
     # API routes
     path("get_timezones", api.get_timezones, name="get_timezones"),
@@ -56,8 +51,7 @@ urlpatterns = [
 
     re_path(r"get_chart[\/|\?].*", api.get_chart, name="get_chart"),
 
-    re_path(r"get_logged_data[\/|\?].*", api.get_logged_data, name="get_logged_data"),
-
-
+    re_path(r"get_logdata_info[\/|\?].*", api.get_logdata_info, name="get_logdata_info"),
+    re_path(r"get_logged_data_csv[\/|\?].*", api.get_logged_data_csv, name="get_logged_data_csv"),
 
 ]

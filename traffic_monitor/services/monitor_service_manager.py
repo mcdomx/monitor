@@ -369,5 +369,9 @@ class MonitorServiceManager:
             return rv
 
         @staticmethod
-        def get_logged_data(kwargs) -> dict:
-            return MonitorFactory().get_logged_data(kwargs)
+        def get_logged_data_csv(kwargs) -> dict:
+            return MonitorFactory().get_logged_data_csv(kwargs)
+
+        @staticmethod
+        def get_logdata_info(monitor_name: str) -> dict:
+            return MonitorFactory().get_logdata_info(monitor_name)

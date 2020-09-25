@@ -40,22 +40,62 @@
                 }
             }
 
+            async function update_logdata_objects(monitor_name, logdata) {
+                if (logdata === null || logdata === '') {
+                    logdata = await get_logged_data(monitor_name);
+                }
+                for (let key in logdata) {
+                    if (logdata.hasOwnProperty(key)) {
+                        let elems = document.getElementsByClassName('config_object '+ key);
+                        {#if elements exist, let's update them #}
+                        if (elems.length) {
+                             for (let e in elems) {
+                                if (elems.hasOwnProperty(e)) {
+                                    elems[e].innerText = logdata[key];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             function setup_config_socket(monitor_name) {
                 const config_change_socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/')
                 {# Receive Update #}
                 config_change_socket.onmessage = function (e) {
-                    console.log("config_change_socket socket got a message!")
-                    update_config_objects('{{ monitor_name }}')
+                    console.log("config_change_socket socket got a message!");
+                    update_config_objects('{{ monitor_name }}');
                 }
 
                 config_change_socket.onclose = function (e) {
-                    console.log("config_change_socket socket closed!")
+                    console.log("config_change_socket socket closed!");
                 }
 
                 config_change_socket.onopen = function (e) {
-                    console.log('config_change_socket socket opened at ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/')
+                    console.log('config_change_socket socket opened at ws://' + window.location.host + '/ws/traffic_monitor/config_change/' + monitor_name + '/');
                 }
             }
+
+
+            function setup_logdata_socket(monitor_name) {
+                const logdata_socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/logdata/' + monitor_name + '/');
+
+                {# Receive Update #}
+                logdata_socket.onmessage = function (e) {
+                    console.log("logdata_socket socket got a message!");
+                    const logdata = JSON.parse(e.data);
+                    update_logdata_objects('{{ monitor_name }}', logdata);
+                }
+
+                logdata_socket.onclose = function (e) {
+                    console.log("logdata_socket socket closed!")
+                }
+
+                logdata_socket.onopen = function (e) {
+                    console.log('logdata_socket socket opened at ' + logdata_socket.url)
+                }
+            }
+
 
             function set_config_value(url_stem, monitor_name, field, value) {
                 let elems = document.getElementsByClassName('config_object ' + field);
@@ -78,6 +118,22 @@
                 }).catch( function(error) {
                                         console.log("Could not get data: get_monitor_config() failed. : " + error);
                                     });
+            }
+
+            async function get_logged_data(monitor_name) {
+                const url = 'get_logdata_info?monitor_name=' + monitor_name
+                return await fetch(url)
+                                .then(data => { return data.json();})
+                                .then(rv => {
+                                    if (rv['success']) {
+                                        return rv['message'];
+                                    } else {
+                                        throw rv['message'];
+                                    }
+                                })
+                                .catch( function(error) {
+                                    console.log("Could not get data: get_logdata_info() failed. : " + error);
+                                });
             }
 
             async function get_monitor_config_value(monitor_name, field) {
@@ -162,6 +218,8 @@
             document.addEventListener('DOMContentLoaded', () => {
                 setup_config_socket('{{monitor_name}}');
                 update_config_objects('{{monitor_name}}');
+                setup_logdata_socket('{{ monitor_name }}');
+                update_logdata_objects('{{ monitor_name }}', null);
             })
 
     </script>

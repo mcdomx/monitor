@@ -3,12 +3,12 @@ import json
 import datetime
 
 from confluent_kafka import Producer
+from django.db.models import Min, Max, Count
+from channels.generic.websocket import WebsocketConsumer
 
 from traffic_monitor.models.model_monitor import Monitor
 from traffic_monitor.models.feed_factory import FeedFactory
 from traffic_monitor.models.model_logentry import LogEntry
-from channels.generic.websocket import WebsocketConsumer
-
 from traffic_monitor.websocket_channels_factory import ChannelFactory
 
 logger = logging.getLogger('monitor_factory')
@@ -291,7 +291,12 @@ class MonitorFactory:
                     'class_colors': monitor.class_colors}
 
         @staticmethod
-        def get_logged_data(kwargs) -> dict:
+        def get_logged_data_csv(kwargs) -> dict:
+            """
+            Returns the records logged for a monitor will optional filters for 'start_date', 'end_date' and 'objects' applied.
+            :param kwargs:
+            :return:
+            """
             monitor_name = kwargs.get('monitor_name')
             _filter = {'monitor__name': monitor_name}
 
@@ -329,3 +334,30 @@ class MonitorFactory:
                 return {'success': True, 'message': list(rs.values())}
             except Exception as e:
                 return {'success': False, 'message': f"'{monitor_name}' -> Unable to get Log entries. {e.args}"}
+
+        @staticmethod
+        def get_logdata_info(monitor_name: str) -> dict:
+            """
+            Return statistics on the logged data for a specified monitor.
+
+            :param monitor_name: Name of monitor for which data should be retrieved
+            :return:
+            """
+            try:
+                Monitor.objects.get(pk=monitor_name)
+            except Monitor.DoesNotExist:
+                return {'success': False, 'message': f"'{monitor_name}' does not exist."}
+
+            try:
+                _filter = LogEntry.objects.filter(monitor__name=monitor_name)
+                earliest_date = list(_filter.aggregate(Min('time_stamp')).values())[0].strftime("%Y-%m-%d %H:%M:%S %Z")
+                latest_date = list(_filter.aggregate(Max('time_stamp')).values())[0].strftime("%Y-%m-%d %H:%M:%S %Z")
+                num_records = list(_filter.aggregate(Count('time_stamp')).values())[0]
+
+                msg = {'earliest_log_date': earliest_date,
+                       'latest_log_date': latest_date,
+                       'num_log_records': num_records}
+
+                return {'success': True, 'message': msg}
+            except Exception as e:
+                return {'success': False, 'message': e.args}
