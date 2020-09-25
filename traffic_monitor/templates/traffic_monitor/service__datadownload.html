@@ -7,10 +7,16 @@
 
     <script type="text/javascript">
 
+        async function download_log_data(monitor_name) {
+            const start_date = document.getElementById('from_datepicker').value;
+            const end_date = document.getElementById('to_datepicker').value;
+            const url = 'get_logged_data_csv?monitor_name=' + monitor_name + '&start_date=' + start_date + '&end_date=' + end_date;
 
-
-
-
+            let a = document.createElement("a");
+            a.href = url;
+            a.setAttribute("download", end_date + "_" + monitor_name);
+            a.click();
+        }
 
         {#On load, setup the channel to get communications from the server #}
         document.addEventListener('DOMContentLoaded', () => {
@@ -58,6 +64,10 @@
             <div class="row">
                 <div class='ml-3' style="font-weight: bolder; width: 100px">To Date:</div><input type="text" id="to_datepicker" size="8">
             </div>
+            <div class="row">
+                <button type="button" class="btn btn-primary btn-sm" onclick="download_log_data('{{ monitor_name }}')">Download</button>
+            </div>
+
         </div>
 
     </div>
