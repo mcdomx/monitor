@@ -52,6 +52,23 @@
 
     </script>
 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        $(function() {
+                        $( "#from_datepicker" ).datepicker();
+                        $( "#anim" ).on( "change", function() {
+                          $( "#from_datepicker" ).datepicker( "option", "showAnim", $( this ).val() );
+                        });
+
+                        $( "#to_datepicker" ).datepicker();
+                        $( "#anim" ).on( "change", function() {
+                          $( "#to_datepicker" ).datepicker( "option", "showAnim", $( this ).val() );
+                        });
+
+                      }
+          );
+    </script>
+
     <div class="card-body" style="height: 360px; overflow-y: auto">
         <div class="col-12 border border-secondary rounded bg-light my-1" style="height: 50%">
             <div>Monitor Data Statistics</div>
@@ -68,6 +85,12 @@
 
         <div class="col-12 border border-secondary rounded bg-light my-1" style="height: 50%">
             Download Monitor Logged Data
+            <div class="row">
+                <div class='ml-3' style="font-weight: bolder; width: 100px">From Date:</div><input type="text" id="from_datepicker" size="8">
+            </div>
+            <div class="row">
+                <div class='ml-3' style="font-weight: bolder; width: 100px">From Date:</div><input type="text" id="to_datepicker" size="8">
+            </div>
         </div>
 
     </div>
