@@ -329,7 +329,6 @@ class MonitorFactory:
                 return {'success': False, 'message': f"'{monitor_name}' -> Unable to filter arguments."}
 
             try:
-                print(_filter)
                 rs = LogEntry.objects.filter(**_filter)
                 return {'success': True, 'message': list(rs.values())}
             except Exception as e:

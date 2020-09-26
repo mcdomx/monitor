@@ -7,6 +7,23 @@
 
     <script type="text/javascript">
 
+        async function setup_datadownload_dropdown_menu(monitor_name) {
+            let menulisting = document.getElementById('{{ section_id }}').getElementsByClassName('dropdown-menu')[0]
+            menulisting.innerText = '';
+
+            let elem = document.createElement('a');
+            elem.className = "dropdown-item py-0";
+            elem.setAttribute('role', "presentation");
+            elem.href = '#';
+            elem.onclick = () => {
+                download_log_data(monitor_name)
+            };
+            elem.innerText = 'Download to CSV';
+
+            menulisting.appendChild(elem);
+
+        }
+
         async function download_log_data(monitor_name) {
             const start_date = document.getElementById('from_datepicker').value;
             const end_date = document.getElementById('to_datepicker').value;
@@ -20,7 +37,7 @@
 
         {#On load, setup the channel to get communications from the server #}
         document.addEventListener('DOMContentLoaded', () => {
-
+            setup_datadownload_dropdown_menu('{{ monitor_name }}');
         })
 
     </script>
@@ -44,30 +61,31 @@
 
     <div class="card-body" style="height: 360px; overflow-y: auto">
         <div class="col-12 border border-secondary rounded bg-light my-1" style="height: 50%">
-            <div>Monitor Data Statistics</div>
-            <div class="row">
-                <div class='ml-3' style="font-weight: bolder; width: 175px">Earliest Log Date:</div><div class="config_object earliest_log_date">-</div>
+            <h5 class="mt-2" style="font-weight: bold">{{ monitor_name }} Logged Data </h5>
+            <hr class="hr-text my-2">
+            <div class="row my-1">
+                <div class='ml-4' style="font-weight: bolder; width: 190px">Earliest Log Date:</div><div class="config_object earliest_log_date">-</div>
             </div>
-            <div class="row">
-                <div class='ml-3' style="font-weight: bolder; width: 175px">Most Recent Log Date:</div><div class="config_object latest_log_date">-</div>
+            <div class="row my-1">
+                <div class='ml-4' style="font-weight: bolder; width: 190px">Most Recent Log Date:</div><div class="config_object latest_log_date">-</div>
             </div>
-            <div class="row">
-                <div class='ml-3' style="font-weight: bolder; width: 175px">Num Log Records:</div><div class="config_object num_log_records">-</div>
+            <div class="row my-1">
+                <div class='ml-4' style="font-weight: bolder; width: 190px">Num Log Records:</div><div class="config_object num_log_records">-</div>
             </div>
         </div>
 
         <div class="col-12 border border-secondary rounded bg-light my-1" style="height: 50%">
-            Download Monitor Logged Data
-            <div class="row">
-                <div class='ml-3' style="font-weight: bolder; width: 100px">From Date:</div><input type="text" id="from_datepicker" size="8">
+            <h5 class="mt-2" style="font-weight: bold">Download to CSV File</h5>
+            <hr class="hr-text my-2">
+            <div class="row my-1">
+                <div class='ml-4' style="font-weight: bolder; width: 100px">From Date:</div><input type="text" id="from_datepicker" size="8">
             </div>
-            <div class="row">
-                <div class='ml-3' style="font-weight: bolder; width: 100px">To Date:</div><input type="text" id="to_datepicker" size="8">
+            <div class="row mt-1">
+                <div class='ml-4' style="font-weight: bolder; width: 100px">To Date:</div><input type="text" id="to_datepicker" size="8">
             </div>
-            <div class="row">
+            <div class="text-right">
                 <button type="button" class="btn btn-primary btn-sm" onclick="download_log_data('{{ monitor_name }}')">Download</button>
             </div>
-
         </div>
 
     </div>
