@@ -44,9 +44,9 @@ class NotificationService(ServiceAbstract, ABC):
                 if key_msg is not None:
                     msg_key, msg_value = key_msg
 
-                    logger.info(f"Notification Service is handling message for {self.monitor_name}:")
-                    logger.info(f"\tKEY: {msg_key}")
-                    logger.info(f"\tMSG: {msg_value}")
+                    logger.debug(f"Notification Service is handling message for {self.monitor_name}:")
+                    logger.debug(f"\tKEY: {msg_key}")
+                    logger.debug(f"\tMSG: {msg_value}")
 
                     for d_obj in set(self.monitor_config.get('notification_objects')).intersection(set(msg_value)):
 
@@ -72,6 +72,9 @@ class NotificationService(ServiceAbstract, ABC):
                 self.condition.wait(1)
                 self.condition.release()
                 # time.sleep(self.notification_interval)
+
+        # make sure that running is false in case something else stopped this loop
+        self.running = False
 
         self.consumer.close()
         logger.info(f"[{self.monitor_name}] Stopped notification service.")

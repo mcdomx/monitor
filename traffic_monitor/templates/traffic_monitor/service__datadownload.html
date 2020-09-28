@@ -35,6 +35,20 @@
             a.click();
         }
 
+        function setup_default_start_date() {
+            const e = document.getElementsByClassName('earliest_log_date')[0];
+            var start_date = e.innerText.slice(0,10);
+            let t = document.getElementById('from_datepicker')
+            t.value = start_date;
+        }
+
+        function setup_default_end_date() {
+            const e = document.getElementsByClassName('latest_log_date')[0];
+            var start_date = e.innerText.slice(0,10);
+            let t = document.getElementById('to_datepicker')
+            t.value = start_date;
+        }
+
         {#On load, setup the channel to get communications from the server #}
         document.addEventListener('DOMContentLoaded', () => {
             setup_datadownload_dropdown_menu('{{ monitor_name }}');
@@ -64,13 +78,13 @@
             <h5 class="mt-2" style="font-weight: bold">{{ monitor_name }} Logged Data </h5>
             <hr class="hr-text my-2">
             <div class="row my-1">
-                <div class='ml-4' style="font-weight: bolder; width: 190px">Earliest Log Date:</div><div class="config_object earliest_log_date">-</div>
+                <div class='ml-4' style="font-weight: bolder; width: 190px">Earliest Log Date:</div><div class="config_object earliest_log_date">no records</div>
             </div>
             <div class="row my-1">
-                <div class='ml-4' style="font-weight: bolder; width: 190px">Most Recent Log Date:</div><div class="config_object latest_log_date">-</div>
+                <div class='ml-4' style="font-weight: bolder; width: 190px">Most Recent Log Date:</div><div class="config_object latest_log_date">no records</div>
             </div>
             <div class="row my-1">
-                <div class='ml-4' style="font-weight: bolder; width: 190px">Num Log Records:</div><div class="config_object num_log_records">-</div>
+                <div class='ml-4' style="font-weight: bolder; width: 190px">Num Log Records:</div><div class="config_object num_log_records">0</div>
             </div>
         </div>
 
@@ -78,10 +92,10 @@
             <h5 class="mt-2" style="font-weight: bold">Download to CSV File</h5>
             <hr class="hr-text my-2">
             <div class="row my-1">
-                <div class='ml-4' style="font-weight: bolder; width: 100px">From Date:</div><input type="text" id="from_datepicker" size="8">
+                <div class='ml-4' style="font-weight: bolder; width: 100px">From Date:</div><input type="text" id="from_datepicker" size="10" class="config_object earliest_log_date date">
             </div>
             <div class="row mt-1">
-                <div class='ml-4' style="font-weight: bolder; width: 100px">To Date:</div><input type="text" id="to_datepicker" size="8">
+                <div class='ml-4' style="font-weight: bolder; width: 100px">To Date:</div><input type="text" id="to_datepicker" size="10" class="config_object latest_log_date date">
             </div>
             <div class="text-right">
                 <button type="button" class="btn btn-primary btn-sm" onclick="download_log_data('{{ monitor_name }}')">Download</button>

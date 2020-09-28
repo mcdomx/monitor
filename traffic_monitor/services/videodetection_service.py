@@ -21,6 +21,8 @@ from abc import ABC
 import base64
 import io
 import json
+import time
+import requests
 
 import numpy as np
 from PIL import Image
@@ -61,26 +63,20 @@ class VideoDetectionService(ServiceAbstract, ABC):
         # DETECTOR STATES
         self.show_full_stream = False
 
-        # Create a detector
-        # self.detector = DetectorMachineFactory().get_detector_machine(monitor_config=monitor_config,
-        #                                                               input_image_queue=self.input_image_queue,
-        #                                                               output_image_queue=self.output_image_queue,
-        #                                                               output_data_topic=self.output_data_topic)
         self.detector = None
         self._set_detector()
-
-
-    def _set_detector(self):
-        self.detector = DetectorMachineFactory().get_detector_machine(monitor_config=self.monitor_config,
-                                                                      input_image_queue=self.input_image_queue,
-                                                                      output_image_queue=self.output_image_queue,
-                                                                      output_data_topic=self.output_data_topic)
 
     def __str__(self):
         rv = self.__dict__
         str_rv = {k: f"{v}" for k, v in rv.items()}
 
         return f"{str_rv}"
+
+    def _set_detector(self):
+        self.detector = DetectorMachineFactory().get_detector_machine(monitor_config=self.monitor_config,
+                                                                      input_image_queue=self.input_image_queue,
+                                                                      output_image_queue=self.output_image_queue,
+                                                                      output_data_topic=self.output_data_topic)
 
     def get_next_frame(self):
         q = self.output_image_queue.get()
@@ -114,7 +110,6 @@ class VideoDetectionService(ServiceAbstract, ABC):
                 self._set_detector()
                 self.detector.start()
 
-
     def run(self):
         """
         This will start the service by calling threading.Thread.start()
@@ -132,6 +127,7 @@ class VideoDetectionService(ServiceAbstract, ABC):
             logger.error(e)
             return
 
+        timer = ElapsedTime()
         while self.running and cap.isOpened():
 
             # first, let's see if there is an image ready to pull from the output queue
@@ -171,7 +167,7 @@ class VideoDetectionService(ServiceAbstract, ABC):
 
                 # if the detector stopped for some reason, create a new thread
                 if not self.detector.is_alive():
-                    logger.info(
+                    logger.warning(
                         f"Restarting {self.monitor_config.get('detector_name')}:{self.monitor_config.get('detector_model')} for {self.monitor_name}")
                     self._set_detector()
                     self.detector.start()
@@ -181,14 +177,34 @@ class VideoDetectionService(ServiceAbstract, ABC):
                     try:
                         # the detector will perform detection on this
                         # image and place the resulting image on the
-                        # output_image_queue and detection data on
-                        # output_data_queue
+                        # output_image_queue and send detection data using Kafka
                         self.input_image_queue.put(frame, block=False)
 
                     except queue.Full:
                         # if queue is full skip, drop an image to make room
                         _ = self.input_image_queue.get()
                         self.input_image_queue.put(frame, block=False)
+
+            else:
+                logger.error(f"CV Video Capture Failed to read image. Resetting stream.")
+                response = requests.get('http://127.0.0.1:8000/get_monitor?monitor_name=MyMonitor&field=feed_url')
+                if response.status_code == 200:
+                    feed_url = json.loads(response.text)['feed_url']
+                    self.monitor_name['feed_url'] = feed_url
+                    cap = cv.VideoCapture(feed_url)
+
+                # wait till cap is opened until continuing
+                i = 1
+                while not cap.isOpened():
+                    time.sleep(1)
+                    logger.error(f"\twaiting to open cap...{i}\r")
+                    i += 1
+                    if i > 10:
+                        logger.error(f"\tTired of waiting to open video capture. Bailing.")
+                        break
+
+        # make sure that running is false in case something else stopped this loop
+        self.running = False
 
         # stop the detector service
         self.detector.stop()

@@ -265,30 +265,38 @@ class MonitorFactory:
             return Monitor.objects.get(name=monitor_name).__dict__
 
         @staticmethod
-        def get_monitor_configuration(monitor_name: str) -> dict:
-            monitor: Monitor = Monitor.objects.get(name=monitor_name)
-            monitor = monitor.refresh_url()  # urls can go stale - make sure url is current
+        def get_monitor_configuration(monitor_name: str, field: str = None) -> dict:
 
-            return {'monitor_name': monitor.name,
-                    'detector_id': monitor.detector.detector_id,
-                    'detector_name': monitor.detector.name,
-                    'detector_model': monitor.detector.model,
-                    'detector_sleep_throttle': monitor.detector_sleep_throttle,
-                    'detector_confidence': monitor.detector_confidence,
-                    'feed_description': monitor.feed.description,
-                    'feed_id': monitor.feed.cam,
-                    'feed_url': monitor.feed.url,
-                    'time_zone': monitor.feed.time_zone,
-                    'log_objects': monitor.log_objects,
-                    'notification_objects': monitor.notification_objects,
-                    'logging_on': monitor.logging_on,
-                    'log_interval': monitor.log_interval,
-                    'notifications_on': monitor.notifications_on,
-                    'charting_on': monitor.charting_on,
-                    'charting_time_horizon': monitor.charting_time_horizon,
-                    'charting_objects': monitor.charting_objects,
-                    'charting_time_zone': monitor.charting_time_zone,
-                    'class_colors': monitor.class_colors}
+            monitor: Monitor = Monitor.objects.get(name=monitor_name)
+            if field is None or field == 'feed_url':
+                monitor = monitor.refresh_url()  # urls can go stale - make sure url is current
+
+            field_map: dict = {'monitor_name': monitor.name,
+                               'detector_id': monitor.detector.detector_id,
+                               'detector_name': monitor.detector.name,
+                               'detector_model': monitor.detector.model,
+                               'detector_sleep_throttle': monitor.detector_sleep_throttle,
+                               'detector_confidence': monitor.detector_confidence,
+                               'feed_description': monitor.feed.description,
+                               'feed_id': monitor.feed.cam,
+                               'feed_url': monitor.feed.url,
+                               'time_zone': monitor.feed.time_zone,
+                               'log_objects': monitor.log_objects,
+                               'notification_objects': monitor.notification_objects,
+                               'logging_on': monitor.logging_on,
+                               'log_interval': monitor.log_interval,
+                               'notifications_on': monitor.notifications_on,
+                               'charting_on': monitor.charting_on,
+                               'charting_time_horizon': monitor.charting_time_horizon,
+                               'charting_objects': monitor.charting_objects,
+                               'charting_time_zone': monitor.charting_time_zone,
+                               'class_colors': monitor.class_colors}
+
+            if field is None:
+                return field_map
+            else:
+                return {field: field_map.get(field)}
+
 
         @staticmethod
         def get_logged_data_csv(kwargs) -> dict:
@@ -311,7 +319,8 @@ class MonitorFactory:
                 start_date = kwargs.get('start_date', None)
                 if start_date:
                     start_date = datetime.datetime.fromisoformat(start_date)
-                    start_date = datetime.datetime.combine(start_date.date(), start_date.time(), tzinfo=datetime.timezone.utc)
+                    start_date = datetime.datetime.combine(start_date.date(), start_date.time(),
+                                                           tzinfo=datetime.timezone.utc)
                     _filter.update({'time_stamp__gte': start_date})
 
                 end_date = kwargs.get('end_date', None)

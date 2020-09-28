@@ -54,10 +54,25 @@
             <div class='mx-2' style="font-weight: bolder; width: 60px">Model: </div><div class="config_object detector_model"></div>
         </div>
 
+
         <div class="row">
-            <div class='mx-2' style="font-weight: bolder; width: 200px">Detector Sleep Throttle: </div><div class="config_object detector_sleep_throttle"></div>
+{#            <div class='mx-2' style="font-weight: bolder; width: 200px">Detector Sleep Throttle: </div><div class="config_object detector_sleep_throttle"></div>#}
+
+            <div class='mx-2 d-flex' style="font-weight: bolder; width: 240px">Detector Sleep Throttle:
+                <div class="dropdown no-arrow">
+                    <button class="btn dropdown-toggle config_object detector_sleep_throttle ml-1 p-0" data-toggle="dropdown" aria-expanded="false" type="button">
+                    </button>
+                    <div class="dropdown-menu shadow dropdown-menu-right animated--fade-in" role="menu">
+                        <p class="text-center dropdown-header">Actions:</p>
+                        <a class="dropdown-item" role="presentation" href="#">&nbsp;Action</a>
+                    </div>
+                </div>
+            </div>
+
             <div class='mx-2' style="font-weight: bolder; width: 200px">Detector Confidence: </div><div class="config_object detector_confidence"></div>
+
         </div>
+
 
         <div class="row">
             <div class='mx-2' style="font-weight: bolder; width: 200px">Feed Description: </div><div class="config_object feed_description"></div>

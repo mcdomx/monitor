@@ -52,7 +52,6 @@
             fetch(url)
                 .then(data => {return data.json()})
                 .then(item => {
-                    console.log("forcing chart update ...");
                     target_div.innerHTML = '';
                     target_div.setAttribute('data-url', url);
                     if (item['success'] === false) {
@@ -115,8 +114,8 @@
             menu_header2.innerText = "Time Zone:";
             menulisting.appendChild(menu_header2);
 
-            let monitor_config = await get_monitor_config(monitor_name);
-            let zones = [{'desc':'UTC', 'value':'UTC'}, {'desc':'US/Eastern', 'value':'US/Eastern'}, {'desc':monitor_config['time_zone'] + '(source)', 'value': monitor_config['time_zone']}]
+            let time_zone = await get_monitor_config_value(monitor_name, 'time_zone');
+            let zones = [{'desc':'UTC', 'value':'UTC'}, {'desc':'US/Eastern', 'value':'US/Eastern'}, {'desc':time_zone + ' (source)', 'value': time_zone}]
             for (let z in zones) {
                 if (zones.hasOwnProperty(z)) {
                     let elem = document.createElement('a');
@@ -140,8 +139,9 @@
             let url = 'get_all_log_objects?monitor_name=' + monitor_name;
             let all_logged_objects = await fetch(url).then(data => {
                                                                         return data.json();
-                                                                    })
-            let chart_objects = monitor_config['charting_objects'];
+                                                                   })
+            let chart_objects = await get_monitor_config_value(monitor_name, 'charting_objects');
+
             for (let lo in all_logged_objects) {
                 if (all_logged_objects.hasOwnProperty(lo)) {
                     let elem = document.createElement('a');

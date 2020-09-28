@@ -64,9 +64,9 @@ class DetectorMachineAbstract(ServiceAbstract):
         """ Kafka support function.  Called once for each message produced to indicate delivery result.
             Triggered by poll() or flush(). """
         if err is not None:
-            logger.info(f'{self.__class__.__name__}: Message delivery failed: {err}')
+            logger.error(f'{self.__class__.__name__}: Message delivery failed: {err}')
         else:
-            logger.info(f'{self.__class__.__name__}: Message delivered to {msg.topic()} partition:[{msg.partition()}]')
+            logger.debug(f'{self.__class__.__name__}: Message delivered to {msg.topic()} partition:[{msg.partition()}]')
 
     def handle_message(self, msg):
         return None
@@ -74,27 +74,29 @@ class DetectorMachineAbstract(ServiceAbstract):
     def run(self):
         logger.info(f"Started {self.name}")
 
-        timer = ElapsedTime()
+        # timer = ElapsedTime()
 
         while self.running:
             try:
-                # keep the consumer alive by regular polling
-                if timer.get() > 5:
-                    _ = self.poll_kafka(0)
-                    timer.reset()
+                # check for configuration changes
+                # if timer.get() > 5:
+                _ = self.poll_kafka(0)
+                    # timer.reset()
 
                 try:
-                    frame = self.input_image_queue.get(block=False)
+                    frame = self.input_image_queue.get(block=True, timeout=5)
 
                 except queue.Empty:
                     # no frames available to perform detection on
+                    logger.info(f"[{self.name}] no frames available to perform detection on.")
                     continue
 
                 self.is_ready = False
                 try:
                     frame, detections = self.detect(frame)
                 except Exception as e:
-                    logger.info(f"[{self.name}] Unhandled Detection Exception: {e.args}")
+                    logger.error(f"[{self.name}] Unhandled Detection Exception: {e.args}")
+                    self.is_ready = True
                     continue
 
                 # put detected frame on queue
@@ -106,9 +108,11 @@ class DetectorMachineAbstract(ServiceAbstract):
                     _ = self.output_image_queue.get()
                     self.output_image_queue.put({'frame': frame})
                 except Exception as e:
-                    logger.info(f"[{self.name}] Unhandled Exception placing detection image on queue: {e.args}")
+                    logger.error(f"[{self.name}] Unhandled Exception placing detection image on queue: {e.args}")
+                    self.is_ready = True
+                    continue
 
-                # publish the data to kafka topic
+                # publish the detection data to kafka topic
                 try:
                     self.producer.poll(0)
                     self.producer.produce(topic=self.monitor_name,
@@ -119,8 +123,8 @@ class DetectorMachineAbstract(ServiceAbstract):
                     self.producer.flush()
 
                 except Exception as e:
-                    logger.info(f"[{self.name}] Unhandled Exception publishing detection data: {e.args}")
-                    logger.info(traceback.print_stack())
+                    logger.error(f"[{self.name}] Unhandled Exception publishing detection data: {e.args}")
+                    logger.error(traceback.print_stack())
 
                 # sleep
                 time.sleep(self.monitor_config.get('detector_sleep_throttle', 1))
@@ -132,7 +136,9 @@ class DetectorMachineAbstract(ServiceAbstract):
                 self.is_ready = True
                 continue
 
-        self.is_ready = True  # if this stopped with is_ready as false, we make sure it will start again as ready
+        # self.is_ready = True  # if this stopped with is_ready as false, we make sure it will start again as ready
+        self.running = False
+        self.is_ready = False
         self.consumer.close()
         logger.info(f"'{self.monitor_name}' '{self.detector_name}:{self.detector_model}' thread stopped!")
 

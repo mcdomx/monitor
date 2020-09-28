@@ -31,7 +31,7 @@
                                     if (key === 'log_objects' || key === 'notification_objects' || key === 'chart_objects') {
                                         elems[e].checked = !!config[key].includes(elems[e].dataset.obj);
                                     } else {
-                                        elems[e].innerText = config[key];
+                                            elems[e].innerText = config[key];
                                     }
                                 }
                             }
@@ -51,7 +51,12 @@
                         if (elems.length) {
                              for (let e in elems) {
                                 if (elems.hasOwnProperty(e)) {
-                                    elems[e].innerText = logdata[key];
+                                    {#input tags get value updated#}
+                                    if (elems[e].tagName.toLowerCase() === 'input' && elems[e].classList.contains('date')) {
+                                        elems[e].value = logdata[key].slice(0,10);
+                                    } else {
+                                        elems[e].innerText = logdata[key];
+                                    }
                                 }
                             }
                         }
@@ -112,7 +117,7 @@
             }
 
             async function get_monitor_config(monitor_name) {
-                const url = 'get_monitor?name=' + monitor_name
+                const url = 'get_monitor?monitor_name=' + monitor_name
                 return await fetch(url).then(data => {
                     return data.json();
                 }).catch( function(error) {
@@ -137,10 +142,15 @@
             }
 
             async function get_monitor_config_value(monitor_name, field) {
-                const url = 'get_monitor?name=' + monitor_name + '&field=' + field;
-                return await fetch(url).then(data => {
-                    return data.json();
-                }).catch( function(error) {
+                const url = 'get_monitor?monitor_name=' + monitor_name + '&field=' + field;
+                return await fetch(url)
+                    .then(data =>  {
+                                      return data.json();
+                                   })
+                    .then( (rv) => {
+                                      return rv[field];
+                                   })
+                    .catch( function(error) {
                                         console.log("Could not get data: get_monitor_config() failed. : " + error);
                                     });
             }
@@ -164,8 +174,8 @@
                                     })
 
                 async function make_table(data) {
-                    let monitor_config = await get_monitor_config("{{ monitor_name }}")
-                    let class_colors = monitor_config['class_colors']
+                    let class_colors = await get_monitor_config_value("{{ monitor_name }}", 'class_colors')
+                    {#let class_colors = monitor_config['class_colors']#}
 
                     {#Clear the table#}
                     let table = document.querySelector('#' + type + '_table');

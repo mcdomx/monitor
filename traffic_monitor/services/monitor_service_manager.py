@@ -238,7 +238,7 @@ class MonitorServiceManager:
         def update_monitor(kwargs) -> dict:
             monitor_name = kwargs.get('monitor_name')
 
-            monitor_config = MonitorServiceManager().get_monitor_configuration(monitor_name)
+            monitor_config = MonitorServiceManager().get_monitor_configuration({'monitor_name': monitor_name})
             if monitor_config.get('class_colors') is None or len(monitor_config.get('class_colors')) == 0:
                 logger.info(f"Creating class colors for {monitor_name}")
                 kwargs.update(
@@ -352,21 +352,28 @@ class MonitorServiceManager:
             return new_value
 
         def get_active_monitors(self) -> {}:
-            return {m: self.get_monitor_configuration(m) for m in self.active_monitors}
+            return {m: self.get_monitor_configuration({'monitor_name': m}) for m in self.active_monitors}
 
         @staticmethod
-        def get_monitor_configuration(name: str) -> dict:
-            rv = MonitorFactory().get_monitor_configuration(name)
+        def get_monitor_configuration(kwargs: dict) -> dict:
+            rv = {}
+            # If asking for all fields or just the 'is_active' field
+            if kwargs.get('field') is None or kwargs.get('field') == 'is_active':
+                is_active = MonitorServiceManager().is_active(monitor_name=kwargs.get('monitor_name'))
+                rv.update({'is_active': is_active})
+                if kwargs.get('field') == 'is_active':
+                    return rv
+                else:
+                    return {**rv, **MonitorFactory().get_monitor_configuration(**kwargs)}
+            else:  # asking for an individual field - don't include 'is_active'
+                return MonitorFactory().get_monitor_configuration(**kwargs)
 
-            # if class_colors have not been assigned, assign them
-            if not len(rv.get('class_colors')):
-                MonitorFactory().set_value(monitor_name=name, field='class_colors', value=MonitorServiceManager().make_class_colors(rv.get('detector_name')))
-                rv = MonitorFactory().get_monitor_configuration(name)
+            # if class_colors have not been assigned and we are asking for them, assign them
+            # if not rv.get('class_colors') and kwargs.get('field') is None or kwargs.get('field') is 'class_colors':
+            #     detector_name = MonitorFactory().get_monitor_configuration(monitor_name=kwargs.get('name'), field='detector_name')
+            #     MonitorFactory().set_value(monitor_name=kwargs.get('name'), field='class_colors', value=MonitorServiceManager().make_class_colors(detector_name=detector_name))
+            #     rv = MonitorFactory().get_monitor_configuration(**kwargs)
 
-            is_active = MonitorServiceManager().is_active(monitor_name=rv.get('monitor_name'))
-            rv.update({'is_active': is_active})
-
-            return rv
 
         @staticmethod
         def get_logged_data_csv(kwargs) -> dict:

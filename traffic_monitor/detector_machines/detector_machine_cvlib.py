@@ -44,9 +44,8 @@ class DetectorMachineCVlib(DetectorMachineAbstract):
             frame = draw_bbox(img=frame, bbox=bbox, labels=labels, confidence=conf, write_conf=False, colors=self.bgr_colors)
             return frame, labels
         except Exception as e:
-            logger.info(f"cvlib Exception: {e}")
-            # this detector has a problem when an error is thrown
-            # as a result, we will stop the thread and let the
+            logger.error(f"cvlib Exception: {e}")
+            # Stop the thread and let the
             # videodetection_service create a new thread
             self.running = False
             # logger.info(traceback.print_stack())

@@ -93,9 +93,9 @@ class LogService(ServiceAbstract, ABC):
                 if key_msg is not None:
                     msg_key, msg_value = key_msg
 
-                    logger.info(f"Log Service is handling message for {self.monitor_name}:")
-                    logger.info(f"\tKEY: {msg_key}")
-                    logger.info(f"\tMSG: {msg_value}")
+                    logger.debug(f"Log Service is handling message for {self.monitor_name}:")
+                    logger.debug(f"\tKEY: {msg_key}")
+                    logger.debug(f"\tMSG: {msg_value}")
 
                 # the log service will capture data from detector_detection messages
                 # if msg_key != 'detector_detection':
@@ -140,6 +140,9 @@ class LogService(ServiceAbstract, ABC):
                 self.condition.acquire()
                 self.condition.wait(1)
                 self.condition.release()
+
+        # make sure that running is false in case something else stopped this loop
+        self.running = False
 
         self.consumer.close()
         logger.info(f"[{self.monitor_name}] Stopped log service.")

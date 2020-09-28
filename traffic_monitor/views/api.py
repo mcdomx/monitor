@@ -174,21 +174,23 @@ def get_monitor(request) -> JsonResponse:
 
     API Call:
         /get_monitor?name=<monitor name>
+        <optional> &field=<config field>
 
     :param request: HTTP request that expects a 'monitor_name' argument.
-    :return: The full set of configured values for a monitor.
+    :return: The full set of configured values for a monitor or a k,v dict pair if a field was supplied.
     """
     try:
-        kwargs = _parse_args(request, 'name')
+        kwargs = _parse_args(request, 'monitor_name')
 
-        mon = MonitorServiceManager().get_monitor_configuration(kwargs.get('name'))
+        # mon = MonitorServiceManager().get_monitor_configuration(kwargs.get('name'))
+        mon = MonitorServiceManager().get_monitor_configuration(kwargs)
 
         # only return values that are Json serializable
         rv = _filter_serializable(mon)
 
-        field = kwargs.get('field')
-        if field is not None and field in rv.keys():
-            rv = rv.get(field)
+        # field = kwargs.get('field')
+        # if field is not None and field in rv.keys():
+        #     rv = rv.get(field)
 
         return JsonResponse(rv, safe=False)
     except Exception as e:
@@ -502,7 +504,7 @@ def set_log_interval(request) -> JsonResponse:
     :return:  The new value after being set or the old value if it was not set.
     """
     kwargs = _parse_args(request, 'monitor_name', 'value')
-    rv = MonitorServiceManager().set_value(kwargs.get('monitor_name'), 'log_interval', kwargs.get('value'))
+    rv = MonitorServiceManager().set_value(kwargs.get('monitor_name'), 'log_interval', int(kwargs.get('value')))
     return JsonResponse(rv, safe=False)
 
 
@@ -641,7 +643,7 @@ def get_chart(request):
     :return: A JSON serialized Bokeh chart.
     """
     kwargs = _parse_args(request, 'monitor_name')
-    monitor_config = MonitorServiceManager().get_monitor_configuration(kwargs.get('monitor_name'))
+    monitor_config = MonitorServiceManager().get_monitor_configuration(kwargs)
     rv = chart_views.get_chart(monitor_config)
 
     return JsonResponse(rv, safe=False)

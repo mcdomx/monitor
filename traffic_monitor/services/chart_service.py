@@ -71,5 +71,8 @@ class ChartService(ServiceAbstract, ABC):
             self.condition.wait(self.charting_interval)
             self.condition.release()
 
+        # make sure that running is false in case something else stopped this loop
+        self.running = False
+
         self.consumer.close()
         logger.info(f"[{self.monitor_name}] Stopped charting service.")

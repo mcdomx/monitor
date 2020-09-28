@@ -132,28 +132,10 @@ class MonitorService(threading.Thread):
     def get_config(self) -> dict:
         return self.monitor_config
 
-    # def get_class_colors(self) -> dict:
-    #     return self.class_colors
-
-    # def _set_class_colors(self) -> dict:
-    #     # get the classes that the detector supports
-    #     classes = self.get_trained_objects(self.monitor_config.get('detector_name'))
-    #
-    #     # for each class, create a random color
-    #     colors = np.random.random_integers(0, 255, size=(len(classes), 3))
-    #
-    #     # create a dictionary with {<class>, [r,g,b]}
-    #     return {cls: color for cls, color in zip(classes, colors)}
-
     def _on_revoke(self, consumer, partitions) -> (Consumer, list):
         if not self.running:
             return
         logger.error(f"{self.__class__.__name__:25}: subscriber on_revoke triggered.  Resetting consumer.")
-        # consumer = Consumer({
-        #     'bootstrap.servers': '127.0.0.1:9092',
-        #     'group.id': 'monitorgroup',
-        #     'auto.offset.reset': 'earliest'
-        # })
         self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self._on_revoke)
         partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p, OFFSET_END) for p in range(3)]
         self.consumer.assign(partitions)
@@ -174,6 +156,25 @@ class MonitorService(threading.Thread):
             )
             s.start()
             self.active_services.update({s.__class__.__name__: {'object': s, 'condition': s.get_condition()}})
+
+    def report_status(self):
+        logger.info("SERVICE STATUS REPORT")
+        for c, s in self.active_services.items():
+            logger.info(f"{c:25}: {s['object'].report_status()}")
+
+    # def check_and_restart(self):
+    #     """
+    #     Check to see if a service has stopped.  If so, restart it.
+    #     :return:
+    #     """
+    #     for c, s in self.active_services.items():
+    #         if not s['object'].running:
+    #             self.active_services.pop(c)
+    #             try:
+    #                 self.start_service(c)
+    #             except Exception as e:
+    #                 raise Exception(
+    #                     f"[{self.__class__.__name__}] Could not start '{self.monitor_name}' '{c.__name__}': {e}")
 
     def stop_service(self, service_name):
         service: dict = self.active_services.get(service_name)
@@ -204,12 +205,12 @@ class MonitorService(threading.Thread):
             if self.monitor_config.get(s):
                 try:
                     self.start_service(c)
-                    self.running = True
                 except Exception as e:
                     raise Exception(
                         f"[{self.__class__.__name__}] Could not start '{self.monitor_name}' '{c.__name__}': {e}")
 
         # now that all the monitor's sub-services are started, start the monitor service
+        self.running = True
         threading.Thread.start(self)
 
         return
@@ -299,14 +300,19 @@ class MonitorService(threading.Thread):
 
     def run(self):
         """
-        This will start the service by calling threading.Thread.start()
-        Frames will be placed in respective queues.
+        The monitor service thread runs with the purpose of reporting sub-thread status'
+        and waking up sleeping threads for configuration changes.
         """
         logger.info(f"[{self.__class__.__name__}] Service started for: {self.monitor_name}")
 
-        # keep_alive_timer = ElapsedTime()
+        timer = ElapsedTime()
 
         while self.running:
+
+            # report status of service
+            if timer.get() >= 600:
+                self.report_status()
+                timer.reset()
 
             # poll kafka for messages that control the state of services
             msg = self.consumer.poll(0)
@@ -318,35 +324,11 @@ class MonitorService(threading.Thread):
                 pass
             else:
                 if msg.error():
-                    logger.info(f"[{self.__class__.__name__}] Consumer error: {msg.error()}")
+                    logger.error(f"[{self.__class__.__name__}] Consumer error: {msg.error()}")
                 else:
                     self.handle_message(msg)
 
             time.sleep(1)
-
-            # send out a keep_alive message every 4 minutes
-            # This will create a message that will be handled by this
-            # monitor_service which will acquire the sub-service locks
-            # and send them a 'config_change' message that calls
-            # a keep_alive function in the sub-service's abstract class
-            # if keep_alive_timer.get() >= 60:
-            #     # logger.info(f"Keep_alive_timer value before message: {keep_alive_timer.get()}")
-            #     # create message
-            #     key = 'config_change'
-            #     msg = {
-            #         'message': f"config_change keep_alive for '{self.monitor_name}'",
-            #         'function': 'keep_alive',
-            #         # 'kwargs': [{'field': field, 'value': value}]
-            #     }
-            #     self.producer.poll(0)
-            #     self.producer.produce(topic=self.monitor_name,
-            #                           key=key,
-            #                           value=json.JSONEncoder().encode(msg),
-            #                           # callback=self.delivery_report,
-            #                           )
-            #     self.producer.flush()
-            #     keep_alive_timer.reset()
-            #     # logger.info(f"Keep_alive_timer value after message: {keep_alive_timer.get()}")
 
         self.consumer.close()
         logger.info("MONITOR SERVICE HAS STOPPED!")
