@@ -128,7 +128,14 @@ class VideoDetectionService(ServiceAbstract, ABC):
             return
 
         timer = ElapsedTime()
-        while self.running and cap.isOpened():
+        while self.running:
+
+            # poll to check for config changes
+            msg = self.poll_kafka(0)
+
+            # if the detector setting changed, we need to create and start a new detector
+            if msg is not None:
+                self.handle_message(msg)
 
             # first, let's see if there is an image ready to pull from the output queue
             try:
@@ -147,23 +154,39 @@ class VideoDetectionService(ServiceAbstract, ABC):
             except queue.Empty:
                 pass
 
-            # poll to check for config changes
-            msg = self.poll_kafka(0)
+            # make sure that the capture is open and working
+            success = cap.grab()  # read a test image
+            if not cap.isOpened() or not success:
+                logger.error(f"CV Video Capture Failed to read image. Resetting stream.")
+                response = requests.get('http://127.0.0.1:8000/get_monitor?monitor_name=MyMonitor&field=feed_url')
+                if response.status_code == 200:
+                    feed_url = json.loads(response.text)['feed_url']
+                    self.monitor_config['feed_url'] = feed_url
+                    cap = cv.VideoCapture(feed_url)
 
-            # if the detector setting changed, we need to create and start a new detector
-            if msg is not None:
-                self.handle_message(msg)
+                    # wait till cap is opened until continuing
+                    i = 1
+                    while not cap.isOpened():
+                        time.sleep(1)
+                        logger.error(f"\twaiting to open cap...{i}\r")
+                        i += 1
+                        if i > 10:
+                            logger.error(f"\tTired of waiting to open video capture. Bailing.")
+                            self.running = False  # this will stop thread and the monitor_service will restart it
+                            break
+
+                else:
+                    logger.error(f"Couldn't get a refreshed URL stream.  Response Code: {response.status_code}. Bailing.")
+                    self.running = False  # this will stop thread and the monitor_service will restart it
 
             try:
-                cap.grab()  # only read every other frame
+                i = 0
                 success, frame = cap.read()
-            except Exception as e:
-                logger.info(f"{self.__class__.__name__}: Could not pull image: {e}")
-                continue
-
-            # if detector is ready, place frame in
-            # queue for the detector to pick up
-            if success:
+                while not success:
+                    success, frame = cap.read()
+                    i += 1
+                    if i >= 10:
+                        raise Exception(f"Tried {i} times to get an image and failed.")
 
                 # if the detector stopped for some reason, create a new thread
                 if not self.detector.is_alive():
@@ -182,26 +205,13 @@ class VideoDetectionService(ServiceAbstract, ABC):
 
                     except queue.Full:
                         # if queue is full skip, drop an image to make room
+                        logger.error("Detector queue was full.  Removed an image to make room.")
                         _ = self.input_image_queue.get()
                         self.input_image_queue.put(frame, block=False)
 
-            else:
-                logger.error(f"CV Video Capture Failed to read image. Resetting stream.")
-                response = requests.get('http://127.0.0.1:8000/get_monitor?monitor_name=MyMonitor&field=feed_url')
-                if response.status_code == 200:
-                    feed_url = json.loads(response.text)['feed_url']
-                    self.monitor_name['feed_url'] = feed_url
-                    cap = cv.VideoCapture(feed_url)
-
-                # wait till cap is opened until continuing
-                i = 1
-                while not cap.isOpened():
-                    time.sleep(1)
-                    logger.error(f"\twaiting to open cap...{i}\r")
-                    i += 1
-                    if i > 10:
-                        logger.error(f"\tTired of waiting to open video capture. Bailing.")
-                        break
+            except Exception as e:
+                logger.error(f"{self.__class__.__name__}: Could not pull image: {e}")
+                continue
 
         # make sure that running is false in case something else stopped this loop
         self.running = False
