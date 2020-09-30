@@ -14,9 +14,10 @@ import numpy as np
 from confluent_kafka.admin import AdminClient, NewTopic, KafkaException
 from confluent_kafka import Consumer, TopicPartition, OFFSET_END, Producer
 
-from traffic_monitor.detector_machines.detector_machine_factory import DetectorMachineFactory
+# from traffic_monitor.detector_machines.detector_machine_factory import DetectorMachineFactory
+from traffic_monitor.services.detectors.detector_factory import DetectorFactory
 from traffic_monitor.services.service_abstract import ServiceAbstract
-from traffic_monitor.services.videodetection_service import VideoDetectionService
+from traffic_monitor.services.videodetection_service2 import VideoDetectionService
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.notification_service import NotificationService
 from traffic_monitor.services.chart_service import ChartService
@@ -119,10 +120,6 @@ class MonitorService(threading.Thread):
         partitions = [TopicPartition(self.monitor_config.get('monitor_name'), p, OFFSET_END) for p in range(3)]
         self.consumer.assign(partitions)
 
-        # Keep-Alive Producer
-        # self.producer = Producer({'bootstrap.servers': '127.0.0.1:9092',
-        #                           'group.id': 'monitorgroup'})
-
     def __str__(self):
         rv = self.__dict__
         str_rv = {k: f"{v}" for k, v in rv.items()}
@@ -141,9 +138,9 @@ class MonitorService(threading.Thread):
         self.consumer.assign(partitions)
         return consumer, partitions
 
-    def get_next_frame(self):
-        q = self.output_image_queue.get()
-        return q.get()
+    # def get_next_frame(self):
+    #     q = self.output_image_queue.get()
+    #     return q.get()
 
     def start_service(self, service_class: ServiceAbstract.__class__):
 
@@ -161,20 +158,6 @@ class MonitorService(threading.Thread):
         logger.info("SERVICE STATUS REPORT")
         for c, s in self.active_services.items():
             logger.info(f"{c:25}: {s['object'].report_status()}")
-
-    # def check_and_restart(self):
-    #     """
-    #     Check to see if a service has stopped.  If so, restart it.
-    #     :return:
-    #     """
-    #     for c, s in self.active_services.items():
-    #         if not s['object'].running:
-    #             self.active_services.pop(c)
-    #             try:
-    #                 self.start_service(c)
-    #             except Exception as e:
-    #                 raise Exception(
-    #                     f"[{self.__class__.__name__}] Could not start '{self.monitor_name}' '{c.__name__}': {e}")
 
     def stop_service(self, service_name):
         service: dict = self.active_services.get(service_name)
@@ -216,13 +199,10 @@ class MonitorService(threading.Thread):
         return
 
     def stop(self) -> dict:
-
         # stop all sub-services
         for s in self.active_services.copy():
             self.stop_service(s)
-
         message = {'message': f"[{self.__class__.__name__}] Stopped."}
-
         self.running = False
         logger.info(message.get('message'))
         return message
@@ -234,12 +214,9 @@ class MonitorService(threading.Thread):
         """
         service = kwargs.get('field')
         new_status = kwargs.get('value')
-
         logger.info(f"I am toggling a service: {service} {new_status}")
-
         if service not in SERVICES.keys():
             raise Exception(f"'{service}' is not a supported service: {SERVICES.keys()}")
-
         # update the configuration setting locally
         self.monitor_config.update({service: new_status})
 
@@ -305,20 +282,17 @@ class MonitorService(threading.Thread):
         """
         logger.info(f"[{self.__class__.__name__}] Service started for: {self.monitor_name}")
 
-        timer = ElapsedTime()
+        # timer = ElapsedTime()
 
         while self.running:
 
             # report status of service
-            if timer.get() >= 600:
-                self.report_status()
-                timer.reset()
+            # if timer.get() >= 600:
+            #     self.report_status()
+            #     timer.reset()
 
             # poll kafka for messages that control the state of services
             msg = self.consumer.poll(0)
-
-            # key = msg.key().decode('utf-8')
-            # msg = msg.value().decode('utf-8')
 
             if msg is None:
                 pass
@@ -335,4 +309,4 @@ class MonitorService(threading.Thread):
 
     @staticmethod
     def get_trained_objects(detector_name) -> list:
-        return DetectorMachineFactory().get_trained_objects(detector_name)
+        return DetectorFactory().get_trained_objects(detector_name)
