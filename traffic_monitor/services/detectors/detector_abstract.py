@@ -22,7 +22,7 @@ class DetectorAbstract(metaclass=ABCMeta):
     """
 
     def __init__(self, monitor_config: dict):
-        self.monitor_config = monitor_config
+        self.monitor_config: dict = monitor_config
 
     def __str__(self):
         return f"Detector: {self.monitor_config.get('detector_name')}-{self.monitor_config.get('detector_model')}"
@@ -38,7 +38,7 @@ class DetectorAbstract(metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    def set_detector(self, kwargs_list: list):
+    def set_detector_value(self, kwargs_list: list):
         """ This is used to set a key/value pair in the monitor_config object.
          The implementing class will determine which elements can be changed and
          which are restricted. """

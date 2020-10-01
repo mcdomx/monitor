@@ -4,7 +4,7 @@ from .detector_abstract import DetectorAbstract
 from .detectors import DetectorCVlib
 
 # This dictionary must be updated with new detector name and class
-# Any new class must also be imported into the traffic_monitor.detector_machines.detector_machines module
+# Any new class must also be imported into the traffic_monitor.services.detectors.detectors module
 DETECTORS = {'cvlib': DetectorCVlib}
 
 

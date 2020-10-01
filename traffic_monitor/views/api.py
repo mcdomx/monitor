@@ -130,13 +130,13 @@ def create_stream(request) -> JsonResponse:
 
 def get_detectors(request) -> JsonResponse:
     """
-    Return a dictionary of all available detector_machines.
+    Return a dictionary of all available detector_machines-DELETE.
 
     API Call:
         /get_detectors
 
     :param request:  HTML Request. (not used for this function)
-    :return: A JsonResponse dictionary of detector_machines. {detector_id: {'id':, 'name': , 'model': }}
+    :return: A JsonResponse dictionary of detector_machines-DELETE. {detector_id: {'id':, 'name': , 'model': }}
     """
     try:
         rv = MonitorServiceManager().all_detectors()

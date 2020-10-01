@@ -1,6 +1,5 @@
 import logging
 import numpy as np
-import json
 
 from traffic_monitor.models.monitor_factory import MonitorFactory
 from traffic_monitor.services.monitor_service import MonitorService

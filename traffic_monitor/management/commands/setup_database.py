@@ -25,7 +25,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """ Setup DB with supported Detectors and models"""
         # DETECTORS
-        # first, erase existing detector_machines
+        # first, erase existing detector_machines-DELETE
         dets = Detector.objects.all()
         for d in dets:
             d.delete()
@@ -60,7 +60,7 @@ class Command(BaseCommand):
 
         # MONITORS
         # Create monitors for all combinations of
-        # detector_machines and feeds that are created above.
+        # detector_machines-DELETE and feeds that are created above.
         # first, erase existing monitors
         monitors = Monitor.objects.all()
         for m in monitors:

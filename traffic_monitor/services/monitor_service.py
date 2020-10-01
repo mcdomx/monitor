@@ -14,10 +14,9 @@ import numpy as np
 from confluent_kafka.admin import AdminClient, NewTopic, KafkaException
 from confluent_kafka import Consumer, TopicPartition, OFFSET_END, Producer
 
-# from traffic_monitor.detector_machines.detector_machine_factory import DetectorMachineFactory
 from traffic_monitor.services.detectors.detector_factory import DetectorFactory
 from traffic_monitor.services.service_abstract import ServiceAbstract
-from traffic_monitor.services.videodetection_service2 import VideoDetectionService
+from traffic_monitor.services.videodetection_service import VideoDetectionService
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.notification_service import NotificationService
 from traffic_monitor.services.chart_service import ChartService
