@@ -112,7 +112,8 @@ def get_chart(monitor_config: dict):
         _x = (_df.index - _df.index.min()).astype(int)
 
         # smooth trend line using LinearGAM
-        _df['smoothed_counts'] = LinearGAM(s(0, lam=1)).fit(_x, _df.counts).predict(_x)
+        # _df['smoothed_counts'] = LinearGAM(s(0, lam=1)).fit(_x, _df.counts).predict(_x)
+        _df['smoothed_counts'] = LinearGAM(s(0, n_splines=60, lam=1)).fit(_x, _df.counts).predict(_x)
 
         fig.line(x='time_stamp', y='smoothed_counts', source=_df,
                  legend_label=class_name, color=RGB(*monitor_config.get('class_colors').get(class_name)),
