@@ -367,12 +367,9 @@ class MonitorServiceManager:
             else:  # asking for an individual field - don't include 'is_active'
                 return MonitorFactory().get_monitor_configuration(**kwargs)
 
-            # if class_colors have not been assigned and we are asking for them, assign them
-            # if not rv.get('class_colors') and kwargs.get('field') is None or kwargs.get('field') is 'class_colors':
-            #     detector_name = MonitorFactory().get_monitor_configuration(monitor_name=kwargs.get('name'), field='detector_name')
-            #     MonitorFactory().set_value(monitor_name=kwargs.get('name'), field='class_colors', value=MonitorServiceManager().make_class_colors(detector_name=detector_name))
-            #     rv = MonitorFactory().get_monitor_configuration(**kwargs)
-
+        @staticmethod
+        def get_logdata(kwargs) -> dict:
+            return MonitorFactory().get_logdata(kwargs)
 
         @staticmethod
         def get_logged_data_csv(kwargs) -> dict:

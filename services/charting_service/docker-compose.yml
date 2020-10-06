@@ -1,0 +1,8 @@
+version: '3.1'
+
+services:
+  charting_service:
+    build: .
+#    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8101:8080"

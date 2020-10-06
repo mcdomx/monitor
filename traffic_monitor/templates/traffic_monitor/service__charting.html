@@ -65,6 +65,42 @@
                 });
         }
 
+
+        function embed_chart(monitor_name) {
+            let url = 'http://127.0.0.1:8100/monitor_chart?monitor_name=' + monitor_name + '&start_date=2020-10-03';
+            let target_div = document.getElementById('plot-area')
+            target_div.setAttribute('src', url)
+        }
+
+        let chart_script;
+        async function get_chart_embedding_script(monitor_name) {
+            let url = 'get_chart_embedded?monitor_name=' + monitor_name;
+            let target_div = document.getElementById('plot-area')
+            await fetch(url)
+                .then(data => {
+                    console.log(data.json());
+                    chart_script = data;
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                })
+        }
+
+
+        async function get_chart_embedding(monitor_name) {
+            let url = 'get_chart_embedded?monitor_name=' + monitor_name;
+            let target_div = document.getElementById('plot-area')
+            await fetch(url)
+                .then(data => {return data.json()})
+                .then(script => {
+                    console.log(script);
+                    target_div.innerHTML = script;
+                    })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        }
+
         function set_chart_time_horizon(monitor_name, horizon) {
             const url ='set_chart_time_horizon?monitor_name=' + monitor_name + '&value=' + horizon;
             fetch(url).then(() => force_chart_update(monitor_name));
@@ -162,16 +198,20 @@
         {#On load, setup the channel to get communications from the server #}
         document.addEventListener('DOMContentLoaded', () => {
             {#Update the table of elements to monitor and log#}
-            setup_chartsocket('{{ monitor_name }}');
-            setup_charting_dropdown_menu('{{ monitor_name }}');
-            force_chart_update('{{ monitor_name }}');
+            {#setup_chartsocket('{{ monitor_name }}');#}
+            {#setup_charting_dropdown_menu('{{ monitor_name }}');#}
+            {#force_chart_update('{{ monitor_name }}');#}
+            embed_chart('{{ monitor_name }}');
         })
 
     </script>
 
     <div class="card-body" style="height: 360px;">
-        <div id="plot-area" data-label="Traffic Trends" style="height: 360px;">
-        </div>
+{#        <div id="plot-area" data-label="Traffic Trends" style="height: 360px;">#}
+{##}
+{#        </div>#}
+
+        <iframe id="plot-area" src="" width="100%" height="100%" style="border:none;"></iframe>
     </div>
 
 {% endblock content %}

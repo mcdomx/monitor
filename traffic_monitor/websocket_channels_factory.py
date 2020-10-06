@@ -14,6 +14,7 @@ Each service below must have a corresponding route in the traffic_monitor/channe
 """
 from channels.generic.websocket import WebsocketConsumer
 
+
 class ChannelFactory:
     """
     Retrieve an existing consumer via the url for the socket.

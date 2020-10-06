@@ -3,9 +3,11 @@ import logging
 import pytz
 import datetime
 import csv
+import pandas as pd
 
 from django.utils.encoding import smart_str
 from django.http import JsonResponse, HttpResponse
+from bokeh.embed import server_document
 
 from traffic_monitor.views import chart_views
 from traffic_monitor.services.monitor_service_manager import MonitorServiceManager
@@ -194,7 +196,7 @@ def get_monitor(request) -> JsonResponse:
 
         return JsonResponse(rv, safe=False)
     except Exception as e:
-        logger.error(e)
+        logger.error(f"{e}: {kwargs}")
         return JsonResponse({'error': e.args}, safe=False)
 
 
@@ -630,6 +632,23 @@ def toggle_service(request):
     rv = MonitorServiceManager().toggle_service(**kwargs)
     return JsonResponse(rv, safe=False)
 
+def get_chart_embedded(request):
+    """
+    Return a script which can embed a Bokeh chart.
+
+    API Call:
+        /get_chart_embedded?
+        monitor_name=<monitor name>
+
+    :param request:
+    :return:
+    """
+    kwargs = _parse_args(request, 'monitor_name')
+    monitor_config = MonitorServiceManager().get_monitor_configuration(kwargs)
+    script = server_document(url=f"http://127.0.0.1:8100/monitor_chart?monitor_name={monitor_config.get('monitor_name')}")
+
+    return JsonResponse(script, safe=False)
+
 
 def get_chart(request):
     """
@@ -725,6 +744,68 @@ def get_logged_data_csv(request):
         writer.writerow([smart_str(entry[h]) for h in header_items])
 
     return response
+
+
+def get_logdata_bokeh(request):
+    """
+    Retrieve all logdata for a monitor
+
+    API Call:
+        /get_logdata_bokeh?
+        monitor_name=<monitor name>
+
+    :param request: HTTP request.
+    :return:
+    """
+    try:
+        kwargs = _parse_args(request, 'monitor_name')
+        # monitor_name = kwargs.get('monitor_name')
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': e.args})
+
+    # get data
+    rv_data = MonitorServiceManager().get_logdata(kwargs)
+
+    # if retrieval failed
+    if not rv_data['success']:
+        return JsonResponse({}, safe=False)
+
+    # get the pay load of data
+    list_data = rv_data['message']
+    _df = pd.DataFrame(list_data)
+    # print(_df.columns)
+    _df['time_stamp'] = [str(t) for t in _df['time_stamp'].values]
+    rv_dict = {c: list(_df[c].values) for c in _df.columns}
+
+    return JsonResponse(rv_dict, safe=True)
+
+
+def get_logdata(request):
+    """
+    Retrieve all logdata for a monitor
+
+    API Call:
+        /get_logdata?
+        monitor_name=<monitor name>
+
+    :param request: HTTP request.
+    :return: Dictionary with three keys: earliest_log_date, latest_log_date, num_log_records.  Dates are in ISO format YYYY-MM-DD.
+    """
+    try:
+        kwargs = _parse_args(request, 'monitor_name')
+        monitor_name = kwargs.get('monitor_name')
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': e.args})
+
+    # get data
+    rv_data = MonitorServiceManager().get_logdata(kwargs)
+
+    # if retrieval failed
+    if not rv_data['success']:
+        return JsonResponse(rv_data, safe=False)
+
+    # get the pay load of data
+    return JsonResponse(rv_data['message'], safe=False)
 
 
 def get_logdata_info(request):

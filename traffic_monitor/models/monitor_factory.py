@@ -297,6 +297,51 @@ class MonitorFactory:
             else:
                 return {field: field_map.get(field)}
 
+        @staticmethod
+        def get_logdata(kwargs) -> dict:
+            """
+            Returns all available logdata for a monitor.
+            :param kwargs:
+            :return:
+            """
+            monitor_name = kwargs.get('monitor_name')
+            _filter = {'monitor__name': monitor_name}
+
+            try:
+                m = Monitor.objects.get(pk=monitor_name)
+            except Monitor.DoesNotExist:
+                return {'success': False, 'message': f"'{monitor_name}' does not exist"}
+            except Exception as e:
+                return {'success': False, 'message': f"'{monitor_name}' -> Unknown error retrieving monitor."}
+
+            try:
+                start_date = kwargs.get('start_date', None)
+                if start_date:
+                    start_date = start_date[:26]
+                    start_date = datetime.datetime.fromisoformat(start_date)
+                    start_date = datetime.datetime.combine(start_date.date(), start_date.time(),
+                                                           tzinfo=datetime.timezone.utc)
+                    _filter.update({'time_stamp__gte': start_date})
+                else:
+                    start_date = kwargs.get('start_date_gt', None)[:26]
+                    if start_date:
+                        start_date = start_date[:26]
+                        start_date = datetime.datetime.fromisoformat(start_date)
+                        start_date = datetime.datetime.combine(start_date.date(), start_date.time(),
+                                                               tzinfo=datetime.timezone.utc)
+                        _filter.update({'time_stamp__gt': start_date})
+
+            except Exception as e:
+                return {'success': False, 'message': f"'{monitor_name}' -> Unable to filter arguments."}
+
+            try:
+                rs = LogEntry.objects.filter(**_filter)
+                if len(rs) > 0:
+                    return {'success': True, 'message': list(rs.values('time_stamp', 'class_name', 'count'))}
+                else:
+                    raise Exception("No entries match criteria.")
+            except Exception as e:
+                return {'success': False, 'message': f"'{monitor_name}' -> Unable to get Log entries. {e.args}"}
 
         @staticmethod
         def get_logged_data_csv(kwargs) -> dict:

@@ -50,7 +50,10 @@ urlpatterns = [
     re_path(r"toggle_service[\/|\?].*", api.toggle_service, name="toggle_service"),
 
     re_path(r"get_chart[\/|\?].*", api.get_chart, name="get_chart"),
+    re_path(r"get_chart_embedded[\/|\?].*", api.get_chart_embedded, name="get_chart_embedded"),
 
+    re_path(r"get_logdata[\/|\?].*", api.get_logdata, name="get_logdata"),
+    re_path(r"get_logdata_bokeh[\/|\?].*", api.get_logdata_bokeh, name="get_logdata_bokeh"),
     re_path(r"get_logdata_info[\/|\?].*", api.get_logdata_info, name="get_logdata_info"),
     re_path(r"get_logged_data_csv[\/|\?].*", api.get_logged_data_csv, name="get_logged_data_csv"),
 
