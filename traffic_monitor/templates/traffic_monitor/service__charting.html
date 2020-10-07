@@ -202,7 +202,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             {#Update the table of elements to monitor and log#}
             {#setup_chartsocket('{{ monitor_name }}');#}
-            {#setup_charting_dropdown_menu('{{ monitor_name }}');#}
+            setup_charting_dropdown_menu('{{ monitor_name }}');
             {#force_chart_update('{{ monitor_name }}');#}
             embed_chart('{{ monitor_name }}');
         })

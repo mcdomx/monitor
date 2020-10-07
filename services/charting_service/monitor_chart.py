@@ -132,49 +132,6 @@ def _filter_sources(start_date_utc=None, end_date_utc=None, objects=None):
     _update_source_line()
 
 
-args = curdoc().session_context.request.arguments
-MONITOR_NAME = args.get('monitor_name')[0].decode()
-MONITOR_CONFIG = _get_monitorconfig(MONITOR_NAME)
-TIME_ZONE = None
-while TIME_ZONE is None:
-    TIME_ZONE = pytz.timezone(MONITOR_CONFIG.get('time_zone'))
-    sleep(.1)
-try:
-    # we expect the start date to be in the monitor's timezone - convert it to UTC
-    START_DATE_UTC = args.get('start_date')[0].decode()
-    # If time was provided with a time zone indicator at the end, remove it - assumes UTC time
-    while START_DATE_UTC[-1].isalpha():
-        START_DATE_UTC = START_DATE_UTC[:-1]
-    START_DATE_UTC = datetime.fromisoformat(START_DATE_UTC).replace(tzinfo=TIME_ZONE).astimezone(pytz.UTC)
-except:
-    START_DATE_UTC = None
-
-print(f"MONITOR NAME: '{MONITOR_CONFIG.get('monitor_name')}' TIME_ZONE: '{MONITOR_CONFIG.get('time_zone')}'")
-
-# SETUP DATA - DATA acts as local master source of all monitor's available data
-RAW_DATA = _get_logdata_bokeh(MONITOR_NAME)
-DATA_DF = pd.DataFrame(RAW_DATA)
-DATA_DF['time_stamp_utc'] = pd.to_datetime(DATA_DF['time_stamp'], utc=True)
-DATA_DF['time_stamp'] = DATA_DF['time_stamp_utc'].dt.tz_convert(tz=TIME_ZONE.zone).dt.tz_localize(None)
-LAST_POSTED_TIME_UTC_ISO = RAW_DATA['time_stamp'][-1]
-COLORS = json.loads(requests.get(
-    f'http://{DATA_URL}:{DATA_PORT}/get_monitor?monitor_name={MONITOR_NAME}&field=class_colors').text)[
-    'class_colors']
-COLORS = {k: RGB(*c) for k, c in COLORS.items()}
-DATA_DF['color'] = [COLORS.get(class_name) for class_name in DATA_DF['class_name'].values]
-
-# setup data sources for plots
-SOURCE_SCATTER = ColumnDataSource(data={})
-SOURCE_LINE = ColumnDataSource(data={})
-
-# setup widgets
-DATE_RANGE_SLIDER = DateRangeSlider(value=(START_DATE_UTC.astimezone(TIME_ZONE), DATA_DF['time_stamp'].max()),
-                                    start=DATA_DF['time_stamp'].min(),
-                                    end=DATA_DF['time_stamp'].max(), step=6, height_policy="min",
-                                    margin=(0, 0, 0, 0), show_value=True, width_policy="max")
-DATE_RANGE_SLIDER.on_change("value_throttled", change_date)
-
-
 def get_chart():
     """
     Get a Bokeh chart that shows the trend of detected items recorded in the Log database.
@@ -278,6 +235,70 @@ def update(i):
     # update the slider end point
     DATE_RANGE_SLIDER.end = DATA_DF['time_stamp'].max()
 
+
+args = curdoc().session_context.request.arguments
+MONITOR_NAME = args.get('monitor_name')[0].decode()
+MONITOR_CONFIG = _get_monitorconfig(MONITOR_NAME)
+
+# if LIMIT is not provided or is 0, there will be no start limit
+# if LIMIT is text and is 'true', -14 days will be set as the start limit, else, no limit.
+LIMIT_START_DAYS = args.get('limit_start_days')
+if LIMIT_START_DAYS is None:
+    LIMIT_START_DAYS = 0
+else:
+    try:
+        LIMIT_START_DAYS = int(LIMIT_START_DAYS[0].decode())
+        if LIMIT_START_DAYS < 0:
+            LIMIT_START_DAYS = 0
+    except ValueError:
+        if LIMIT_START_DAYS[0].decode().lower() == 'true':
+            LIMIT_START_DAYS = 14
+        else:
+            LIMIT_START_DAYS = 0
+
+TIME_ZONE = None
+while TIME_ZONE is None:
+    TIME_ZONE = pytz.timezone(MONITOR_CONFIG.get('time_zone'))
+    sleep(.1)
+
+try:
+    # we expect the start date to be in the monitor's timezone - convert it to UTC
+    START_DATE_UTC = args.get('start_date')[0].decode()
+    # If time was provided with a time zone indicator at the end, remove it - assumes UTC time
+    while START_DATE_UTC[-1].isalpha():
+        START_DATE_UTC = START_DATE_UTC[:-1]
+    START_DATE_UTC = datetime.fromisoformat(START_DATE_UTC).replace(tzinfo=TIME_ZONE).astimezone(pytz.UTC)
+except:
+    START_DATE_UTC = None
+
+print(f"MONITOR NAME: '{MONITOR_CONFIG.get('monitor_name')}' TIME_ZONE: '{MONITOR_CONFIG.get('time_zone')}'")
+
+# SETUP DATA - DATA acts as local master source of all monitor's available data
+RAW_DATA = _get_logdata_bokeh(MONITOR_NAME)
+DATA_DF = pd.DataFrame(RAW_DATA)
+DATA_DF['time_stamp_utc'] = pd.to_datetime(DATA_DF['time_stamp'], utc=True)
+DATA_DF['time_stamp'] = DATA_DF['time_stamp_utc'].dt.tz_convert(tz=TIME_ZONE.zone).dt.tz_localize(None)
+LAST_POSTED_TIME_UTC_ISO = RAW_DATA['time_stamp'][-1]
+COLORS = json.loads(requests.get(
+    f'http://{DATA_URL}:{DATA_PORT}/get_monitor?monitor_name={MONITOR_NAME}&field=class_colors').text)[
+    'class_colors']
+COLORS = {k: RGB(*c) for k, c in COLORS.items()}
+DATA_DF['color'] = [COLORS.get(class_name) for class_name in DATA_DF['class_name'].values]
+
+# setup data sources for plots
+SOURCE_SCATTER = ColumnDataSource(data={})
+SOURCE_LINE = ColumnDataSource(data={})
+
+# setup widgets
+start_limit = DATA_DF['time_stamp'].min()
+if LIMIT_START_DAYS:
+    start_limit = max(DATA_DF['time_stamp'].min(), DATA_DF['time_stamp'].max() - pd.Timedelta(f'{LIMIT_START_DAYS} days'))
+
+DATE_RANGE_SLIDER = DateRangeSlider(value=(START_DATE_UTC.astimezone(TIME_ZONE), DATA_DF['time_stamp'].max()),
+                                    start=start_limit,
+                                    end=DATA_DF['time_stamp'].max(), step=6, height_policy="min",
+                                    margin=(0, 0, 0, 0), show_value=True, width_policy="max")
+DATE_RANGE_SLIDER.on_change("value_throttled", change_date)
 
 if MONITOR_NAME:
     curdoc().add_root(column(DATE_RANGE_SLIDER, get_chart()))
