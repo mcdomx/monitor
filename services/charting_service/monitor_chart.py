@@ -26,7 +26,7 @@ from bokeh.models import HoverTool, DatetimeTickFormatter
 from bokeh.plotting import figure
 from pygam import LinearGAM, s
 from bokeh.colors import RGB
-from bokeh.models import ColumnDataSource, CustomJS, DatePicker, DateRangeSlider
+from bokeh.models import ColumnDataSource, DateRangeSlider, Select, CustomJS, Spacer
 from bokeh.driving import count
 from bokeh.layouts import column, row
 
@@ -76,7 +76,21 @@ def change_date(attr, old, new):
     # attr = 'value_throttled'
     new_start_date = pd.Timestamp(new[0] / 1000, unit='s').tz_localize(TIME_ZONE)
     new_end_date = pd.Timestamp(new[1] / 1000, unit='s').tz_localize(TIME_ZONE)
-    _filter_sources(new_start_date, new_end_date, None)
+    _filter_sources(new_start_date, new_end_date)
+
+
+def toggle_object(attr, old, new):
+    # SELECT_OBJECT select widget was changed.
+    # Toggle the display of the new value selected
+    global DISPLAY_OBJECTS
+    if new in DISPLAY_OBJECTS:
+        DISPLAY_OBJECTS.remove(new)
+    else:
+        DISPLAY_OBJECTS.add(new)
+
+    _filter_sources(start_date_utc=min(SOURCE_SCATTER.data['time_stamp_utc']), end_date_utc=max(SOURCE_SCATTER.data['time_stamp_utc']))
+
+    SELECT_OBJECT.value = "show/hide.."
 
 
 def _update_source_line():
@@ -85,20 +99,19 @@ def _update_source_line():
 
     # make sure the line uses date ranged from SOURCE_SCATTER so the axes match
     s_time = min(SOURCE_SCATTER.data['time_stamp']) - pd.Timedelta('24 hours')
-    # s_time = s_time.tz_localize(None)
     e_time = max(SOURCE_SCATTER.data['time_stamp']) + pd.Timedelta('24 hours')
-    # e_time = e_time.tz_localize(None)
-    _source_line_df = DATA_DF[(DATA_DF.time_stamp >= s_time) & (DATA_DF.time_stamp >= e_time)]
 
-    _source_line_df = DATA_DF.pivot_table(index='time_stamp', columns='class_name').fillna(0)
+    _source_line_df = DATA_DF[(DATA_DF.time_stamp >= s_time) & (DATA_DF.time_stamp <= e_time) & (DATA_DF.class_name.isin(DISPLAY_OBJECTS))]
+    _source_line_df = _source_line_df.pivot_table(index='time_stamp', columns='class_name').fillna(0)
+
     _xs = (_source_line_df.index - _source_line_df.index.min()).total_seconds().astype(int)
     c_names = list(_source_line_df[('count',)].columns)
 
     # create a column with the LineaGam values for entire dataset
-    n_splines = max(60, int((e_time - s_time).total_seconds() / 60 / 60 * 2))
+    n_splines = max(60, int((e_time - s_time).total_seconds() / 60 / 60))
     for c in c_names:
         _source_line_df[('line', c)] = np.clip(
-            LinearGAM(s(0, n_splines=n_splines, lam=.5)).fit(_xs, _source_line_df[('count', c)]).predict(_xs), a_min=0,
+            LinearGAM(s(0, n_splines=n_splines, lam=.6)).fit(_xs, _source_line_df[('count', c)]).predict(_xs), a_min=0,
             a_max=None)
 
     # now filter the dataset for the time range of the scatter plot that is being presented
@@ -111,19 +124,21 @@ def _update_source_line():
                         'class_names': c_names}
 
 
-def _filter_sources(start_date_utc=None, end_date_utc=None, objects=None):
+def _filter_sources(start_date_utc=None, end_date_utc=None):
     # change SOURCE_SCATTER so it spans start_date to end_date and include objects
     # dates in UTC timezone
     global DATA_DF, SOURCE_SCATTER
 
+    _data_df = DATA_DF[DATA_DF.class_name.isin(DISPLAY_OBJECTS)]
+
     if end_date_utc is None and start_date_utc is not None:
-        _data_df = DATA_DF[(DATA_DF.time_stamp_utc >= start_date_utc)]
+        _data_df = _data_df[(_data_df.time_stamp_utc >= start_date_utc)]
     elif end_date_utc is not None and start_date_utc is None:
-        _data_df = DATA_DF[(DATA_DF.time_stamp_utc <= end_date_utc)]
+        _data_df = _data_df[(_data_df.time_stamp_utc <= end_date_utc)]
     elif end_date_utc is not None and start_date_utc is not None:
-        _data_df = DATA_DF[(DATA_DF.time_stamp_utc >= start_date_utc) & (DATA_DF.time_stamp_utc <= end_date_utc)]
-    else:
-        _data_df = DATA_DF
+        _data_df = _data_df[(_data_df.time_stamp_utc >= start_date_utc) & (_data_df.time_stamp_utc <= end_date_utc)]
+    # else:
+    #     _data_df = DATA_DF
 
     # create SOURCE_SCATTER data
     SOURCE_SCATTER.data = _data_df.to_dict(orient='list')
@@ -285,11 +300,14 @@ COLORS = json.loads(requests.get(
 COLORS = {k: RGB(*c) for k, c in COLORS.items()}
 DATA_DF['color'] = [COLORS.get(class_name) for class_name in DATA_DF['class_name'].values]
 
+DISPLAY_OBJECTS = set(DATA_DF['class_name'].unique())
+
 # setup data sources for plots
 SOURCE_SCATTER = ColumnDataSource(data={})
 SOURCE_LINE = ColumnDataSource(data={})
 
 # setup widgets
+# WIDGET: DATE_RANGE_SLIDER
 start_limit = DATA_DF['time_stamp'].min()
 if LIMIT_START_DAYS:
     start_limit = max(DATA_DF['time_stamp'].min(), DATA_DF['time_stamp'].max() - pd.Timedelta(f'{LIMIT_START_DAYS} days'))
@@ -300,7 +318,14 @@ DATE_RANGE_SLIDER = DateRangeSlider(value=(START_DATE_UTC.astimezone(TIME_ZONE),
                                     margin=(0, 0, 0, 0), show_value=True, width_policy="max")
 DATE_RANGE_SLIDER.on_change("value_throttled", change_date)
 
+# WIDGET: SELECT_OBJECT
+SELECT_OBJECT = Select(value="show/hide..",
+                       options=["show/hide.."] + list(DATA_DF['class_name'].unique()),
+                       margin=(10, 0, 0, 0))
+SELECT_OBJECT.on_change("value", toggle_object)
+# SELECT_OBJECT.js_on_change("value", CustomJS(code=""" console.log(cb_obj.value); """))
+
 if MONITOR_NAME:
-    curdoc().add_root(column(DATE_RANGE_SLIDER, get_chart()))
+    curdoc().add_root(column(row(DATE_RANGE_SLIDER, Spacer(width=30), SELECT_OBJECT), get_chart()))
     curdoc().add_periodic_callback(update, 30000)  # 30000 = 30seconds
     curdoc().title = f"{MONITOR_NAME}"

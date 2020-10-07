@@ -70,7 +70,8 @@
             {# set chart to 30 hours ago #}
             var d = new Date();
             d.setHours(d.getHours() - 30);
-            let url = 'http://127.0.0.1:8100/monitor_chart?monitor_name=' + monitor_name + '&start_date=' + d.toISOString();
+            var limit_start_days = 8
+            let url = 'http://127.0.0.1:8100/monitor_chart?monitor_name=' + monitor_name + '&start_date=' + d.toISOString() + '&limit_start_days=' + limit_start_days;
             let target_div = document.getElementById('plot-area')
             target_div.setAttribute('src', url)
         }
@@ -214,7 +215,7 @@
 {##}
 {#        </div>#}
 
-        <iframe id="plot-area" src="" width="100%" height="100%" style="border:none;"></iframe>
+        <iframe class= "ml-1" id="plot-area" src="" width="100%" height="100%" style="border:none;"></iframe>
     </div>
 
 {% endblock content %}
