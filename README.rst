@@ -69,6 +69,14 @@ Configuration Tile
 
   **Monitor Configuration**: The monitor configuration displays the current values used by the monitor.  As items are changed using each tile's pop-up menus or via the API, these values are updated in the web page.
 
+Download Tile
+^^^^^^^^^^^^^
+.. figure:: images/download_log.png
+  :figwidth: 300
+  :alt: Download
+
+  **Download**: Logged data is stored to the database and can be extracted and downloaded into CSV format by selecting a date range (full range selected by default) and then clicking download.
+
 Detector Tile
 ^^^^^^^^^^^^^
 .. figure:: images/detector_service.png
