@@ -19,7 +19,7 @@ from traffic_monitor.services.service_abstract import ServiceAbstract
 from traffic_monitor.services.videodetection_service import VideoDetectionService
 from traffic_monitor.services.log_service import LogService
 from traffic_monitor.services.notification_service import NotificationService
-from traffic_monitor.services.chart_service import ChartService
+# from traffic_monitor.services.chart_service import ChartService
 from traffic_monitor.services.elapsed_time import ElapsedTime
 
 BUFFER_SIZE = 512
@@ -29,7 +29,7 @@ logger = logging.getLogger('monitor_service')
 SERVICES = {
     'logging_on': LogService,
     'notifications_on': NotificationService,
-    'charting_on': ChartService,
+    # 'charting_on': ChartService,
 }
 
 

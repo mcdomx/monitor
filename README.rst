@@ -1,11 +1,11 @@
 Traffic Monitor
 ===============
 
-Project documentaiton is available in a navigable format with API reference details at the project's Git Project Page: http://mcdomx.github.io/monitor/.
+Project documentaton is available in a navigable format with API reference details at the project's Git Project Page: http://mcdomx.github.io/monitor/.
 
 The Traffic Monitor application will detect objects in a video feed and log, report and chart instances of objects that are recognized.  A variety of objects can be selected for tracking as well as the source of the video stream.
 
-Although the application has been designed to accommodate custom object detection algorithms, the OpenCV implementation of object detection is used with the default dataset of trained COCO objects.
+Although the application has been designed to accommodate custom object detection algorithms, a single OpenCV implementation of object detection is used with the default dataset of trained COCO objects.
 
 .. figure:: images/all_services.png
   :figwidth: 600
@@ -13,18 +13,20 @@ Although the application has been designed to accommodate custom object detectio
 
   **Monitor Home**: Example home page of a running monitor.
 
-The application supports two distinct types of activities for each type of object detected in the video stream; Logging and Monitoring.
+The application supports two basic actions for detected objects; Logging and Monitoring.
 
 Logging
     Logging is the action of storing the counts of detected objects in the video stream.  The resulting log can be used to analyze traffic patterns.
 
 Monitoring
-    Monitoring will trigger an action when a defined object is detected in the video stream.  For example, if an elephant is detected, a message can be sent or the frame image can be saved. (Currently, monitoring will only log detected objects and the time of detection.)
+    Monitoring will trigger an action when a defined object is detected in the video stream.  For example, if an elephant is detected, a message can be sent or the frame image can be saved. (Currently, monitoring will only report detected objects to the screen when detected.)
 
-A web font-end provides the most appealing and simple interface to the monitor but the monitor can also be controlled via rest calls and the progress can be seen in a terminal window.
+A web font-end provides the most appealing and simple interface to the monitor but the monitor can also be controlled via REST URL calls.
 
 Web Front-End
 -------------
+
+At the root (http://localhost:8000/), a series of options are presented to select an existing monitor or create a new one.
 
 Monitor Selection (Landing Page)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -81,7 +83,7 @@ Chart Tile
   :figwidth: 300
   :alt: Chart
 
-  **Chart**: At each log interval the chart is updated.  The popup menu can be used to adjust the x-axis time horizon or the time zone that the time is displayed in.  Additionally, logged items can be toggled for inclusion in the charted values.
+  **Chart**: At each log interval the chart is updated.  The popup menu can be used to open a new tab with a larger chart and larger time range.  The range of dates displayed can be adjusted with the slider and the charted objects can be toggled with the drop down menu.
 
 Logging Tile
 ^^^^^^^^^^^^
@@ -134,7 +136,7 @@ Services
     The Log Service will collect data from a detector through Kafka messages and subsequently store the logged data into the application's database. Logged data can be used later to create models which can predict future appearance of objects or simply used to identify traffic patterns.  A detector may be capable of detecting a long list of objects, but the Log Service can be configured to store a subset of items from the detector.  By default, the Log Service will write to the database each minute, but this frequency can be changed.
 
 4. Chart Service
-    The Chart Service will collect data from the Monitor Service and publish a chart to the web client that displays the number of detected instances over time.  The time zone and time horizon on the x-axis of this chart can be configured.
+    The Chart Service provides a Bokeh chart of the monitor's data.  This service is configured as a separate free-standing application hosted in a separate Docker container.
 
 5. Notification Service
     The Notification service will perform a notification action (alert, email, text message, etc) based on the presence of a particular object detected in the video stream.  Where logging will record each instance of a detected object, the Notification Service will broadcast a notification the moment that an object is detected.  This service can be used as an 'alarm' or 'alert'; for example, if there is an elephant in your front yard.
@@ -206,12 +208,14 @@ The variables defined in the ``.env`` file will be included in the environment a
     local_variable_name = os.getenv("<env_varibale_name>", "<default_if_not_found")
 
 
-Database and Kafka Messaging Services
+Database, Messaging and Charting Services
 -------------------------------------
 
 The application relies on a Postgres database as well as Kafka for messaging. Postgres is used as the database because the default SQLite database used by Django does not allow concurrent read/write requests which can happen in this application.
 
-Both the Postgres and Kafka services are configured to run in docker containers in this application.  To start the Docker containers, run the following from the project’s ``infrastructure`` directory:
+Charting is supported in a docker container that runs a Bokeh server.  The web front-end is designed to communicate with the REST-based urls that return an interactive chart of the monitor's data.  Chart data will dynamically be updated while the detector is running.
+
+All of these services are configured to run in docker containers in this application.  To start the Docker containers, run the following from the project’s ``infrastructure`` directory:
 
 ::
 

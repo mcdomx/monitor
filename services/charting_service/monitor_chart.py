@@ -4,8 +4,7 @@ All available data is first downloaded into a DATA_DF dataframe.  New updates of
 added to DATA_DF and added to the embedded chart.  When the user changes the range of the chart,
 the DATA_DF dataframe is used to build new data sources for the chart.  The chart includes
 a scatter plot and a line plot that shows the scatter trend.  When updated, the trend line
-is calculated with data before and after the presented scatter plot so trend lines don't
-assume the data starts and ends with the shown scatter data.
+is calculated with data before and after the presented scatter plot so trend lines flow on the ends.
 """
 
 # Based on bokeh example
@@ -32,8 +31,7 @@ from bokeh.layouts import column, row
 
 logging.basicConfig(level=logging.INFO)
 
-BOKEH_URL = os.getenv('BOKEH_URL', '127.0.0.1')
-BOKEH_PORT = os.getenv('PORT', '8100')
+
 DATA_URL = os.getenv('DATA_URL', '127.0.0.1')
 DATA_PORT = os.getenv('DATA_PORT', '8000')
 
@@ -137,8 +135,6 @@ def _filter_sources(start_date_utc=None, end_date_utc=None):
         _data_df = _data_df[(_data_df.time_stamp_utc <= end_date_utc)]
     elif end_date_utc is not None and start_date_utc is not None:
         _data_df = _data_df[(_data_df.time_stamp_utc >= start_date_utc) & (_data_df.time_stamp_utc <= end_date_utc)]
-    # else:
-    #     _data_df = DATA_DF
 
     # create SOURCE_SCATTER data
     SOURCE_SCATTER.data = _data_df.to_dict(orient='list')
@@ -157,13 +153,13 @@ def get_chart():
 
     hover_tool = HoverTool(
         tooltips=[
-            ("Time", "$x{%a %m/%d %T}"),
+            ("Time", "@time_stamp{%a %m/%d %T}"),
             # https://docs.bokeh.org/en/latest/docs/reference/models/formatters.html#bokeh.models.formatters.DatetimeTickFormatter
-            ("Object", "@class_name ($y{0.000})"),
+            ("Object", "@class_name (@count{0.000})"),
             # ("Rate", '$y'),
             # ("Object", "@class_name")
         ],
-        formatters={'$x': 'datetime'},
+        formatters={'@time_stamp': 'datetime'},
         mode='mouse'
     )
 
@@ -173,6 +169,8 @@ def get_chart():
     fig = figure(
         title=f"{MONITOR_NAME}",
         sizing_mode="stretch_both",
+        # width_policy="max",
+        # height_policy="max",
         tools=tools,
         toolbar_location=None,
         x_axis_type="datetime",
@@ -252,7 +250,9 @@ def update(i):
 
 
 args = curdoc().session_context.request.arguments
-MONITOR_NAME = args.get('monitor_name')[0].decode()
+MONITOR_NAME = None
+while MONITOR_NAME is None:
+    MONITOR_NAME = args.get('monitor_name')[0].decode()
 MONITOR_CONFIG = _get_monitorconfig(MONITOR_NAME)
 
 # if LIMIT is not provided or is 0, there will be no start limit
@@ -276,16 +276,6 @@ while TIME_ZONE is None:
     TIME_ZONE = pytz.timezone(MONITOR_CONFIG.get('time_zone'))
     sleep(.1)
 
-try:
-    # we expect the start date to be in the monitor's timezone - convert it to UTC
-    START_DATE_UTC = args.get('start_date')[0].decode()
-    # If time was provided with a time zone indicator at the end, remove it - assumes UTC time
-    while START_DATE_UTC[-1].isalpha():
-        START_DATE_UTC = START_DATE_UTC[:-1]
-    START_DATE_UTC = datetime.fromisoformat(START_DATE_UTC).replace(tzinfo=TIME_ZONE).astimezone(pytz.UTC)
-except:
-    START_DATE_UTC = None
-
 print(f"MONITOR NAME: '{MONITOR_CONFIG.get('monitor_name')}' TIME_ZONE: '{MONITOR_CONFIG.get('time_zone')}'")
 
 # SETUP DATA - DATA acts as local master source of all monitor's available data
@@ -299,6 +289,16 @@ COLORS = json.loads(requests.get(
     'class_colors']
 COLORS = {k: RGB(*c) for k, c in COLORS.items()}
 DATA_DF['color'] = [COLORS.get(class_name) for class_name in DATA_DF['class_name'].values]
+
+try:
+    # we expect the start date to be in the monitor's timezone - convert it to UTC
+    START_DATE_UTC = args.get('start_date')[0].decode()
+    # If time was provided with a time zone indicator at the end, remove it - assumes UTC time
+    while START_DATE_UTC[-1].isalpha():
+        START_DATE_UTC = START_DATE_UTC[:-1]
+    START_DATE_UTC = datetime.fromisoformat(START_DATE_UTC).replace(tzinfo=TIME_ZONE).astimezone(pytz.UTC)
+except:
+    START_DATE_UTC = DATA_DF['time_stamp_utc'].min()
 
 DISPLAY_OBJECTS = set(DATA_DF['class_name'].unique())
 

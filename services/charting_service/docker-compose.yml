@@ -3,6 +3,10 @@ version: '3.1'
 services:
   charting_service:
     build: .
-#    command: python manage.py runserver 0.0.0.0:8000
+    environment:
+      NUM_PROCS: 4
+      BOKEH_PORT: 8200
+      DATA_URL: 'host.docker.internal'
+      DATA_PORT: 8000
     ports:
-      - "8100:8080"
+      - "8200:8200"

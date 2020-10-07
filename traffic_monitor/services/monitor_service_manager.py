@@ -4,7 +4,7 @@ import numpy as np
 from traffic_monitor.models.monitor_factory import MonitorFactory
 from traffic_monitor.services.monitor_service import MonitorService
 from traffic_monitor.services.log_service import LogService
-from traffic_monitor.services.chart_service import ChartService
+# from traffic_monitor.services.chart_service import ChartService
 from traffic_monitor.services.notification_service import NotificationService
 
 logger = logging.getLogger('monitor_service_manager')
@@ -281,8 +281,8 @@ class MonitorServiceManager:
             services = []
             if monitor_config['logging_on']:
                 services.append(LogService)
-            if monitor_config['charting_on']:
-                services.append(ChartService)
+            # if monitor_config['charting_on']:
+            #     services.append(ChartService)
             if monitor_config['notifications_on']:
                 services.append(NotificationService)
 
