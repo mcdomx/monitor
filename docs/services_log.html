@@ -154,31 +154,6 @@
 <p class="admonition-title">Note</p>
 <p>Logging service reference.</p>
 </div>
-<span class="target" id="module-services.log_service"></span><p>This service will monitor a queue for entries that should be
-logged. The service will summarize entries after a specified
-time interval and save the entries to database.</p>
-<dl class="py class">
-<dt id="services.log_service.LogService">
-<em class="property">class </em><code class="sig-prename descclassname">services.log_service.</code><code class="sig-name descname">LogService</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span><a class="headerlink" href="#services.log_service.LogService" title="Permalink to this definition">¶</a></dt>
-<dd><p>An instance of a log service will create entries into the database on a specified interval.
-The LogService operates as a thread and sleeps until the logging interval is complete.
-Once ready to create the log entry, the LogService will look for detections in a
-referenced queue, clearing the queue and writing the detections from that queue
-into the database.</p>
-<p>The LogService will use Kafak to communicate across the back-end and Channels to
-communicate with the front-end.</p>
-<dl class="py method">
-<dt id="services.log_service.LogService.handle_message">
-<code class="sig-name descname">handle_message</code><span class="sig-paren">(</span><em class="sig-param">msg) -&gt; (&lt;class 'str'&gt;</em>, <em class="sig-param">&lt;class 'object'&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#services.log_service.LogService.handle_message" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="services.log_service.LogService.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#services.log_service.LogService.run" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
 </div>
 
 

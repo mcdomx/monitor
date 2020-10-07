@@ -300,9 +300,28 @@ monitor_name=&lt;monitor name&gt;</p>
 </dd></dl>
 
 <dl class="py function">
+<dt id="views.api.get_chart_embedded">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_chart_embedded</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_chart_embedded" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a script which can embed a Bokeh chart.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_chart_embedded?
+monitor_name=&lt;monitor name&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="views.api.get_detectors">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_detectors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_detectors" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a dictionary of all available detector_machines.</p>
+<dd><p>Return a dictionary of all available detector_machines-DELETE.</p>
 <dl class="simple">
 <dt>API Call:</dt><dd><p>/get_detectors</p>
 </dd>
@@ -312,7 +331,7 @@ monitor_name=&lt;monitor name&gt;</p>
 <dd class="field-odd"><p><strong>request</strong> – HTML Request. (not used for this function)</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A JsonResponse dictionary of detector_machines. {detector_id: {‘id’:, ‘name’: , ‘model’: }}</p>
+<dd class="field-even"><p>A JsonResponse dictionary of detector_machines-DELETE. {detector_id: {‘id’:, ‘name’: , ‘model’: }}</p>
 </dd>
 </dl>
 </dd></dl>
@@ -337,11 +356,91 @@ monitor_name=&lt;monitor name&gt;</p>
 </dd></dl>
 
 <dl class="py function">
+<dt id="views.api.get_logdata">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_logdata</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_logdata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve all logdata for a monitor</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_logdata?
+monitor_name=&lt;monitor name&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Dictionary with three keys: earliest_log_date, latest_log_date, num_log_records.  Dates are in ISO format YYYY-MM-DD.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.get_logdata_bokeh">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_logdata_bokeh</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_logdata_bokeh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve all logdata for a monitor</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_logdata_bokeh?
+monitor_name=&lt;monitor name&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.get_logdata_info">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_logdata_info</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_logdata_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve statistical data about the logged data for a monitor (earliest_log_date, latest_log_date, num_log_records)</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_logdata_info?
+monitor_name=&lt;monitor name&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – HTTP request.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Dictionary with three keys: earliest_log_date, latest_log_date, num_log_records.  Dates are in ISO format YYYY-MM-DD.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="views.api.get_logged_data_csv">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_logged_data_csv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_logged_data_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all the data logged for a provided monitor.  Without any ‘objects’, ‘start_data’ or ‘end_date’, all items are assumed for the missing parameters.</p>
+<dl class="simple">
+<dt>API Call:</dt><dd><p>/get_logged_data?
+monitor_name=&lt;monitor name&gt;&amp;
+start_date=&lt;YYYY-MM-DD&gt;&amp;
+end_date=&lt;YYYY-MM-DD&gt;&amp;
+objects=&lt;comma separated list of objects to return&gt;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>request</strong> – request: HTTP request that expects a monitor_name argument.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A CSV file of logged entries corresponding the provided monitor and filtering arguments</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="views.api.get_monitor">
 <code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_monitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span> &#x2192; django.http.response.JsonResponse<a class="headerlink" href="#views.api.get_monitor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return that configuration values of a specified monitor.</p>
 <dl class="simple">
-<dt>API Call:</dt><dd><p>/get_monitor?name=&lt;monitor name&gt;</p>
+<dt>API Call:</dt><dd><p>/get_monitor?name=&lt;monitor name&gt;
+&lt;optional&gt; &amp;field=&lt;config field&gt;</p>
 </dd>
 </dl>
 <dl class="field-list simple">
@@ -349,7 +448,7 @@ monitor_name=&lt;monitor name&gt;</p>
 <dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a ‘monitor_name’ argument.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The full set of configured values for a monitor.</p>
+<dd class="field-even"><p>The full set of configured values for a monitor or a k,v dict pair if a field was supplied.</p>
 </dd>
 </dl>
 </dd></dl>

@@ -209,7 +209,7 @@ The variables defined in the ``.env`` file will be included in the environment a
 
 
 Database, Messaging and Charting Services
--------------------------------------
+-----------------------------------------
 
 The application relies on a Postgres database as well as Kafka for messaging. Postgres is used as the database because the default SQLite database used by Django does not allow concurrent read/write requests which can happen in this application.
 

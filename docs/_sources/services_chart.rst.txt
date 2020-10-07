@@ -10,10 +10,7 @@ Chart Service
   :local:
   :depth: 2
 
-.. automodule:: services.chart_service
+.. automodule:: services.charting_service
    :members:
    :undoc-members:
 
-.. autoclass:: services.chart_service.ChartService
-   :members:
-   :undoc-members:

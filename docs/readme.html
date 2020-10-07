@@ -104,7 +104,7 @@
 <li class="toctree-l1"><a class="reference internal" href="#getting-started">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#virtual-environment">Virtual Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#environment-setup">Environment Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#database-and-kafka-messaging-services">Database and Kafka Messaging Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#database-messaging-and-charting-services">Database, Messaging and Charting Services</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#initialize-database">Initialize Database</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#stopping-the-database-and-kafka-containers">Stopping the Database and Kafka Containers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#deleting-the-database">Deleting the Database</a></li>
@@ -180,23 +180,24 @@
             
   <div class="section" id="traffic-monitor">
 <span id="readme"></span><h1>Traffic Monitor<a class="headerlink" href="#traffic-monitor" title="Permalink to this headline">¶</a></h1>
-<p>Project documentaiton is available in a navigable format with API reference details at the project’s Git Project Page: <a class="reference external" href="http://mcdomx.github.io/monitor/">http://mcdomx.github.io/monitor/</a>.</p>
+<p>Project documentaton is available in a navigable format with API reference details at the project’s Git Project Page: <a class="reference external" href="http://mcdomx.github.io/monitor/">http://mcdomx.github.io/monitor/</a>.</p>
 <p>The Traffic Monitor application will detect objects in a video feed and log, report and chart instances of objects that are recognized.  A variety of objects can be selected for tracking as well as the source of the video stream.</p>
-<p>Although the application has been designed to accommodate custom object detection algorithms, the OpenCV implementation of object detection is used with the default dataset of trained COCO objects.</p>
+<p>Although the application has been designed to accommodate custom object detection algorithms, a single OpenCV implementation of object detection is used with the default dataset of trained COCO objects.</p>
 <div class="figure align-default" id="id1" style="width: 600px">
 <img alt="Monitor Home Screen" src="_images/all_services.png" />
 <p class="caption"><span class="caption-text"><strong>Monitor Home</strong>: Example home page of a running monitor.</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
 </div>
-<p>The application supports two distinct types of activities for each type of object detected in the video stream; Logging and Monitoring.</p>
+<p>The application supports two basic actions for detected objects; Logging and Monitoring.</p>
 <dl class="simple">
 <dt>Logging</dt><dd><p>Logging is the action of storing the counts of detected objects in the video stream.  The resulting log can be used to analyze traffic patterns.</p>
 </dd>
-<dt>Monitoring</dt><dd><p>Monitoring will trigger an action when a defined object is detected in the video stream.  For example, if an elephant is detected, a message can be sent or the frame image can be saved. (Currently, monitoring will only log detected objects and the time of detection.)</p>
+<dt>Monitoring</dt><dd><p>Monitoring will trigger an action when a defined object is detected in the video stream.  For example, if an elephant is detected, a message can be sent or the frame image can be saved. (Currently, monitoring will only report detected objects to the screen when detected.)</p>
 </dd>
 </dl>
-<p>A web font-end provides the most appealing and simple interface to the monitor but the monitor can also be controlled via rest calls and the progress can be seen in a terminal window.</p>
+<p>A web font-end provides the most appealing and simple interface to the monitor but the monitor can also be controlled via REST URL calls.</p>
 <div class="section" id="web-front-end">
 <h2>Web Front-End<a class="headerlink" href="#web-front-end" title="Permalink to this headline">¶</a></h2>
+<p>At the root (<a class="reference external" href="http://localhost:8000/">http://localhost:8000/</a>), a series of options are presented to select an existing monitor or create a new one.</p>
 <div class="section" id="monitor-selection-landing-page">
 <h3>Monitor Selection (Landing Page)<a class="headerlink" href="#monitor-selection-landing-page" title="Permalink to this headline">¶</a></h3>
 <div class="figure align-default" id="id2" style="width: 300px">
@@ -243,7 +244,7 @@
 <h3>Chart Tile<a class="headerlink" href="#chart-tile" title="Permalink to this headline">¶</a></h3>
 <div class="figure align-default" id="id8" style="width: 300px">
 <img alt="Chart" src="_images/chart_service.png" />
-<p class="caption"><span class="caption-text"><strong>Chart</strong>: At each log interval the chart is updated.  The popup menu can be used to adjust the x-axis time horizon or the time zone that the time is displayed in.  Additionally, logged items can be toggled for inclusion in the charted values.</span><a class="headerlink" href="#id8" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text"><strong>Chart</strong>: At each log interval the chart is updated.  The popup menu can be used to open a new tab with a larger chart and larger time range.  The range of dates displayed can be adjusted with the slider and the charted objects can be toggled with the drop down menu.</span><a class="headerlink" href="#id8" title="Permalink to this image">¶</a></p>
 </div>
 </div>
 <div class="section" id="logging-tile">
@@ -300,7 +301,7 @@
 </dl>
 </li>
 <li><dl class="simple">
-<dt>Chart Service</dt><dd><p>The Chart Service will collect data from the Monitor Service and publish a chart to the web client that displays the number of detected instances over time.  The time zone and time horizon on the x-axis of this chart can be configured.</p>
+<dt>Chart Service</dt><dd><p>The Chart Service provides a Bokeh chart of the monitor’s data.  This service is configured as a separate free-standing application hosted in a separate Docker container.</p>
 </dd>
 </dl>
 </li>
@@ -358,10 +359,11 @@
 </pre></div>
 </div>
 </div>
-<div class="section" id="database-and-kafka-messaging-services">
-<h2>Database and Kafka Messaging Services<a class="headerlink" href="#database-and-kafka-messaging-services" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="database-messaging-and-charting-services">
+<h2>Database, Messaging and Charting Services<a class="headerlink" href="#database-messaging-and-charting-services" title="Permalink to this headline">¶</a></h2>
 <p>The application relies on a Postgres database as well as Kafka for messaging. Postgres is used as the database because the default SQLite database used by Django does not allow concurrent read/write requests which can happen in this application.</p>
-<p>Both the Postgres and Kafka services are configured to run in docker containers in this application.  To start the Docker containers, run the following from the project’s <code class="docutils literal notranslate"><span class="pre">infrastructure</span></code> directory:</p>
+<p>Charting is supported in a docker container that runs a Bokeh server.  The web front-end is designed to communicate with the REST-based urls that return an interactive chart of the monitor’s data.  Chart data will dynamically be updated while the detector is running.</p>
+<p>All of these services are configured to run in docker containers in this application.  To start the Docker containers, run the following from the project’s <code class="docutils literal notranslate"><span class="pre">infrastructure</span></code> directory:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">up</span>
 </pre></div>
 </div>
