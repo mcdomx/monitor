@@ -20,9 +20,9 @@ ENV BOKEH_PORT=8080
 ENV DATA_URL='host.docker.internal'
 ENV DATA_PORT=8000
 
-EXPOSE ${BOKEH_PORT}
-COPY ./monitor_chart.py ./
 #EXPOSE ${BOKEH_PORT}
+COPY ./monitor_chart.py ./
+EXPOSE ${BOKEH_PORT}
 
 CMD bokeh serve --port ${BOKEH_PORT} \
     --allow-websocket-origin="*" \

@@ -67,7 +67,10 @@
 
 
         function embed_chart(monitor_name) {
-            let url = 'http://127.0.0.1:8100/monitor_chart?monitor_name=' + monitor_name + '&start_date=2020-10-03';
+            {# set chart to 30 hours ago #}
+            var d = new Date();
+            d.setHours(d.getHours() - 30);
+            let url = 'http://127.0.0.1:8100/monitor_chart?monitor_name=' + monitor_name + '&start_date=' + d.toISOString();
             let target_div = document.getElementById('plot-area')
             target_div.setAttribute('src', url)
         }
@@ -206,7 +209,7 @@
 
     </script>
 
-    <div class="card-body" style="height: 360px;">
+    <div class="card-body p-1" style="height: 360px;">
 {#        <div id="plot-area" data-label="Traffic Trends" style="height: 360px;">#}
 {##}
 {#        </div>#}
