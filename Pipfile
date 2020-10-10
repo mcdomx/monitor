@@ -32,6 +32,8 @@ gunicorn = "*"
 requests = "*"
 django-cors-headers = "3.5.0"
 flask = "*"
+matplotlib = "*"
+sklearn = "*"
 
 [requires]
 python_version = "3.7"
