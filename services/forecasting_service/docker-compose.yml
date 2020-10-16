@@ -5,42 +5,15 @@ networks:
     external:
       name: infrastructure_default
 
-#volumes:
-#  monitor_data_test1:
-#    driver: local
-
-# Switching to an external volume creates an error.
-# Docker looks for an external volume called monitor_data_test1, but there isn't one.
-#  There is one with that name as an internal volume, however.
-#volumes:
-#  monitor_data_test1:
-#    external: True
-
 services:
-#  db_test:
-#    image: postgres
-#    container_name: monitor_db_test1
-##    restart: always
-#    environment:
-#      POSTGRES_DB: monitor_db
-#      POSTGRES_USER: monuser
-#      POSTGRES_PASSWORD: password
-#    ports:
-#      - 5499:5432
-#    volumes:
-#      - monitor_data_test1:/var/lib/postgresql/data  # using this line with volumes(above) creates a docker-internal volume
-##      - ~/monitor_data/data:/var/lib/postgresql/data  # stores postgres data locally
 
   web:
     build: .
-#    networks:
-#      - infrastructure_default
     environment:
       - VERBOSITY=DEBUG
       - DB_NAME=monitor_db
       - DB_USER=monuser
       - DB_PASSWORD=password
-#      - DB_HOST=monitor_db_test1 # 172.21.0.3
       - DB_HOST=db
       - DB_PORT=5432
       - DJANGO_SECRET_KEY=sghkslbro5inb
@@ -49,7 +22,7 @@ services:
       - .:/code
     ports:
       - "8200:8200"
-    depends_on:
-      - db
+#    depends_on:
+#      - db
 
 

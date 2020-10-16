@@ -8,17 +8,6 @@
 from django.db import models
 
 
-class AppFeed(models.Model):
-    cam = models.CharField(primary_key=True, max_length=256)
-    time_zone = models.CharField(max_length=32)
-    url = models.CharField(max_length=1024)
-    description = models.CharField(max_length=64)
-
-    class Meta:
-        managed = False
-        db_table = 'app_feed'
-
-
 class AuthGroup(models.Model):
     name = models.CharField(unique=True, max_length=150)
 

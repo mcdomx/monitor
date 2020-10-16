@@ -4,27 +4,6 @@ volumes:
   monitor_data:
     driver: local
 
-# BACKUP AND RESTORE
-# https://docs.docker.com/storage/volumes/
-# To backup the db, run this from a directory called monitor_backup:
-# NOTE: <monitor_db> in the example below is a postgres container with the data that should be backed up
-# This will create a backup archive in the directory from which it was executed
-# docker run --rm --volumes-from <monitor_db> -v $(pwd):/backup alpine tar cvf /backup/monitor_db_backup_20201019_0725.tar /var/lib/postgresql/data
-
-# To restore:
-# 1. create a container to mount a volume which will be restored into which is called '/var/lib/postgresql/data':
-# docker run -v /var/lib/postgresql/data --name db_restore alpine sh
-# 2. Restore the backup into the container's volume.
-# This command will mount a volume mapped to the postgres data directory and then overwrite that
-# directory with the extracted archive:
-# docker run --rm --volumes-from <db_restore> -v $(pwd):/backup postgres bash -c "tar xvf /backup/monitor_db_backup_20201019_0725.tar"
-# NOTE: if you want to restore to the active postgres service, you can skip step 1 of the restore process:
-# and use the following:
-# WARNING: this will overwrite the active data base in <monitor_db> s!!!!!
-# docker run --rm --volumes-from <monitor_db> -v $(pwd):/backup postgres bash -c "tar xvf /backup/monitor_db_backup_20201019_0725.tar"
-
-# Now, the unnamed volume from db_restore has the backup data restored.
-
 services:
   db:
     image: postgres
@@ -37,8 +16,7 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - monitor_data:/var/lib/postgresql/data  # using this line with volumes(above) creates a docker-internal volume
-#      - ~/monitor_data:/var/lib/postgresql/data  # stored postgres data locally
+      - monitor_data:/var/lib/postgresql/data  # using this line with volumes(above) creates a docker-internal volume if it doesn't already exist
 
   zookeeper:
     image: zookeeper:3.4.9
