@@ -22,6 +22,9 @@ def _parse_args(request, *args):
     Arguments in the request that are not listed are not specified in the args
     argument are included in the returned dictionary even though they were not required.
 
+    Usage:
+        kwargs = _parse_args(request, 'required_arg1', 'required_arg2', ..)
+
     :param request: The HTTP request that should contain the arguments
     :param args: A list of string values that represent the names of arguments to parse
     :return: A dictionary where keys are the arguments and values the respective values of each argument in the request.

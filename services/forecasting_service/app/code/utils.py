@@ -6,6 +6,10 @@ import datetime
 import pandas as pd
 import numpy as np
 
+from pygam import LinearGAM, s, f
+from sklearn.metrics import r2_score
+from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
+
 from ..models.models import TrafficMonitorLogentry as LogEntry
 from ..models.models import TrafficMonitorMonitor as Monitor
 
@@ -13,10 +17,17 @@ logger = logging.getLogger("model_logger")
 logger.setLevel(logging.INFO)
 
 
-def get_rs(monitor_name, categories, from_date: str):
+def get_rs(monitor_name, categories=None, from_date: str = None):
     # date should be in ISO format YYYY-MM-DDTHH:MM
-    from_date = datetime.datetime.fromisoformat(from_date).replace(tzinfo=pytz.UTC)
-    return LogEntry.objects.filter(monitor_id=monitor_name, class_name__in=categories, time_stamp__gte=from_date).all().values()
+
+    _filter_args = {'monitor_id': monitor_name}
+    if categories is not None:
+        _filter_args.update({'class_name__in': categories})
+    if from_date is not None:
+        from_date = datetime.datetime.fromisoformat(from_date).replace(tzinfo=pytz.UTC)
+        _filter_args.update({'time_stamp__gte': from_date})
+
+    return LogEntry.objects.filter(**_filter_args).all().values()
 
 
 def set_interval(_df: pd.DataFrame, interval: int):
@@ -77,8 +88,10 @@ def add_category_codes(_df, column_to_cat, new_col_name):
 
 
 def get_cat_map(_df, string_column, code_column) -> dict:
-    _cat_map_name_to_code = _df[[string_column, code_column]].set_index(string_column).drop_duplicates().to_dict()[code_column]
-    _cat_map_code_to_name = _df[[string_column, code_column]].set_index(code_column).drop_duplicates().to_dict()[string_column]
+    _cat_map_name_to_code = _df[[string_column, code_column]].set_index(string_column).drop_duplicates().to_dict()[
+        code_column]
+    _cat_map_code_to_name = _df[[string_column, code_column]].set_index(code_column).drop_duplicates().to_dict()[
+        string_column]
 
     return {**_cat_map_code_to_name, **_cat_map_name_to_code}
 
@@ -102,7 +115,7 @@ def add_history_columns(_df, n_intervals, value_column='rate', category_column='
     # value_column is the column to get the history for
     # n_intervals are the number of history columns to add
     categories = _df[category_column].unique()
-    for i in range(1, n_intervals+1):
+    for i in range(1, n_intervals + 1):
         for c in categories:
             idx = _df.loc[_df[category_column] == c].index
             _df.loc[idx, f'-{i}'] = _df[_df[category_column] == c][value_column].shift(i)
@@ -114,7 +127,7 @@ def add_future_columns(_df, n_intervals, value_column='rate', category_column='c
     # value_column is the column to get the history for
     # n_intervals are the number of history columns to add
     categories = _df[category_column].unique()
-    for i in range(1, n_intervals+1):
+    for i in range(1, n_intervals + 1):
         for c in categories:
             idx = _df.loc[_df[category_column] == c].index
             _df.loc[idx, f'+{i}'] = _df[_df[category_column] == c][value_column].shift(-i)
@@ -123,7 +136,7 @@ def add_future_columns(_df, n_intervals, value_column='rate', category_column='c
 
 
 def get_train_test_split(_df, hours_in_test=24, y_intervals=1):
-    split_time = _df.time_stamp.max() - pd.Timedelta(f"{hours_in_test} hours")
+    split_time = _df.time_stamp.max() - pd.Timedelta(f"{hours_in_test-1} hours")
     train = _df[_df.time_stamp < split_time]
     test = _df[_df.time_stamp >= split_time]
 
@@ -139,3 +152,65 @@ def get_train_test_split(_df, hours_in_test=24, y_intervals=1):
     return X_train, X_test, y_train, y_test, train, test
 
 
+def execute_grid_search(_tr_df, _te_df, model, param_search, train_x_cols, train_y_cols) -> dict:
+    results = {}
+
+    cat_map = get_cat_map(_te_df, 'class_name', 'class_code')
+
+    _tr_y = _tr_df[train_y_cols].reset_index(drop=True)
+    _te_y = _te_df[train_y_cols].reset_index(drop=True)
+    _tr_x = _tr_df[train_x_cols].reset_index(drop=True)
+    _te_x = _te_df[train_x_cols].reset_index(drop=True)
+
+    # LinerGAM is not a ascikit model and will be handled separately.
+    # The only pramter we use here is the lam (aka - smoother)
+    if model.__class__.__name__ == "LinearGAM":
+        best_score = 0
+        for lam in param_search.get('lam'):
+            terms = None
+            for i, c in enumerate(_tr_x.columns):
+                if c.startswith('-') or c.startswith('+'):
+                    if terms is None:
+                        terms = s(i, lam=lam)
+                    else:
+                        terms += s(i, lam=lam)
+                else:
+                    if terms is None:
+                        terms = f(i)
+                    else:
+                        terms += f(i)
+            _m = LinearGAM(terms=terms)
+            y_pred = np.clip(_m.fit(_tr_x, _tr_y).predict(_te_x), a_min=0, a_max=None)
+            _score = r2_score(y_true=_te_y, y_pred=y_pred)
+            if _score > best_score:
+                best_score = _score
+                best_lam = lam
+                best_model = _m
+            print(f"lam: {lam:5}  r2: {_score}")
+
+        best_params = f"\tlam: {best_lam}"
+
+    else:
+        tscv = TimeSeriesSplit(n_splits=8)
+        gsearch = GridSearchCV(estimator=model, cv=tscv, param_grid=param_search, scoring='r2', verbose=0, n_jobs=-1)
+        gsearch.fit(_tr_x, _tr_y)
+        best_model = gsearch.best_estimator_
+        y_pred = np.clip(best_model.predict(_te_x), a_min=0, a_max=None)
+        best_score = r2_score(y_true=_te_y, y_pred=y_pred)
+        best_params = f"\t{' | '.join([f'{p}: {str(getattr(best_model, p))}' for p in param_search])}"
+
+    print(model.__class__.__name__)
+    print(f"Train Cols: {[c for c in _tr_x.columns if not (c.startswith('-'))]}")
+    print(f"\tBest Model's R2 Score: {round(best_score, 4)}")
+    print(f"\tBest Parameters: {best_params}")
+    print(f"\tScore By Class:")
+    for class_name in _te_df.class_name.unique():
+        idxs = _te_x[_te_x.class_code == cat_map.get(class_name)].index
+        r2 = r2_score(y_true=_te_y[idxs], y_pred=y_pred[idxs])
+        print(f"\t\t{class_name:10}: {round(r2, 4):>6}")
+        results.update({class_name: r2})
+
+    results.update({'best_model': best_model})
+    results.update({'best_overall_score': best_score})
+
+    return {model.__class__.__name__: results}
