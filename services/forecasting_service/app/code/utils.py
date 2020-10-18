@@ -19,14 +19,14 @@ logger.setLevel(logging.INFO)
 
 def get_rs(monitor_name, categories=None, from_date: str = None):
     # date should be in ISO format YYYY-MM-DDTHH:MM
-
+    # expected time is in monitor's time zone
     _filter_args = {'monitor_id': monitor_name}
     if categories is not None:
         _filter_args.update({'class_name__in': categories})
     if from_date is not None:
-        from_date = datetime.datetime.fromisoformat(from_date).replace(tzinfo=pytz.UTC)
+        time_zone = Monitor.objects.get(pk=monitor_name).feed.time_zone
+        from_date = datetime.datetime.fromisoformat(from_date).replace(tzinfo=pytz.timezone(time_zone)).astimezone(pytz.UTC)
         _filter_args.update({'time_stamp__gte': from_date})
-
     return LogEntry.objects.filter(**_filter_args).all().values()
 
 
@@ -57,7 +57,7 @@ def set_interval(_df: pd.DataFrame, interval: int):
     # reconfigure index to a timestamp
     _df.set_index(pd.Series(list(_df.index)).apply(lambda s: datetime.datetime(*s)), inplace=True)
 
-    # complete interval sequence so there are no gaps
+    # complete interval sequence
     start_time = _df.index.min()
     end_time = _df.index.max()
     new_interval = []
@@ -68,7 +68,7 @@ def set_interval(_df: pd.DataFrame, interval: int):
 
     _df = pd.DataFrame(index=new_interval).join(_df, how='outer')
 
-    # fill missing time intervals for forward-filling the first half and back-filling the second half
+    # fill missing time intervals for forward filling the first half and backfilling the second half
     while _df.isna().any().any():
         _df.fillna(method='ffill', limit=1, inplace=True)
         _df.fillna(method='bfill', limit=1, inplace=True)
@@ -88,10 +88,8 @@ def add_category_codes(_df, column_to_cat, new_col_name):
 
 
 def get_cat_map(_df, string_column, code_column) -> dict:
-    _cat_map_name_to_code = _df[[string_column, code_column]].set_index(string_column).drop_duplicates().to_dict()[
-        code_column]
-    _cat_map_code_to_name = _df[[string_column, code_column]].set_index(code_column).drop_duplicates().to_dict()[
-        string_column]
+    _cat_map_name_to_code = _df[[string_column, code_column]].set_index(string_column).drop_duplicates().to_dict()[code_column]
+    _cat_map_code_to_name = _df[[string_column, code_column]].set_index(code_column).drop_duplicates().to_dict()[string_column]
 
     return {**_cat_map_code_to_name, **_cat_map_name_to_code}
 
@@ -111,11 +109,11 @@ def extend_time_features(_df: pd.DataFrame):
     return _df
 
 
-def add_history_columns(_df, n_intervals, value_column='rate', category_column='class_name'):
+def add_history_columns(_df, value_column='rate', category_column='class_name', n_intervals=24*4):
     # value_column is the column to get the history for
     # n_intervals are the number of history columns to add
     categories = _df[category_column].unique()
-    for i in range(1, n_intervals + 1):
+    for i in range(1,n_intervals+1):
         for c in categories:
             idx = _df.loc[_df[category_column] == c].index
             _df.loc[idx, f'-{i}'] = _df[_df[category_column] == c][value_column].shift(i)
@@ -123,11 +121,11 @@ def add_history_columns(_df, n_intervals, value_column='rate', category_column='
     return _df.reset_index(drop=True)
 
 
-def add_future_columns(_df, n_intervals, value_column='rate', category_column='class_name'):
+def add_future_columns(_df, value_column='rate', category_column='class_name', n_intervals=24*4):
     # value_column is the column to get the history for
     # n_intervals are the number of history columns to add
     categories = _df[category_column].unique()
-    for i in range(1, n_intervals + 1):
+    for i in range(1,n_intervals+1):
         for c in categories:
             idx = _df.loc[_df[category_column] == c].index
             _df.loc[idx, f'+{i}'] = _df[_df[category_column] == c][value_column].shift(-i)
@@ -136,7 +134,7 @@ def add_future_columns(_df, n_intervals, value_column='rate', category_column='c
 
 
 def get_train_test_split(_df, hours_in_test=24, y_intervals=1):
-    split_time = _df.time_stamp.max() - pd.Timedelta(f"{hours_in_test-1} hours")
+    split_time = _df.time_stamp.max() - pd.Timedelta(f"{hours_in_test + 1} hours")
     train = _df[_df.time_stamp < split_time]
     test = _df[_df.time_stamp >= split_time]
 
@@ -155,12 +153,12 @@ def get_train_test_split(_df, hours_in_test=24, y_intervals=1):
 def execute_grid_search(_tr_df, _te_df, model, param_search, train_x_cols, train_y_cols) -> dict:
     results = {}
 
-    cat_map = get_cat_map(_te_df, 'class_name', 'class_code')
-
     _tr_y = _tr_df[train_y_cols].reset_index(drop=True)
     _te_y = _te_df[train_y_cols].reset_index(drop=True)
     _tr_x = _tr_df[train_x_cols].reset_index(drop=True)
     _te_x = _te_df[train_x_cols].reset_index(drop=True)
+
+    cat_map = get_cat_map(_te_df, 'class_name', 'class_code')
 
     # LinerGAM is not a ascikit model and will be handled separately.
     # The only pramter we use here is the lam (aka - smoother)
@@ -170,12 +168,12 @@ def execute_grid_search(_tr_df, _te_df, model, param_search, train_x_cols, train
             terms = None
             for i, c in enumerate(_tr_x.columns):
                 if c.startswith('-') or c.startswith('+'):
-                    if terms is None:
+                    if terms == None:
                         terms = s(i, lam=lam)
                     else:
                         terms += s(i, lam=lam)
                 else:
-                    if terms is None:
+                    if terms == None:
                         terms = f(i)
                     else:
                         terms += f(i)

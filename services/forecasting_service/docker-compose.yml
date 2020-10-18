@@ -17,11 +17,11 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DJANGO_SECRET_KEY=sghkslbro5inb
-    command: sh -c "python manage.py makemigrations; python manage.py migrate; python manage.py runserver 0.0.0.0:8200"
+    command: sh -c "python manage.py makemigrations; python manage.py migrate; python manage.py runserver 0.0.0.0:8300"
     volumes:
       - .:/code
     ports:
-      - "8200:8200"
+      - "8300:8300"
 #    depends_on:
 #      - db
 

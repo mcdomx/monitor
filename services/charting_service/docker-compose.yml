@@ -8,5 +8,7 @@ services:
       BOKEH_PORT: 8200
       DATA_URL: 'host.docker.internal'
       DATA_PORT: 8000
+      FC_URL: 'host.docker.internal'
+      FC_PORT: 8300
     ports:
       - "8200:8200"

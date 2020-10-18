@@ -1,8 +1,14 @@
+import logging
+
 from django.shortcuts import render
 from django.http import JsonResponse
 
 from ..models.models import TrafficMonitorFeed
 from ..code.forecast import create_forecast
+
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def _parse_args(request, *args):
@@ -35,10 +41,44 @@ def _parse_args(request, *args):
     return rv
 
 def get_forecast(request):
+    """
+    Retrieve a forcast which is structured according to arguments provided:
+    'monitor_name': name of monitor to predict
+    'interval': default=60. number of minutes in each forecast interval
+    'predictor_hours': default=24. number of hours to create predictions for
+    'classes_to_predict': defaults to all available if no list of classes is provided.
+    'from_date': defaults to first date available.  This is the date where training records are started.
+        This option exists in the event that a large dataset is available and not all records are needed
+        for training.
+    :param request:
+    :return:
+    """
 
-    kwargs = _parse_args(request, 'monitor_name')
+    try:
+        kwargs = _parse_args(request, 'monitor_name')
+    except Exception as e:
+        logger.error(e)
+        return JsonResponse({'error': e.args}, safe=False)
 
-    # feeds = list(TrafficMonitorFeed.objects.all().values())
-    fc_data = create_forecast(**kwargs)
+    if kwargs.get('interval') is None:
+        kwargs.update({'interval': 60})
+    if kwargs.get('predictor_hours') is None:
+        kwargs.update({'predictor_hours': 24})
+    if kwargs.get('classes_to_predict') is not None:
+        # make the string a list
+        c = kwargs.get('classes_to_predict')
+        if c == '':
+            c = None
+        else:
+            c = c.split(',')
+        kwargs.update({'classes_to_predict': c})
+
+    print(kwargs)
+
+    try:
+        fc_data = create_forecast(**kwargs)
+    except Exception as e:
+        logger.error(e)
+        return JsonResponse({'error': e.args}, safe=False)
 
     return JsonResponse(fc_data, safe=False)

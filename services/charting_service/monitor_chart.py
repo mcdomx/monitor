@@ -34,11 +34,23 @@ logging.basicConfig(level=logging.INFO)
 
 DATA_URL = os.getenv('DATA_URL', '127.0.0.1')
 DATA_PORT = os.getenv('DATA_PORT', '8000')
+FC_URL = os.getenv('FC_URL', '127.0.0.1')
+FC_PORT = os.getenv('FC_PORT', '8300')
 
 
-def _get_logdata(monitor_name):
-    """ Returned time data is in UTC time unit"""
-    response = requests.get(f'http://{DATA_URL}:{DATA_PORT}/get_logdata?monitor_name={monitor_name}')
+# def _get_logdata(monitor_name):
+#     """ Returned time data is in UTC time unit"""
+#     response = requests.get(f'http://{DATA_URL}:{DATA_PORT}/get_logdata?monitor_name={monitor_name}')
+#     if response.status_code == 200:
+#         return json.loads(response.text)
+#     else:
+#         return []
+
+
+def _get_fcdata_bokeh(monitor_name, classes_to_predict=None):
+    """Return a dictionary of forecasted values starting with the most recent observation"""
+    url = f'http://{FC_URL}:{FC_PORT}/get_forecast?monitor_name={monitor_name}&classes_to_predict={classes_to_predict}' #interval, predictor_hours, from_date
+    response = requests.get(url)
     if response.status_code == 200:
         return json.loads(response.text)
     else:
@@ -249,6 +261,11 @@ def update(i):
     DATE_RANGE_SLIDER.end = DATA_DF['time_stamp'].max()
 
 
+def update_forecast():
+    global DATA_DF, LAST_POSTED_TIME_UTC_ISO, COLORS, SOURCE_SCATTER, SOURCE_LINE, DATE_RANGE_SLIDER
+    new_fc_data = _get_fcdata_bokeh(MONITOR_NAME) #, start_date_utc_gt=LAST_POSTED_TIME_UTC_ISO)
+
+
 args = curdoc().session_context.request.arguments
 MONITOR_NAME = None
 while MONITOR_NAME is None:
@@ -301,6 +318,12 @@ except:
     START_DATE_UTC = DATA_DF['time_stamp_utc'].min()
 
 DISPLAY_OBJECTS = set(DATA_DF['class_name'].unique())
+
+# SETUP FC_DATA - this acts as a local master source of the current FC
+RAW_FC = _get_fcdata_bokeh(MONITOR_NAME)
+FC_DF = pd.DataFrame(RAW_FC)
+FC_DF['color'] = [COLORS.get(class_name) for class_name in FC_DF['class_name'].values]
+
 
 # setup data sources for plots
 SOURCE_SCATTER = ColumnDataSource(data={})
