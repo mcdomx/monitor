@@ -4,16 +4,11 @@ from .utils import *
 
 
 def _get_master_df(monitor_name, interval, predictor_hours, classes_to_predict, from_date):
-    print("FROM _get_master_df")
-    print(classes_to_predict)
-
     rs = get_rs(monitor_name=monitor_name, categories=classes_to_predict, from_date=from_date)
     _df = set_interval(pd.DataFrame(rs), interval=interval)
-    print(_df.class_name.unique())
     _df = add_category_codes(_df, 'class_name', 'class_code')
     _df = extend_time_features(_df)
-    _df = add_history_columns(_df,
-                              value_column='rate',
+    _df = add_history_columns(_df, value_column='rate',
                               category_column='class_name',
                               n_intervals=predictor_hours * int((60 / interval)))
     return _df
@@ -74,21 +69,23 @@ def _get_seed_observation(monitor_name: str,
     x_cols = ['class_code', 'time_stamp'] + [c for c in _df.columns if c.startswith('-')][::-1]
 
     if len(_df) == 0:
-        raise Exception(f"Unable to get forecasting seed: monitor:{monitor_name}, interval:{interval}, 'pred_hours':{predictor_hours}, from_date:{from_date}, categories:{categories}")
+        raise Exception(
+            f"Unable to get forecasting seed: monitor:{monitor_name}, interval:{interval}, pred_hours:{predictor_hours}, from_date:{from_date}, categories:{categories}")
 
     return _df[x_cols].reset_index(drop=True)
 
-
-def string_predictions(monitor_name, trained_model, train_x_cols, train_y_cols, interval, predictor_hours, categories,
-                       from_date=None):
+def string_predictions(monitor_name, trained_model, train_x_cols, train_y_cols,
+                       interval, predictor_hours, categories, from_date=None):
     n_intervals = len([c for c in train_x_cols if c.startswith('-')])  # add 1 for the rate column
     n_predictors = 1 if type(train_y_cols) == str else len([c for c in train_y_cols])
 
-    X = _get_seed_observation(monitor_name=monitor_name, interval=interval, predictor_hours=predictor_hours,
+    X = _get_seed_observation(monitor_name=monitor_name, interval=interval,
+                              predictor_hours=predictor_hours,
                               categories=categories, from_date=from_date)
 
     if len(X) == 0:
-        raise Exception(f"Unable to get forecasting seed: monitor:{monitor_name}, interval:{interval}, 'pred_hours':{predictor_hours}, from_date:{from_date}, categories:{categories}")
+        raise Exception(
+            f"Unable to get forecasting seed: monitor:{monitor_name}, interval:{interval}, 'pred_hours':{predictor_hours}, from_date:{from_date}, categories:{categories}")
 
     start_time = X.time_stamp[0]
     X.drop(columns=['time_stamp'], inplace=True)
@@ -105,26 +102,16 @@ def string_predictions(monitor_name, trained_model, train_x_cols, train_y_cols, 
     time_stamps = [start_time + pd.Timedelta(f'{interval * i} minutes') for i, _ in enumerate(pred_df.index)]
     pred_df.index = time_stamps
 
-    # rename the columns
-    pred_df.columns = categories.sort()
-
     # melt the columns
-    pred_df = pred_df.melt(ignore_index=False, var_name='class_name', value_name='rate').reset_index().rename(
+    pred_df = pred_df.melt(ignore_index=False, var_name='class_code', value_name='rate').reset_index().rename(
         columns={'index': 'time_stamp'})
-
-    # extend a colum for the codes the codes
-    pred_df = add_category_codes(pred_df, 'class_name', 'class_code')
 
     # extend columns for time characteristics
     pred_df = extend_time_features(pred_df)
 
     return pred_df
 
-
 def create_forecast(monitor_name, interval, predictor_hours, classes_to_predict=None, from_date=None):
-
-    print(classes_to_predict)
-
     _df = _get_master_df(monitor_name=monitor_name,
                          interval=interval,
                          predictor_hours=predictor_hours,
@@ -132,14 +119,13 @@ def create_forecast(monitor_name, interval, predictor_hours, classes_to_predict=
                          from_date=from_date)
 
     if len(_df) == 0:
-        raise Exception(f"No records to make prediction on. monitor_name:{monitor_name}, interval:{interval}, predictor_hours:{predictor_hours}, from_date:{from_date}, classes_to_predict:{classes_to_predict}")
+        raise Exception(
+            f"No records to make prediction on. monitor_name:{monitor_name}, interval:{interval}, predictor_hours:{predictor_hours}, from_date:{from_date}, classes_to_predict:{classes_to_predict}")
 
-    cat_map = get_cat_map(_df, 'class_name', 'class_code')
-    categories = [c for c in cat_map.keys() if type(c) == str]
-    print(_df.class_name.unique())
+    cat_map = dict(_df[['class_name', 'class_code']].drop_duplicates().to_dict(orient='split')['data'])
+    cat_map_inv = {v: k for k, v in cat_map.items()}
 
-    X_train, X_test, y_train, y_test, train_df, test_df = get_train_test_split(_df, hours_in_test=predictor_hours,
-                                                                               y_intervals=1)
+    train_df, test_df = get_train_test_split(_df, hours_in_test=predictor_hours)
 
     train_x_cols = ['class_code'] + [c for c in train_df.columns[::-1] if c.startswith('-')]
     train_y_cols = 'rate'
@@ -152,7 +138,9 @@ def create_forecast(monitor_name, interval, predictor_hours, classes_to_predict=
                                  train_y_cols=train_y_cols,
                                  interval=interval,
                                  predictor_hours=predictor_hours,
-                                 categories=categories,
+                                 categories=list(cat_map.keys()),
                                  from_date=from_date)
+
+    pred_df['class_name'] = pred_df['class_code'].apply(lambda s: cat_map_inv.get(s))
 
     return pred_df.to_dict(orient='list')

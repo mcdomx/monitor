@@ -88,10 +88,15 @@ def add_category_codes(_df, column_to_cat, new_col_name):
 
 
 def get_cat_map(_df, string_column, code_column) -> dict:
-    _cat_map_name_to_code = _df[[string_column, code_column]].set_index(string_column).drop_duplicates().to_dict()[code_column]
-    _cat_map_code_to_name = _df[[string_column, code_column]].set_index(code_column).drop_duplicates().to_dict()[string_column]
+    _cat_map_name_to_code = _df[[string_column, code_column]].set_index(string_column).drop_duplicates().to_dict()[
+        code_column]
+    _cat_map_code_to_name = _df[[string_column, code_column]].set_index(code_column).drop_duplicates().to_dict()[
+        string_column]
+    cat_map = {**_cat_map_code_to_name, **_cat_map_name_to_code}
+    cat_map.update({'classes': list(_cat_map_name_to_code.keys())})
+    cat_map.update({'codes': list(_cat_map_code_to_name.keys())})
 
-    return {**_cat_map_code_to_name, **_cat_map_name_to_code}
+    return cat_map
 
 
 def extend_time_features(_df: pd.DataFrame):
@@ -133,21 +138,16 @@ def add_future_columns(_df, value_column='rate', category_column='class_name', n
     return _df.reset_index(drop=True)
 
 
-def get_train_test_split(_df, hours_in_test=24, y_intervals=1):
+# split into train and test sets
+def get_train_test_split(_df, hours_in_test=24, categories=None):
+    if categories is not None:
+        _df = _df[_df.class_name.isin(categories)]
+
     split_time = _df.time_stamp.max() - pd.Timedelta(f"{hours_in_test + 1} hours")
     train = _df[_df.time_stamp < split_time]
     test = _df[_df.time_stamp >= split_time]
 
-    X_train = train.drop(columns=['class_name', 'rate'] + [c for c in train.columns if c.startswith('+')]).reset_index(
-        drop=True)
-    X_test = test.drop(columns=['class_name', 'rate'] + [c for c in train.columns if c.startswith('+')]).reset_index(
-        drop=True)
-
-    future_columns = [f"+{c}" for c in range(1, y_intervals) if f"+{c}" in train.columns]
-    y_train = np.squeeze(train[['rate'] + future_columns]).reset_index(drop=True)
-    y_test = np.squeeze(test[['rate'] + future_columns]).reset_index(drop=True)
-
-    return X_train, X_test, y_train, y_test, train, test
+    return train, test
 
 
 def execute_grid_search(_tr_df, _te_df, model, param_search, train_x_cols, train_y_cols) -> dict:
@@ -158,7 +158,8 @@ def execute_grid_search(_tr_df, _te_df, model, param_search, train_x_cols, train
     _tr_x = _tr_df[train_x_cols].reset_index(drop=True)
     _te_x = _te_df[train_x_cols].reset_index(drop=True)
 
-    cat_map = get_cat_map(_te_df, 'class_name', 'class_code')
+    # {'bus': 0, 'car': 1, 'motorcycle': 2, 'person': 3, 'truck': 4}
+    cat_map = dict(train_df[['class_name', 'class_code']].drop_duplicates().to_dict(orient='split')['data'])
 
     # LinerGAM is not a ascikit model and will be handled separately.
     # The only pramter we use here is the lam (aka - smoother)
