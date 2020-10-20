@@ -3,7 +3,7 @@ import logging
 from django.shortcuts import render
 from django.http import JsonResponse
 
-from ..models.models import TrafficMonitorFeed
+from ..models.models import TrafficMonitorFeed, TrafficMonitorLogentry
 from ..code.forecast import create_forecast
 
 
@@ -40,6 +40,7 @@ def _parse_args(request, *args):
 
     return rv
 
+
 def get_forecast(request):
     """
     Retrieve a forcast which is structured according to arguments provided:
@@ -62,23 +63,33 @@ def get_forecast(request):
 
     if kwargs.get('interval') is None:
         kwargs.update({'interval': 60})
-    if kwargs.get('predictor_hours') is None:
-        kwargs.update({'predictor_hours': 24})
-    if kwargs.get('classes_to_predict') is not None:
+    else:
+        kwargs.update({'interval': int(kwargs.get('interval'))})
+
+    if kwargs.get('hours_in_training') is None:
+        kwargs.update({'hours_in_training': 24})
+    else:
+        kwargs.update({'hours_in_training': int(kwargs.get('hours_in_training'))})
+
+    if kwargs.get('hours_in_prediction') is None:
+        kwargs.update({'hours_in_prediction': 24})
+    else:
+        kwargs.update({'hours_in_prediction': int(kwargs.get('hours_in_prediction'))})
+
+    if kwargs.get('categories') is not None:
         # make the string a list
-        c = kwargs.get('classes_to_predict')
+        c = kwargs.get('categories')
         if c == '':
             c = None
         else:
-            c = c.split(',')
-        kwargs.update({'classes_to_predict': c})
+            c = [x.strip() for x in c.split(',')]
+        kwargs.update({'categories': c})
 
-    print(kwargs)
-
-    try:
-        fc_data = create_forecast(**kwargs)
-    except Exception as e:
-        logger.error(e)
-        return JsonResponse({'error': e.args}, safe=False)
+    # try:
+    fc_data = create_forecast(**kwargs)
+        # fc_data = [f for f in TrafficMonitorLogentry.objects.filter(monitor='MyMonitor').all().values()]
+    # except Exception as e:
+    #     logger.error(e)
+    #     return JsonResponse({'error': e.args}, safe=False)
 
     return JsonResponse(fc_data, safe=False)

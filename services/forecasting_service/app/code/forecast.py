@@ -1,146 +1,152 @@
+from pygam import LinearGAM, s, f
+from sklearn.metrics import r2_score
+from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
+
+from .model_config import *
 
 
-from .utils import *
+def execute_grid_search(m_config, model, param_search) -> dict:
+    results = {}
+
+    _tr_x, _tr_y, _te_x, _te_y = m_config.get_train_test_split()
+
+    # LinerGAM is not a ascikit model and will be handled separately.
+    # The only pramter we use here is the lam (aka - smoother)
+    if model.__class__.__name__ == "LinearGAM":
+        best_score = 0
+        for lam in param_search.get('lam'):
+            terms = None
+            for i, c in enumerate(_tr_x.columns):
+                if c.startswith('-') or c.startswith('+'):
+                    if terms == None:
+                        terms = s(i, lam=lam)
+                    else:
+                        terms += s(i, lam=lam)
+                else:
+                    if terms == None:
+                        terms = f(i)
+                    else:
+                        terms += f(i)
+            _m = LinearGAM(terms=terms)
+            y_pred = np.clip(_m.fit(_tr_x, _tr_y).predict(_te_x), a_min=0, a_max=None)
+            _score = r2_score(y_true=_te_y, y_pred=y_pred)
+            if _score > best_score:
+                best_score = _score
+                best_lam = lam
+                best_model = _m
+            print(f"lam: {lam:5}  r2: {_score}")
+
+        best_params = f"\tlam: {best_lam}"
+
+    else:
+        tscv = TimeSeriesSplit(n_splits=8)
+        gsearch = GridSearchCV(estimator=model, cv=tscv, param_grid=param_search, scoring='r2', verbose=0, n_jobs=-1)
+        gsearch.fit(_tr_x, _tr_y)
+        best_model = gsearch.best_estimator_
+        y_pred = np.clip(best_model.predict(_te_x), a_min=0, a_max=None)
+        best_score = r2_score(y_true=_te_y, y_pred=y_pred)
+        best_params = f"\t{' | '.join([f'{p}: {str(getattr(best_model, p))}' for p in param_search])}"
+
+    print()
+    print(model.__class__.__name__)
+    print(f"Train Cols: {[c for c in _tr_x.columns if not (c.startswith('-'))]}")
+    print(f"\tBest Model's R2 Score: {round(best_score, 4)}")
+    print(f"\tBest Parameters: {best_params}")
+    print(f"\tScore By Class:")
+    for class_name in m_config.categories:
+        idxs = _te_x[_te_x.class_code == m_config.get_code(class_name)].index
+        r2 = r2_score(y_true=_te_y[idxs], y_pred=y_pred[idxs])
+        print(f"\t\t{class_name:10}: {round(r2, 4):>6}")
+        results.update({class_name: r2})
+
+    results.update({'best_model': best_model})
+    results.update({'best_overall_score': best_score})
+
+    return {model.__class__.__name__: results}
 
 
-def _get_master_df(monitor_name, interval, predictor_hours, classes_to_predict, from_date):
-    rs = get_rs(monitor_name=monitor_name, categories=classes_to_predict, from_date=from_date)
-    _df = set_interval(pd.DataFrame(rs), interval=interval)
-    _df = add_category_codes(_df, 'class_name', 'class_code')
-    _df = extend_time_features(_df)
-    _df = add_history_columns(_df, value_column='rate',
-                              category_column='class_name',
-                              n_intervals=predictor_hours * int((60 / interval)))
-    return _df
-
-
-def _get_best_model(train_df, test_df, train_x_cols, train_y_cols):
+def get_best_model(m_config):
     models_to_evaluate = []
 
     models_to_evaluate.append({'model': LinearGAM(),
                                'param_search': {
-                                   # 'lam': [500, 725, 750, 775, 800, 825, 850, 875, 1000],
-                                   'lam': [.1, 10, 50, 100, 400, 800, 1200, 1600, 2000],
-                               }
-                               })
+                                               #'lam': [500, 725, 750, 775, 800, 825, 850, 875, 1000],
+                                                'lam': [.1, 10, 50, 100, 400, 800, 1200, 1600, 2000, 2500],
+                                               }
+                              })
 
-    # models_to_evaluate.append({'model': RandomForestRegressor(n_jobs=-1, random_state=0),
-    #                            'param_search': {
-    #                                'n_estimators': [10, 50, 100, 150],
-    #                                'max_features': ['auto'],  # , 'sqrt', 'log2'], -> the best scores are always auto
-    #                                'max_depth': [i for i in range(5, 15)]
-    #                            }
-    #                            })
+#     models_to_evaluate.append( {'model': RandomForestRegressor(n_jobs=-1, random_state=0),
+#                                 'param_search': {
+#                                                  'n_estimators': [10, 50, 100, 150],
+#                                                  'max_features': ['auto'], #, 'sqrt', 'log2'], -> the best scores are always auto
+#                                                  'max_depth' : [i for i in range(5,15)]
+#                                                 }
+#                                })
+
+#     models_to_evaluate.append( {'model': GradientBoostingRegressor(random_state=0),
+#                                 'param_search': {
+#                                                  'n_estimators': [20, 50, 100],
+#                                                  'learning_rate' : [.05, .1, .5, 1],
+#                                                  'loss' : ['ls', 'lad', 'huber', 'quantile']
+#                                                 }
+#                                })
 
     evaluation_results = {}
     for m in models_to_evaluate:
-        r = execute_grid_search(train_df, test_df, m.get('model'), m.get('param_search'), train_x_cols, train_y_cols)
+        r = execute_grid_search(m_config, m.get('model'), m.get('param_search'))
         evaluation_results.update(r)
 
     results_df = pd.DataFrame(evaluation_results).T
     return results_df[results_df.best_overall_score == results_df.best_overall_score.max()]['best_model'][0]
 
 
-def _get_seed_observation(monitor_name: str,
-                          interval: int,
-                          predictor_hours: int,
-                          categories: list = None,
-                          from_date: str = None):
-    # get the most recent observation or the first observation on date
-    # provided as from_date (is isoformat YYYY-MM_DDTHH:MM)
-    # from_date is expected to be in the monitor's timezone
-    time_zone = Monitor.objects.get(pk=monitor_name).feed.time_zone
-    if from_date is None:
-        from_date = LogEntry.objects.filter(monitor=monitor_name).latest('time_stamp').time_stamp.astimezone(
-            pytz.timezone(time_zone))  # - pd.Timedelta(f'{predictor_hours} Hours')).isoformat()
-    else:
-        from_date = datetime.datetime.fromisoformat(
-            from_date)  # .replace(tzinfo=pytz.timezone(time_zone)).astimezone(pytz.UTC)
+def string_predictions(m_config: ModelConfig, trained_model, from_date=None):
+    n_intervals = m_config.hours_in_training * int(60 / m_config.interval)
+    n_predictors = len([c for c in m_config.predictor_columns if not c.startswith('-')])
 
-    from_date = (from_date - pd.Timedelta(f'{predictor_hours + 1} Hours')).isoformat()
-
-    _df = pd.DataFrame(get_rs(monitor_name='MyMonitor', categories=categories, from_date=from_date))
-    _df = set_interval(_df, interval=interval)
-    _df = add_category_codes(_df, 'class_name', 'class_code')
-    _df = extend_time_features(_df)
-    _df = add_history_columns(_df, value_column='rate', category_column='class_name',
-                              n_intervals=predictor_hours * int((60 / interval)))
-    _df = _df[_df.time_stamp == _df.time_stamp.min()]
-    x_cols = ['class_code', 'time_stamp'] + [c for c in _df.columns if c.startswith('-')][::-1]
-
-    if len(_df) == 0:
-        raise Exception(
-            f"Unable to get forecasting seed: monitor:{monitor_name}, interval:{interval}, pred_hours:{predictor_hours}, from_date:{from_date}, categories:{categories}")
-
-    return _df[x_cols].reset_index(drop=True)
-
-def string_predictions(monitor_name, trained_model, train_x_cols, train_y_cols,
-                       interval, predictor_hours, categories, from_date=None):
-    n_intervals = len([c for c in train_x_cols if c.startswith('-')])  # add 1 for the rate column
-    n_predictors = 1 if type(train_y_cols) == str else len([c for c in train_y_cols])
-
-    X = _get_seed_observation(monitor_name=monitor_name, interval=interval,
-                              predictor_hours=predictor_hours,
-                              categories=categories, from_date=from_date)
-
-    if len(X) == 0:
-        raise Exception(
-            f"Unable to get forecasting seed: monitor:{monitor_name}, interval:{interval}, 'pred_hours':{predictor_hours}, from_date:{from_date}, categories:{categories}")
-
-    start_time = X.time_stamp[0]
-    X.drop(columns=['time_stamp'], inplace=True)
-    X.set_index(X.class_code.values, inplace=True)
+    X, time_zero = m_config.get_seed_observation(on_date=from_date)
 
     # String predictions
-    for i in range(n_intervals + 1):
+    for i in range(1, n_intervals + 1):
         r = list(range(n_predictors)) + list(range(len(X.columns) - n_intervals, len(X.columns)))
         X[f"+{i}"] = np.clip(trained_model.predict(X.iloc[:, r]), a_min=0, a_max=None)
 
-    # Reformat results into dataframe of similar structure to the original train and test dataframes
-    pred_df = X.iloc[:, r].T.iloc[1:, :]
+    # Get initial DF with prediction columns
+    r = list(range(n_predictors)) + list(range(len(X.columns) - n_intervals, len(X.columns)))
+    X = X.iloc[:, r]
 
-    time_stamps = [start_time + pd.Timedelta(f'{interval * i} minutes') for i, _ in enumerate(pred_df.index)]
-    pred_df.index = time_stamps
+    # insert the class name
+    idx = int(np.where(X.columns == 'class_code')[0][0])
+    X.insert(idx + 1, 'class_name', X['class_code'].apply(lambda s: m_config.get_category(s)))
 
-    # melt the columns
-    pred_df = pred_df.melt(ignore_index=False, var_name='class_code', value_name='rate').reset_index().rename(
-        columns={'index': 'time_stamp'})
+    # rename future period columns to timestamp values
+    time_stamps = [time_zero + pd.Timedelta(f'{m_config.interval * i} minutes') for i in range(1, n_intervals + 1)]
+    col_mapper = {old_c: time_stamps[int(old_c) - 1] for old_c in X.columns if old_c.startswith('+')}
 
-    # extend columns for time characteristics
-    pred_df = extend_time_features(pred_df)
+    id_vars = [c for c in X.columns if not c.startswith('+')]
 
-    return pred_df
+    X.rename(columns=col_mapper, inplace=True)
 
-def create_forecast(monitor_name, interval, predictor_hours, classes_to_predict=None, from_date=None):
-    _df = _get_master_df(monitor_name=monitor_name,
-                         interval=interval,
-                         predictor_hours=predictor_hours,
-                         classes_to_predict=classes_to_predict,
-                         from_date=from_date)
+    X = pd.melt(X, id_vars=id_vars, var_name='time_stamp', value_name='rate')
 
-    if len(_df) == 0:
-        raise Exception(
-            f"No records to make prediction on. monitor_name:{monitor_name}, interval:{interval}, predictor_hours:{predictor_hours}, from_date:{from_date}, classes_to_predict:{classes_to_predict}")
+    X = m_config._add_time_features(X)
 
-    cat_map = dict(_df[['class_name', 'class_code']].drop_duplicates().to_dict(orient='split')['data'])
-    cat_map_inv = {v: k for k, v in cat_map.items()}
+    return X
 
-    train_df, test_df = get_train_test_split(_df, hours_in_test=predictor_hours)
 
-    train_x_cols = ['class_code'] + [c for c in train_df.columns[::-1] if c.startswith('-')]
-    train_y_cols = 'rate'
+def create_forecast(monitor_name, interval, hours_in_training, hours_in_prediction,
+                    source_data_from_date: str = None, categories: list = None):
 
-    best_model = _get_best_model(train_df, test_df, train_x_cols, train_y_cols)
+    m_config = ModelConfig(monitor_name=monitor_name,
+                           interval=interval,
+                           hours_in_training=hours_in_training,
+                           hours_in_prediction=hours_in_prediction,
+                           source_data_from_date=source_data_from_date)
 
-    pred_df = string_predictions(monitor_name=monitor_name,
-                                 trained_model=best_model,
-                                 train_x_cols=train_x_cols,
-                                 train_y_cols=train_y_cols,
-                                 interval=interval,
-                                 predictor_hours=predictor_hours,
-                                 categories=list(cat_map.keys()),
-                                 from_date=from_date)
+    pred_df = string_predictions(m_config=m_config,
+                                 trained_model=get_best_model(m_config),
+                                 from_date=None)
 
-    pred_df['class_name'] = pred_df['class_code'].apply(lambda s: cat_map_inv.get(s))
+    pred_df = pred_df[pred_df.class_name.isin(categories)][['time_stamp', 'class_name', 'rate']]
 
     return pred_df.to_dict(orient='list')
