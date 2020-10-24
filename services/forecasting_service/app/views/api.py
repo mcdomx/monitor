@@ -46,7 +46,7 @@ def get_forecast(request):
     Retrieve a forcast which is structured according to arguments provided:
     'monitor_name': name of monitor to predict
     'interval': default=60. number of minutes in each forecast interval
-    'predictor_hours': default=24. number of hours to create predictions for
+    'hours_in_prediction': default=24. number of hours to create predictions for
     'classes_to_predict': defaults to all available if no list of classes is provided.
     'from_date': defaults to first date available.  This is the date where training records are started.
         This option exists in the event that a large dataset is available and not all records are needed
@@ -76,20 +76,14 @@ def get_forecast(request):
     else:
         kwargs.update({'hours_in_prediction': int(kwargs.get('hours_in_prediction'))})
 
-    if kwargs.get('categories') is not None:
-        # make the string a list
-        c = kwargs.get('categories')
-        if c == '':
-            c = None
-        else:
-            c = [x.strip() for x in c.split(',')]
-        kwargs.update({'categories': c})
+    if kwargs.get('source_data_from_date') is None:
+        kwargs.update({'source_data_from_date': '2020-01-01'})
 
-    # try:
-    fc_data = create_forecast(**kwargs)
-        # fc_data = [f for f in TrafficMonitorLogentry.objects.filter(monitor='MyMonitor').all().values()]
-    # except Exception as e:
-    #     logger.error(e)
-    #     return JsonResponse({'error': e.args}, safe=False)
+    try:
+        fc_data = create_forecast(**kwargs)
+    except Exception as e:
+        logger.error(e)
+        print(e.__traceback__)
+        return JsonResponse({'error': e.args, 'trace': e.__traceback__}, safe=False)
 
     return JsonResponse(fc_data, safe=False)

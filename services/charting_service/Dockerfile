@@ -25,3 +25,5 @@ CMD bokeh serve --port ${BOKEH_PORT} \
     --num-procs=${NUM_PROCS} \
     --log-level=info \
     ./monitor_chart.py
+
+#bokeh serve --port 8201 --allow-websocket-origin="*" --disable-index --disable-index-redirect --num-procs=4 --log-level=info ./monitor_chart.py

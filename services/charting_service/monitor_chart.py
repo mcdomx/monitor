@@ -19,18 +19,20 @@ import os
 import numpy as np
 import pandas as pd
 from time import sleep
+from abc import ABC, ABCMeta
 
 from bokeh.io import curdoc
 from bokeh.models import HoverTool, DatetimeTickFormatter
 from bokeh.plotting import figure
 from pygam import LinearGAM, s
 from bokeh.colors import RGB
-from bokeh.models import ColumnDataSource, DateRangeSlider, Select, CustomJS, Spacer
+from bokeh.models import ColumnDataSource, DateRangeSlider, Select, Button, Spacer
 from bokeh.driving import count
 from bokeh.layouts import column, row
 
-logging.basicConfig(level=logging.INFO)
+from observer import Observer, Observable
 
+logging.basicConfig(level=logging.INFO)
 
 DATA_URL = os.getenv('DATA_URL', '127.0.0.1')
 DATA_PORT = os.getenv('DATA_PORT', '8000')
@@ -38,26 +40,7 @@ FC_URL = os.getenv('FC_URL', '127.0.0.1')
 FC_PORT = os.getenv('FC_PORT', '8300')
 
 
-# def _get_logdata(monitor_name):
-#     """ Returned time data is in UTC time unit"""
-#     response = requests.get(f'http://{DATA_URL}:{DATA_PORT}/get_logdata?monitor_name={monitor_name}')
-#     if response.status_code == 200:
-#         return json.loads(response.text)
-#     else:
-#         return []
-
-
-def _get_fcdata_bokeh(monitor_name, classes_to_predict=None):
-    """Return a dictionary of forecasted values starting with the most recent observation"""
-    url = f'http://{FC_URL}:{FC_PORT}/get_forecast?monitor_name={monitor_name}&classes_to_predict={classes_to_predict}' #interval, predictor_hours, from_date
-    response = requests.get(url)
-    if response.status_code == 200:
-        return json.loads(response.text)
-    else:
-        return []
-
-
-def _get_logdata_bokeh(monitor_name, start_date_utc=None, start_date_utc_gt=None):
+def _get_logdata(monitor_name, start_date_utc=None, start_date_utc_gt=None):
     """ Returned data is in UTC time units. Expects time units in UTC. """
     start_field = 'start_date'
     if start_date_utc_gt:
@@ -73,95 +56,12 @@ def _get_logdata_bokeh(monitor_name, start_date_utc=None, start_date_utc_gt=None
         return {}
 
 
-def _get_monitorconfig(monitor_name):
-    response = requests.get(f'http://{DATA_URL}:{DATA_PORT}/get_monitor?monitor_name={monitor_name}')
-    if response.status_code == 200:
-        return json.loads(response.text)
-    else:
-        return None
-
-
-def change_date(attr, old, new):
-    # Incoming new value is a tuple of time in epoch format of the video-local timezone
-    # attr = 'value_throttled'
-    new_start_date = pd.Timestamp(new[0] / 1000, unit='s').tz_localize(TIME_ZONE)
-    new_end_date = pd.Timestamp(new[1] / 1000, unit='s').tz_localize(TIME_ZONE)
-    _filter_sources(new_start_date, new_end_date)
-
-
-def toggle_object(attr, old, new):
-    # SELECT_OBJECT select widget was changed.
-    # Toggle the display of the new value selected
-    global DISPLAY_OBJECTS
-    if new in DISPLAY_OBJECTS:
-        DISPLAY_OBJECTS.remove(new)
-    else:
-        DISPLAY_OBJECTS.add(new)
-
-    _filter_sources(start_date_utc=min(SOURCE_SCATTER.data['time_stamp_utc']), end_date_utc=max(SOURCE_SCATTER.data['time_stamp_utc']))
-
-    SELECT_OBJECT.value = "show/hide.."
-
-
-def _update_source_line():
-    """ Updates the SOURCE_LINE data source with date in DATA_DF and SOURCE_SCATTER's range"""
-    # create SOURCE_LINE data with curves that take previous and next day into account
-
-    # make sure the line uses date ranged from SOURCE_SCATTER so the axes match
-    s_time = min(SOURCE_SCATTER.data['time_stamp']) - pd.Timedelta('24 hours')
-    e_time = max(SOURCE_SCATTER.data['time_stamp']) + pd.Timedelta('24 hours')
-
-    _source_line_df = DATA_DF[(DATA_DF.time_stamp >= s_time) & (DATA_DF.time_stamp <= e_time) & (DATA_DF.class_name.isin(DISPLAY_OBJECTS))]
-    _source_line_df = _source_line_df.pivot_table(index='time_stamp', columns='class_name').fillna(0)
-
-    _xs = (_source_line_df.index - _source_line_df.index.min()).total_seconds().astype(int)
-    c_names = list(_source_line_df[('count',)].columns)
-
-    # create a column with the LineaGam values for entire dataset
-    n_splines = max(60, int((e_time - s_time).total_seconds() / 60 / 60))
-    for c in c_names:
-        _source_line_df[('line', c)] = np.clip(
-            LinearGAM(s(0, n_splines=n_splines, lam=.6)).fit(_xs, _source_line_df[('count', c)]).predict(_xs), a_min=0,
-            a_max=None)
-
-    # now filter the dataset for the time range of the scatter plot that is being presented
-    _source_line_df = _source_line_df[(_source_line_df.index >= min(SOURCE_SCATTER.data['time_stamp'])) & (
-            _source_line_df.index <= max(SOURCE_SCATTER.data['time_stamp']))]
-
-    SOURCE_LINE.data = {'xs': [sorted(_source_line_df.index) for _ in c_names],
-                        'ys': [_source_line_df[('line', c)].values for c in c_names],
-                        'line_color': [COLORS.get(c) for c in c_names],
-                        'class_names': c_names}
-
-
-def _filter_sources(start_date_utc=None, end_date_utc=None):
-    # change SOURCE_SCATTER so it spans start_date to end_date and include objects
-    # dates in UTC timezone
-    global DATA_DF, SOURCE_SCATTER
-
-    _data_df = DATA_DF[DATA_DF.class_name.isin(DISPLAY_OBJECTS)]
-
-    if end_date_utc is None and start_date_utc is not None:
-        _data_df = _data_df[(_data_df.time_stamp_utc >= start_date_utc)]
-    elif end_date_utc is not None and start_date_utc is None:
-        _data_df = _data_df[(_data_df.time_stamp_utc <= end_date_utc)]
-    elif end_date_utc is not None and start_date_utc is not None:
-        _data_df = _data_df[(_data_df.time_stamp_utc >= start_date_utc) & (_data_df.time_stamp_utc <= end_date_utc)]
-
-    # create SOURCE_SCATTER data
-    SOURCE_SCATTER.data = _data_df.to_dict(orient='list')
-
-    # update SOURCE_LINE based on DATA_DF and selected range of SOURCE_SCATTER
-    _update_source_line()
-
-
 def get_chart():
     """
     Get a Bokeh chart that shows the trend of detected items recorded in the Log database.
     :param monitor_config:
     :return:
     """
-    _filter_sources(start_date_utc=START_DATE_UTC)
 
     hover_tool = HoverTool(
         tooltips=[
@@ -175,11 +75,11 @@ def get_chart():
         mode='mouse'
     )
 
-    tools = [hover_tool] #, "pan", "wheel_zoom", "zoom_in", "zoom_out", "reset", "tap", "lasso_select", "box_select"]
+    tools = [hover_tool]  # , "pan", "wheel_zoom", "zoom_in", "zoom_out", "reset", "tap", "lasso_select", "box_select"]
 
     # Define the blank canvas of the Bokeh plot that data will be layered on top of
     fig = figure(
-        title=f"{MONITOR_NAME}",
+        title=f"{monitor_config.name}",
         sizing_mode="stretch_both",
         # width_policy="max",
         # height_policy="max",
@@ -208,19 +108,32 @@ def get_chart():
         hours="%H:%M",
         minutes="%a %H:%M",
         seconds="%a %H:%M:%S")
-    fig.xaxis.axis_label = TIME_ZONE.zone
+    fig.xaxis.axis_label = display_data.time_zone.zone
 
     # CREATE SCATTER PLOTS
     fig.scatter(x='time_stamp', y='count',
-                fill_color='color', legend_field='class_name', line_color='black',
+                fill_color='color',
+                legend_field='class_name',
+                line_color='black',
                 size=3, alpha=.5, line_width=.3,
-                source=SOURCE_SCATTER)
+                source=display_data.source_act_scatter)
 
-    # CREATE LINE PLOTS
+    # make a source just for the legend
+    # fig.scatter(fill_color='color', legend_field='class_name', line_color='black',
+    #             size=3, alpha=.5, line_width=.3, source=SOURCE_LEGEND)
+
+    # CREATE LINE PLOTS FOR ACTUAL DATA
     fig.multi_line(xs='xs', ys='ys',
                    line_color='line_color',
                    line_width=3,
-                   source=SOURCE_LINE)
+                   source=display_data.source_act_line)
+
+    # CREATE LINE PLOTS FOR FC DATA
+    fig.multi_line(xs='xs', ys='ys',
+                   line_color='line_color',
+                   line_width=3,
+                   line_dash='dotted',  # solid, dashed, dotted, dotdash, dashdot
+                   source=display_data.source_fc_line)
 
     fig.legend.location = "top_left"
     fig.legend.spacing = 0
@@ -235,120 +148,380 @@ def get_chart():
 
 @count()
 def update(i):
+    """ Called periodically by the server loop. """
     # i = int representing the number of times this function has been called
-    global DATA_DF, LAST_POSTED_TIME_UTC_ISO, COLORS, SOURCE_SCATTER, SOURCE_LINE, DATE_RANGE_SLIDER
-    new_raw_data = _get_logdata_bokeh(MONITOR_NAME, start_date_utc_gt=LAST_POSTED_TIME_UTC_ISO)
+    # global SOURCE_ACT_SCATTER, SOURCE_ACT_LINE #, DATE_RANGE_SLIDER
+    new_raw_data = _get_logdata(monitor_config.name, start_date_utc_gt=display_data.last_posted_time_utc_iso)
     if len(new_raw_data) < 1:
         return
-    LAST_POSTED_TIME_UTC_ISO = new_raw_data['time_stamp'][-1]
+    display_data.last_posted_time_utc_iso = new_raw_data['time_stamp'][-1]
 
-    # UPDATE SOURCE_SCATTER
+    # UPDATE SOURCE_ACT_SCATTER - add the scatter points for the new data
     new_raw_data_df = pd.DataFrame(new_raw_data)
     new_raw_data_df['time_stamp_utc'] = pd.to_datetime(new_raw_data_df['time_stamp'], utc=True)
-    new_raw_data_df['time_stamp'] = new_raw_data_df['time_stamp_utc'].dt.tz_convert(tz=TIME_ZONE.zone).dt.tz_localize(
+    new_raw_data_df['time_stamp'] = new_raw_data_df['time_stamp_utc'].dt.tz_convert(
+        tz=monitor_config.time_zone.zone).dt.tz_localize(
         None)
-    new_raw_data_df['color'] = [COLORS.get(class_name) for class_name in new_raw_data_df['class_name'].values]
+    new_raw_data_df['color'] = [class_colors.colors.get(class_name) for class_name in
+                                new_raw_data_df['class_name'].values]
 
-    SOURCE_SCATTER.stream(new_raw_data_df.to_dict(orient='list'), rollover=None)  # append new items to source
-
-    # UPDATE THE MASTER DATA_DF
-    DATA_DF = DATA_DF.append(new_raw_data_df)
-
-    # UPDATE SOURCE_LINE DATA
-    _update_source_line()
-
-    # update the slider end point
-    DATE_RANGE_SLIDER.end = DATA_DF['time_stamp'].max()
+    display_data.add_data_point(new_raw_data_df) #.to_dict(orient='list'))
 
 
-def update_forecast():
-    global DATA_DF, LAST_POSTED_TIME_UTC_ISO, COLORS, SOURCE_SCATTER, SOURCE_LINE, DATE_RANGE_SLIDER
-    new_fc_data = _get_fcdata_bokeh(MONITOR_NAME) #, start_date_utc_gt=LAST_POSTED_TIME_UTC_ISO)
+class MonitorConfig:
+    def __init__(self, arg_dict: dict):
+        self.name = arg_dict.get('monitor_name', None)
+        self.config = self._get_config()
+        tz = None
+        while tz is None:
+            try:
+                tz = pytz.timezone(self.config.get('time_zone'))
+            except:
+                sleep(.1)
+        self.time_zone = tz
 
-
-args = curdoc().session_context.request.arguments
-MONITOR_NAME = None
-while MONITOR_NAME is None:
-    MONITOR_NAME = args.get('monitor_name')[0].decode()
-MONITOR_CONFIG = _get_monitorconfig(MONITOR_NAME)
-
-# if LIMIT is not provided or is 0, there will be no start limit
-# if LIMIT is text and is 'true', -14 days will be set as the start limit, else, no limit.
-LIMIT_START_DAYS = args.get('limit_start_days')
-if LIMIT_START_DAYS is None:
-    LIMIT_START_DAYS = 0
-else:
-    try:
-        LIMIT_START_DAYS = int(LIMIT_START_DAYS[0].decode())
-        if LIMIT_START_DAYS < 0:
-            LIMIT_START_DAYS = 0
-    except ValueError:
-        if LIMIT_START_DAYS[0].decode().lower() == 'true':
-            LIMIT_START_DAYS = 14
+    def _get_config(self):
+        response = requests.get(f'http://{DATA_URL}:{DATA_PORT}/get_monitor?monitor_name={self.name}')
+        if response.status_code == 200:
+            return json.loads(response.text)
         else:
-            LIMIT_START_DAYS = 0
-
-TIME_ZONE = None
-while TIME_ZONE is None:
-    TIME_ZONE = pytz.timezone(MONITOR_CONFIG.get('time_zone'))
-    sleep(.1)
-
-print(f"MONITOR NAME: '{MONITOR_CONFIG.get('monitor_name')}' TIME_ZONE: '{MONITOR_CONFIG.get('time_zone')}'")
-
-# SETUP DATA - DATA acts as local master source of all monitor's available data
-RAW_DATA = _get_logdata_bokeh(MONITOR_NAME)
-DATA_DF = pd.DataFrame(RAW_DATA)
-DATA_DF['time_stamp_utc'] = pd.to_datetime(DATA_DF['time_stamp'], utc=True)
-DATA_DF['time_stamp'] = DATA_DF['time_stamp_utc'].dt.tz_convert(tz=TIME_ZONE.zone).dt.tz_localize(None)
-LAST_POSTED_TIME_UTC_ISO = RAW_DATA['time_stamp'][-1]
-COLORS = json.loads(requests.get(
-    f'http://{DATA_URL}:{DATA_PORT}/get_monitor?monitor_name={MONITOR_NAME}&field=class_colors').text)[
-    'class_colors']
-COLORS = {k: RGB(*c) for k, c in COLORS.items()}
-DATA_DF['color'] = [COLORS.get(class_name) for class_name in DATA_DF['class_name'].values]
-
-try:
-    # we expect the start date to be in the monitor's timezone - convert it to UTC
-    START_DATE_UTC = args.get('start_date')[0].decode()
-    # If time was provided with a time zone indicator at the end, remove it - assumes UTC time
-    while START_DATE_UTC[-1].isalpha():
-        START_DATE_UTC = START_DATE_UTC[:-1]
-    START_DATE_UTC = datetime.fromisoformat(START_DATE_UTC).replace(tzinfo=TIME_ZONE).astimezone(pytz.UTC)
-except:
-    START_DATE_UTC = DATA_DF['time_stamp_utc'].min()
-
-DISPLAY_OBJECTS = set(DATA_DF['class_name'].unique())
-
-# SETUP FC_DATA - this acts as a local master source of the current FC
-RAW_FC = _get_fcdata_bokeh(MONITOR_NAME)
-FC_DF = pd.DataFrame(RAW_FC)
-FC_DF['color'] = [COLORS.get(class_name) for class_name in FC_DF['class_name'].values]
+            return None
 
 
-# setup data sources for plots
-SOURCE_SCATTER = ColumnDataSource(data={})
-SOURCE_LINE = ColumnDataSource(data={})
+class ClassColors:
+    """ Holds class color mappings """
 
-# setup widgets
-# WIDGET: DATE_RANGE_SLIDER
-start_limit = DATA_DF['time_stamp'].min()
-if LIMIT_START_DAYS:
-    start_limit = max(DATA_DF['time_stamp'].min(), DATA_DF['time_stamp'].max() - pd.Timedelta(f'{LIMIT_START_DAYS} days'))
+    def __init__(self, monitor: MonitorConfig):
+        self.monitor_name = monitor.name
+        self.colors = self._get_colors()
 
-DATE_RANGE_SLIDER = DateRangeSlider(value=(START_DATE_UTC.astimezone(TIME_ZONE), DATA_DF['time_stamp'].max()),
-                                    start=start_limit,
-                                    end=DATA_DF['time_stamp'].max(), step=6, height_policy="min",
-                                    margin=(0, 0, 0, 0), show_value=True, width_policy="max")
-DATE_RANGE_SLIDER.on_change("value_throttled", change_date)
+    def _get_colors(self):
+        colors = json.loads(requests.get(
+            f'http://{DATA_URL}:{DATA_PORT}/get_monitor?monitor_name={self.monitor_name}&field=class_colors').text)[
+            'class_colors']
+        colors = {k: RGB(*c) for k, c in colors.items()}
 
-# WIDGET: SELECT_OBJECT
-SELECT_OBJECT = Select(value="show/hide..",
-                       options=["show/hide.."] + list(DATA_DF['class_name'].unique()),
-                       margin=(10, 0, 0, 0))
-SELECT_OBJECT.on_change("value", toggle_object)
-# SELECT_OBJECT.js_on_change("value", CustomJS(code=""" console.log(cb_obj.value); """))
+        return colors
 
-if MONITOR_NAME:
-    curdoc().add_root(column(row(DATE_RANGE_SLIDER, Spacer(width=30), SELECT_OBJECT), get_chart()))
-    curdoc().add_periodic_callback(update, 30000)  # 30000 = 30seconds
-    curdoc().title = f"{MONITOR_NAME}"
+
+class ForecastGenerator:
+    """ Holds the parameters used when creating forecasts """
+
+    def __init__(self, monitor: MonitorConfig, arg_dict: dict):
+        self.monitor_name = monitor.name
+        self.time_zone = monitor.time_zone
+        self.interval = arg_dict.get('interval', None)
+        self.hours_in_training = arg_dict.get('hours_in_training', None)
+        self.hours_in_prediction = arg_dict.get('hours_in_prediction', None)
+        self.source_data_from_date = arg_dict.get('fc_source_data_from_date', None)
+
+    def _get_fcdata(self, interval=None, hours_in_training=None, hours_in_prediction=None,
+                    source_data_from_date=None):
+        """Return a dictionary of forecasted values starting with the most recent observation"""
+        url_params = {'interval': interval,
+                      'hours_in_training': hours_in_training,
+                      'hours_in_prediction': hours_in_prediction,
+                      'source_data_from_date': source_data_from_date}
+        url = f'http://{FC_URL}:{FC_PORT}/get_forecast?monitor_name={self.monitor_name}'
+
+        for p, v in url_params.items():
+            if v is not None:
+                url += f"&{p}={v}"
+
+        response = requests.get(url)
+        if response.status_code == 200:
+            return json.loads(response.text)
+        else:
+            print(f"URL ERROR {response.status_code}")
+            return []
+
+    def get_fc(self, interval=None,
+               hours_in_training=None,
+               hours_in_prediction=None,
+               source_data_from_date=None):
+        if interval is None:
+            interval = self.interval
+        if hours_in_training is None:
+            hours_in_training = self.hours_in_training
+        if hours_in_prediction is None:
+            hours_in_prediction = self.hours_in_prediction
+        if source_data_from_date is None:
+            source_data_from_date = self.source_data_from_date
+
+        rv_df = pd.DataFrame(self._get_fcdata(interval=interval,
+                                              hours_in_training=hours_in_training,
+                                              hours_in_prediction=hours_in_prediction,
+                                              source_data_from_date=source_data_from_date))  # data is in monitor's timezone
+
+        # FC data is retrieved in monitor's timezone - set data type to Timestamp and add a UTC timestamp column
+        rv_df['time_stamp'] = pd.to_datetime(rv_df['time_stamp'], utc=False)
+        rv_df['time_stamp_utc'] = rv_df['time_stamp'].dt.tz_localize(tz=self.time_zone).dt.tz_convert(
+            tz=pytz.UTC)
+
+        return rv_df
+
+
+class DisplayData(Observer, Observable):
+    """ Holds currently displayed data sources """
+
+    def __init__(self, monitor: MonitorConfig, fc: ForecastGenerator,
+                 colors: ClassColors, arg_dict: dict):
+        Observer.__init__(self)
+        Observable.__init__(self)
+
+        self.monitor_name = monitor.name
+        self.time_zone = monitor.time_zone
+        self.colors = colors.colors
+
+        # set available range of data - data set may be years long, so we cap this
+        limit = int(arg_dict.get('limit_start_days', 14))
+        self.start_available_range_utc = pd.Timestamp.now(tz=pytz.UTC) - pd.Timedelta(f'{limit} days')
+        self.start_available_range = self.start_available_range_utc.astimezone(pytz.UTC).tz_convert(
+            self.time_zone).tz_localize(None)
+
+        # Set dataframes that contain the full range of data and the displayed range of data
+        _df = pd.DataFrame(_get_logdata(self.monitor_name, start_date_utc_gt=self.start_available_range_utc))
+        _df['time_stamp_utc'] = pd.to_datetime(_df['time_stamp'], utc=True)
+        _df['time_stamp'] = _df['time_stamp_utc'].dt.tz_convert(tz=self.time_zone).dt.tz_localize(None)
+        _df['color'] = [self.colors.get(class_name) for class_name in _df['class_name'].values]
+        self.full_act_df: pd.DataFrame = _df
+
+        # We will choose to display a subset of the data available
+        # The user can still use a slider to extend the range
+        start_display = arg_dict.get('start_date', self.full_act_df['time_stamp'].min().isoformat())
+        # If time was provided with a time zone indicator at the end, remove it
+        # while start_display[-1].isalpha():
+        #     start_display = start_display[:-1]
+        self.start_display_range: pd.Timestamp = pd.Timestamp(
+            datetime.fromisoformat(start_display).replace(tzinfo=None))
+
+        # Based on the full and displayed dataframe ranges, determine that available objects and the ones displayed
+        self.available_classes = set(self.full_act_df['class_name'].unique())
+        self.displayed_classes = set(self.full_act_df['class_name'].unique())
+
+        # Generate a forecast - this is based on the most recently observed values by the monitor
+        self.fc_generator = fc
+        self.fc_args = {}
+        fc_keys = ['hours_in_training', 'hours_in_prediction', 'interval', 'source_data_from_date']
+        for k, v in arg_dict.items():
+            if k in fc_keys:
+                self.fc_args.update({k: v})
+
+        self.full_fc_df: pd.DataFrame = self.fc_generator.get_fc(**self.fc_args)
+
+        self.end_available_range = self.full_fc_df.time_stamp.max()
+        self.end_display_range: pd.Timestamp = pd.Timestamp(self.end_available_range)
+
+        self.last_posted_time_utc_iso = max(self.full_act_df['time_stamp_utc']).isoformat()
+
+        self.source_act_scatter = ColumnDataSource(data={})
+        self.source_act_line = ColumnDataSource(data={})
+        self.source_fc_line = ColumnDataSource(data={})
+
+        self.update_sources()
+
+    def update(self):
+        pass
+
+    def add_data_point(self, points_df: pd.DataFrame):
+
+        display_data.source_act_scatter.stream(points_df.to_dict(orient='list'), rollover=None)  # append new items to source
+
+        # UPDATE THE MASTER DATA_DF
+        self.full_act_df = self.full_act_df.append(points_df)
+
+        # UPDATE SOURCE_ACT_LINE DATA
+        self.set_source_act_scatter()
+        self.set_source_act_line()
+
+        # update the slider end point
+        # chart_config.date_range_slider.end = chart_config.data_df['time_stamp'].max()
+
+    def update_sources(self):
+        self.set_source_act_scatter()
+        self.set_source_act_line()
+        self.set_source_fc_line()
+
+    def set_source_act_scatter(self):
+        _df = self.full_act_df[(self.full_act_df.time_stamp >= self.start_display_range) &
+                               (self.full_act_df.time_stamp <= self.end_display_range) &
+                               (self.full_act_df.class_name.isin(self.displayed_classes))]
+        self.source_act_scatter.data = _df.to_dict(orient='list')
+
+    def set_source_act_line(self):
+        # This is complex because we need to create reasonably smooth lines at the ends of the interval
+
+        # we temporarily extend _source_line_df to calculate the smoothed GAM lines
+        s_time: pd.Timestamp = max(self.start_display_range - pd.Timedelta('24 hours'),
+                                   min(self.full_act_df.time_stamp))
+        e_time: pd.Timestamp = min(self.end_display_range + pd.Timedelta('24 hours'), max(self.full_act_df.time_stamp))
+
+        _source_line_df = self.full_act_df[
+            (self.full_act_df.time_stamp >= s_time) & (self.full_act_df.time_stamp <= e_time) & (
+                self.full_act_df.class_name.isin(self.displayed_classes))]
+
+        # append future forecast points to _source_line_df if relevant
+        _fc_to_append_df = self.full_fc_df[(self.full_fc_df.time_stamp > max(_source_line_df.time_stamp)) & (
+                self.full_fc_df.time_stamp < e_time)]  # fc points beyond the actual data
+
+        _source_line_df = _source_line_df.append(_fc_to_append_df, ignore_index=True)
+
+        # pivot the data to make subsequent data handling easier
+        _source_line_df = _source_line_df.pivot_table(index='time_stamp', columns='class_name').fillna(0)
+
+        # get a list of the class names to be plotted
+        c_names = list(_source_line_df[('count',)].columns)
+
+        # create a column with the LineaGam values for a time period before and after what
+        # is displayed so the lines are smooth at the ends
+        # convert times to integers for linearGAM line creation
+        _xs = (_source_line_df.index - _source_line_df.index.min()).total_seconds().astype(int)
+        n_splines = max(60, int((e_time - s_time).total_seconds() / 60 / 60))
+        for c in c_names:
+            _source_line_df[('line', c)] = np.clip(
+                LinearGAM(s(0, n_splines=n_splines, lam=.6)).fit(_xs, _source_line_df[('count', c)]).predict(_xs),
+                a_min=0,
+                a_max=None)
+
+        # We extended the range of the data so that the end of the GAM lines reflect
+        # data outside the displayed range of the chart.
+        # We now, limit the range of the data to actually be plotted.
+        _source_line_df = _source_line_df[
+            (_source_line_df.index >= self.start_display_range) & (_source_line_df.index <= self.end_display_range)]
+
+        if len(_source_line_df) == 0:
+            self.source_act_line.data = {}
+        else:
+            self.source_act_line.data = {'xs': [sorted(_source_line_df.index) for _ in c_names],
+                                         'ys': [_source_line_df[('line', c)].values for c in c_names],
+                                         'line_color': [class_colors.colors.get(c) for c in c_names],
+                                         'class_name': c_names}
+
+    def set_source_fc_line(self):
+
+        _fc_line_df = self.full_fc_df[
+            (self.full_fc_df.class_name.isin(self.displayed_classes)) & (
+                    self.full_fc_df.time_stamp >= self.start_display_range) & (
+                        self.full_fc_df.time_stamp <= self.end_display_range)]
+        _fc_line_df = _fc_line_df.pivot_table(index='time_stamp', columns='class_name').fillna(0)
+
+        if len(_fc_line_df) == 0:
+            data = {}
+        else:
+            # get a list of the class names to be plotted
+            c_names = list(_fc_line_df[('count',)].columns)
+
+            data = {'xs': [sorted(_fc_line_df.index) for _ in c_names],
+                    'ys': [_fc_line_df[('count', c)].values for c in c_names],
+                    'line_color': [class_colors.colors.get(c) for c in c_names],
+                    'class_name': c_names}
+
+        self.source_fc_line.data = data
+
+    def update_fc(self):
+        self.full_fc_df = self.fc_generator.get_fc(**self.fc_args)
+
+    def update_fc_and_redraw(self):
+        self.update_fc()
+        self.set_source_fc_line()
+
+    def change_displayed_date_range(self, start_date=None, end_date=None):
+        """ Update the displayed_act_df and displayed_fc_df for date range supplied """
+        self.start_display_range = start_date
+        self.end_display_range = end_date
+        self.update_sources()
+
+
+class Widgets(Observer, Observable):
+    """ Defines and manages widgets used to control charted data """
+
+    def __init__(self, data: DisplayData):
+        Observer.__init__(self)
+        Observable.__init__(self)
+
+        # create mutually observable relationship between Widgets and DisplayData
+        self.register(data)
+        data.register(self)
+
+        self.data = data
+
+        self.date_range_slider = DateRangeSlider(
+            value=(data.start_display_range, data.end_display_range),
+            start=data.start_available_range, end=data.end_available_range,
+            step=6,
+            height_policy="min",
+            margin=(0, 0, 0, 0),
+            show_value=True,
+            width_policy="max")
+        self.date_range_slider.on_change("value_throttled", self._change_date)
+
+        self.select_object = Select(value="show/hide..",
+                                    width_policy='fit',
+                                    options=self.get_select_options(),
+                                    margin=(10, 0, 0, 0))
+        self.select_object.on_change("value", self.toggle_object)
+
+        self.button_newfc = Button(label="Refresh FC",
+                                   button_type='primary',
+                                   width_policy='min',
+                                   margin=(10, 0, 0, 0))
+        self.button_newfc.on_click(self.data.update_fc_and_redraw)
+
+    def get_select_options(self):
+        return list(["show/hide.."]) + sorted(list(self.data.available_classes))
+
+    def _change_date(self, attr, old, new):
+        # Incoming new value is a tuple of time in epoch format of the video-local timezone
+        # attr = 'value_throttled'
+        new_start_date = pd.Timestamp(new[0] / 1000, unit='s')  # .tz_localize(TIME_ZONE)
+        new_end_date = pd.Timestamp(new[1] / 1000, unit='s')  # .tz_localize(TIME_ZONE)
+        self.data.change_displayed_date_range(new_start_date, new_end_date)
+
+    def toggle_object(self, attr, old, new):
+        # SELECT_OBJECT select widget was changed.
+        # Toggle the display of the new value selected
+        if new in self.data.displayed_classes:
+            self.data.displayed_classes.remove(new)
+        else:
+            self.data.displayed_classes.add(new)
+        self.select_object.value = "show/hide.."
+
+        # redraw the sources with the new values in displayed_objects
+        self.data.update_sources()
+
+    def update(self, data: dict):
+        print("I am the WidgetClass and I am notified:")
+        print(data)
+        for k, v in data.items():
+            if k == 'start_display':
+                self.date_range_slider.value[0] = v
+            if k == 'end_display':
+                self.date_range_slider.value[1] = v
+            if k == 'start_range':
+                self.date_range_slider.start = v
+            if k == 'end_range':
+                self.date_range_slider.end = v
+            if k == 'available_classes':
+                self.select_object.options = list(["show/hide.."]) + list(v)
+
+
+# PARSE THE URL ARGUMENTS
+args = curdoc().session_context.request.arguments
+args = {k: v[0].decode() for k, v in args.items()}  # convert from binary lists
+
+# Create componets of chart
+monitor_config: MonitorConfig = MonitorConfig(arg_dict=args)
+fc_generator: ForecastGenerator = ForecastGenerator(monitor=monitor_config, arg_dict=args)
+class_colors = ClassColors(monitor=monitor_config)
+display_data = DisplayData(monitor=monitor_config,
+                           fc=fc_generator,
+                           colors=class_colors, arg_dict=args)
+widgets = Widgets(display_data)
+
+# if monitor_config.name:
+curdoc().add_root(
+    column(row(widgets.date_range_slider, Spacer(width=15), widgets.select_object, Spacer(width=15),
+               widgets.button_newfc), get_chart()))
+curdoc().add_periodic_callback(update, 30 * 1000)  # 30000 = 30seconds
+curdoc().add_periodic_callback(display_data.update_fc_and_redraw, 60 * 60 * 1000)  # 1 hour
+curdoc().title = f"{monitor_config.name}"

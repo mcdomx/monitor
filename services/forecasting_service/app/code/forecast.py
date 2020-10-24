@@ -10,6 +10,12 @@ def execute_grid_search(m_config, model, param_search) -> dict:
 
     _tr_x, _tr_y, _te_x, _te_y = m_config.get_train_test_split()
 
+    print("Evaluating Model")
+    print(f"Hours in Training: {m_config.hours_in_training}")
+    print(f"Hours in Prediction: {m_config.hours_in_prediction}")
+    print(f"Interval in Minutes: {m_config.interval}")
+    print(f"Start Training from UTC: {m_config.from_date_utc}")
+
     # LinerGAM is not a ascikit model and will be handled separately.
     # The only pramter we use here is the lam (aka - smoother)
     if model.__class__.__name__ == "LinearGAM":
@@ -30,11 +36,17 @@ def execute_grid_search(m_config, model, param_search) -> dict:
             _m = LinearGAM(terms=terms)
             y_pred = np.clip(_m.fit(_tr_x, _tr_y).predict(_te_x), a_min=0, a_max=None)
             _score = r2_score(y_true=_te_y, y_pred=y_pred)
+            prev_best_score = 0
+            best_lam = 0
+            prev_score = _score
             if _score > best_score:
                 best_score = _score
                 best_lam = lam
                 best_model = _m
+
             print(f"lam: {lam:5}  r2: {_score}")
+            if _score-prev_score <= .001 or _score < prev_best_score:
+                break
 
         best_params = f"\tlam: {best_lam}"
 
@@ -101,18 +113,19 @@ def get_best_model(m_config):
 
 
 def string_predictions(m_config: ModelConfig, trained_model, from_date=None):
-    n_intervals = m_config.hours_in_training * int(60 / m_config.interval)
+    n_train_intervals = m_config.hours_in_training * int(60 / m_config.interval)
+    n_pred_intervals = m_config.hours_in_prediction * int(60 / m_config.interval)
     n_predictors = len([c for c in m_config.predictor_columns if not c.startswith('-')])
 
     X, time_zero = m_config.get_seed_observation(on_date=from_date)
 
     # String predictions
-    for i in range(1, n_intervals + 1):
-        r = list(range(n_predictors)) + list(range(len(X.columns) - n_intervals, len(X.columns)))
+    for i in range(1, n_pred_intervals + 1):
+        r = list(range(n_predictors)) + list(range(len(X.columns) - n_train_intervals, len(X.columns)))
         X[f"+{i}"] = np.clip(trained_model.predict(X.iloc[:, r]), a_min=0, a_max=None)
 
     # Get initial DF with prediction columns
-    r = list(range(n_predictors)) + list(range(len(X.columns) - n_intervals, len(X.columns)))
+    r = list(range(n_predictors)) + list(range(len(X.columns) - n_train_intervals, len(X.columns)))
     X = X.iloc[:, r]
 
     # insert the class name
@@ -120,7 +133,7 @@ def string_predictions(m_config: ModelConfig, trained_model, from_date=None):
     X.insert(idx + 1, 'class_name', X['class_code'].apply(lambda s: m_config.get_category(s)))
 
     # rename future period columns to timestamp values
-    time_stamps = [time_zero + pd.Timedelta(f'{m_config.interval * i} minutes') for i in range(1, n_intervals + 1)]
+    time_stamps = [time_zero + pd.Timedelta(f'{m_config.interval * i} minutes') for i in range(1, n_pred_intervals + 1)]
     col_mapper = {old_c: time_stamps[int(old_c) - 1] for old_c in X.columns if old_c.startswith('+')}
 
     id_vars = [c for c in X.columns if not c.startswith('+')]
@@ -135,7 +148,7 @@ def string_predictions(m_config: ModelConfig, trained_model, from_date=None):
 
 
 def create_forecast(monitor_name, interval, hours_in_training, hours_in_prediction,
-                    source_data_from_date: str = None, categories: list = None):
+                    source_data_from_date: str = None):
 
     m_config = ModelConfig(monitor_name=monitor_name,
                            interval=interval,
@@ -147,6 +160,9 @@ def create_forecast(monitor_name, interval, hours_in_training, hours_in_predicti
                                  trained_model=get_best_model(m_config),
                                  from_date=None)
 
-    pred_df = pred_df[pred_df.class_name.isin(categories)][['time_stamp', 'class_name', 'rate']]
+    # pred_df = pred_df[pred_df.class_name.isin(categories)][['time_stamp', 'class_name', 'rate']]
+    pred_df = pred_df[['time_stamp', 'class_name', 'rate']]
+
+    pred_df.rename(columns={'rate': 'count'}, inplace=True)
 
     return pred_df.to_dict(orient='list')

@@ -7,7 +7,19 @@ networks:
 
 services:
 
-  web:
+  charting_service:
+    build: ../charting_service
+    environment:
+      NUM_PROCS: 4
+      BOKEH_PORT: 8201
+      DATA_URL: 'host.docker.internal'
+      DATA_PORT: 8000
+      FC_URL: 'host.docker.internal'
+      FC_PORT: 8300
+    ports:
+      - "8200:8200"
+
+  forecasting_service:
     build: .
     environment:
       - VERBOSITY=DEBUG
