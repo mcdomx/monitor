@@ -2,9 +2,12 @@
 import logging
 import pytz
 import datetime
+import pickle
+import os
 
 import pandas as pd
 import numpy as np
+from sklearn.metrics import r2_score
 
 from ..models.models import TrafficMonitorLogentry as LogEntry
 from ..models.models import TrafficMonitorMonitor as Monitor
@@ -12,20 +15,26 @@ from ..models.models import TrafficMonitorMonitor as Monitor
 logger = logging.getLogger("model_logger")
 logger.setLevel(logging.INFO)
 
+MODELS_DIR = 'app/trained_models'
+
 
 class ModelConfig:
     # Use Pandas Timestamp for datetime to ensure DST conversions are consistent
     def __init__(self, monitor_name: str, interval: int, hours_in_training: int,
-                 hours_in_prediction: int, predictor_columns: list = ['class_code'], response_columns: list = ['rate'],
+                 hours_in_prediction: int, string_predictor_columns: list = ['class_code'],
+                 full_predictor_columns: list = None, response_columns: list = ['rate'],
                  source_data_from_date: str = None):
         self.monitor_name: str = monitor_name
         self.time_zone = Monitor.objects.get(pk=self.monitor_name).feed.time_zone
         self.interval: int = interval
         self.hours_in_training: int = hours_in_training
         self.hours_in_prediction: int = hours_in_prediction
-        self.predictor_columns = None
+        self.string_predictor_columns = string_predictor_columns
+        self.predictor_columns = full_predictor_columns
         self.response_columns = response_columns
-        self.from_date_utc = None if source_data_from_date is None else pd.Timestamp(source_data_from_date, tz=self.time_zone).tz_convert(pytz.UTC)
+        self.from_date_utc = None if source_data_from_date is None else pd.Timestamp(source_data_from_date,
+                                                                                     tz=self.time_zone).tz_convert(
+            pytz.UTC)
         self.categories: list = Monitor.objects.get(pk=self.monitor_name).log_objects
         self.full_df: pd.DataFrame = None
         self.train_df: pd.DataFrame = None
@@ -36,7 +45,26 @@ class ModelConfig:
         self._set_dates()
         self._set_full_df()
         self._set_train_test_split()
-        self.set_predictor_columns(predictor_columns)
+        if self.predictor_columns is None:
+            self._set_predictor_columns()
+
+    def __str__(self):
+        source_data_from_date = self.from_date_utc.tz_convert(pytz.timezone(self.time_zone)).replace(
+            tzinfo=None).isoformat()
+        save_params = {'monitor_name': self.monitor_name,
+                       'interval': self.interval,
+                       'hours_in_training': self.hours_in_training,
+                       'hours_in_prediction': self.hours_in_prediction,
+                       'string_predictor_columns': self.string_predictor_columns,
+                       'full_predictor_columns': self.predictor_columns,
+                       'response_columns': self.response_columns,
+                       'source_data_from_date': source_data_from_date}
+        return f"{save_params}"
+
+    def get_score(self, trained_model) -> float:
+        # Score the model
+        _, _, test_X, test_y = self.get_train_test_split()
+        return r2_score(y_true=test_y, y_pred=trained_model.predict(test_X))
 
     def get_code(self, category_name: str):
         return self.cat_to_code_map.get(category_name)
@@ -60,7 +88,8 @@ class ModelConfig:
         _df = pd.DataFrame(LogEntry.objects.filter(**_filter_args).all().values())
 
         if len(_df) == 0:
-            raise Exception(f"No records returned: monitor:{self.monitor_name} from_date:{self.from_date_utc if from_date is None else from_date} categories:{self.categories}")
+            raise Exception(
+                f"No records returned: monitor:{self.monitor_name} from_date:{self.from_date_utc if from_date is None else from_date} categories:{self.categories}")
 
         # convert time to monitor's timezone
         _df['time_stamp'] = _df['time_stamp'].dt.tz_convert(pytz.timezone(self.time_zone))
@@ -88,9 +117,15 @@ class ModelConfig:
 
         return _tr_x, _tr_y, _te_x, _te_y
 
-    def set_predictor_columns(self, string_cols: list):
+    def get_full_prediction_set(self):
+        X = self.full_df[self.predictor_columns].reset_index(drop=True)
+        y = self.full_df[self.response_columns].reset_index(drop=True)
+        return X, y
+
+    def _set_predictor_columns(self):
         """ Adds the history columns to a provided list of columns """
-        self.predictor_columns = string_cols + [c for c in self.full_df.columns if c.startswith('-')][::-1]
+        self.predictor_columns = self.string_predictor_columns + [c for c in self.full_df.columns if c.startswith('-')][
+                                                                 ::-1]
 
     def _set_interval(self, _df: pd.DataFrame, interval: int):
         """ Takes raw DF from Django call the LogEntry.objects.all().values() """
@@ -197,3 +232,57 @@ class ModelConfig:
                 f"Unable to get forecasting seed: monitor:{self.monitor_name}, interval:{self.interval}, hours_in_prediction:{self.hours_in_prediction}, on_date:{on_date}, categories:{self.categories}")
 
         return _df, on_date
+
+    def get_filename_stem(self):
+        source_data_from_date = self.from_date_utc.tz_convert(pytz.timezone(self.time_zone)).replace(
+            tzinfo=None).date().isoformat()
+        filename = f"{self.monitor_name}_{self.interval}_{self.hours_in_training}_{self.hours_in_prediction}_{source_data_from_date}"
+        return filename
+
+    def is_saved(self) -> bool:
+        """ Check if a file from a provied config already exists """
+        filename = self.get_filename_stem()
+        f = os.path.join(MODELS_DIR, filename + '.pkl')
+        return os.path.exists(f)
+
+    def save(self, trained_model):
+        """ Save model parameters without data.  Fresh data is retrieved when configuration is loaded."""
+        source_data_from_date = self.from_date_utc.tz_convert(pytz.timezone(self.time_zone)).replace(
+            tzinfo=None).date().isoformat()
+
+        save_params = {'config_args': {'monitor_name': self.monitor_name,
+                                       'interval': self.interval,
+                                       'hours_in_training': self.hours_in_training,
+                                       'hours_in_prediction': self.hours_in_prediction,
+                                       'string_predictor_columns': self.string_predictor_columns,
+                                       'full_predictor_columns': self.predictor_columns,
+                                       'response_columns': self.response_columns,
+                                       'source_data_from_date': source_data_from_date},
+                       'model_args': trained_model.get_params(),
+                       'trained_model': trained_model}
+
+        filename = self.get_filename_stem()
+
+        f = os.path.join(MODELS_DIR, filename + '.pkl')
+
+        if os.path.exists(f):
+            os.remove(f)
+
+        with open(f, 'xb') as pkl_file:
+            pickle.dump(save_params, pkl_file)
+
+        return filename
+
+    @staticmethod
+    def load(filename: str):
+        """ Load model configuration.  Auto loads new observations from database. """
+        filename = os.path.join(MODELS_DIR, filename)
+
+        with open(filename + '.pkl', 'rb') as pkl_file:
+            args = pickle.load(pkl_file)
+
+        config_args = args.get('config_args')
+        model_args = args.get('model_args')
+        trained_model = args.get('trained_model')
+
+        return config_args, model_args, trained_model

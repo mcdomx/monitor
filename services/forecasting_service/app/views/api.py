@@ -4,7 +4,8 @@ from django.shortcuts import render
 from django.http import JsonResponse
 
 from ..models.models import TrafficMonitorFeed, TrafficMonitorLogentry
-from ..code.forecast import create_forecast
+from ..code.forecast import get_predictions
+from ..code.train import train_and_save
 
 
 logger = logging.getLogger()
@@ -39,6 +40,77 @@ def _parse_args(request, *args):
         rv.update({other_name: request.GET.get(other_name)})
 
     return rv
+
+
+def train(request):
+    """ Train a model and save the configuration file.  Return config filename."""
+    try:
+        kwargs = _parse_args(request, 'monitor_name')
+    except Exception as e:
+        logger.error(e)
+        return JsonResponse({'error': e.args}, safe=False)
+
+    if kwargs.get('interval') is None:
+        kwargs.update({'interval': 60})
+    else:
+        kwargs.update({'interval': int(kwargs.get('interval'))})
+
+    if kwargs.get('hours_in_training') is None:
+        kwargs.update({'hours_in_training': 24})
+    else:
+        kwargs.update({'hours_in_training': int(kwargs.get('hours_in_training'))})
+
+    if kwargs.get('hours_in_prediction') is None:
+        kwargs.update({'hours_in_prediction': 24})
+    else:
+        kwargs.update({'hours_in_prediction': int(kwargs.get('hours_in_prediction'))})
+
+    if kwargs.get('source_data_from_date') is None:
+        kwargs.update({'source_data_from_date': '2020-01-01'})
+
+    if kwargs.get('predictors') is None:
+        kwargs.update({'string_predictor_columns': ['class_code', 'weekday', 'hour']})
+    else:
+        kwargs.update({'string_predictor_columns': [s.strip() for s in kwargs.get('predictors').split(',')]})
+    del kwargs['predictors']
+
+    print(f"KWARGS: {kwargs}")
+    try:
+        filename = train_and_save(**kwargs)
+    except Exception as e:
+        logger.error(e)
+        logger.error(e.__traceback__)
+        return JsonResponse({'error': e.args}, safe=False)
+
+    return JsonResponse(filename, safe=False)
+
+
+def predict(request):
+    """ Load a trained model from a configuration file and return prediction
+    based on the most recent observation data in the database. """
+
+    try:
+        kwargs = _parse_args(request, 'monitor_name')
+    except Exception as e:
+        logger.error(e)
+        return JsonResponse({'error': e.args}, safe=False)
+
+    if kwargs.get('interval') is None:
+        kwargs.update({'interval': 60})
+    else:
+        kwargs.update({'interval': int(kwargs.get('interval'))})
+
+    if kwargs.get('hours_in_training') is None:
+        kwargs.update({'hours_in_training': 24})
+    else:
+        kwargs.update({'hours_in_training': int(kwargs.get('hours_in_training'))})
+
+    if kwargs.get('hours_in_prediction') is None:
+        kwargs.update({'hours_in_prediction': 24})
+    else:
+        kwargs.update({'hours_in_prediction': int(kwargs.get('hours_in_prediction'))})
+
+    return JsonResponse(get_predictions(**kwargs), safe=False)
 
 
 def get_forecast(request):
