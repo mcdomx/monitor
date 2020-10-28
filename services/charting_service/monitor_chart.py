@@ -19,25 +19,22 @@ import os
 import numpy as np
 import pandas as pd
 from time import sleep
-from abc import ABC, ABCMeta
 
 from bokeh.io import curdoc
 from bokeh.models import HoverTool, DatetimeTickFormatter
 from bokeh.plotting import figure
 from pygam import LinearGAM, s
 from bokeh.colors import RGB
-from bokeh.models import ColumnDataSource, DateRangeSlider, Select, Button, Spacer
+from bokeh.models import ColumnDataSource, DateRangeSlider, Select, Button, Spacer, Dropdown
 from bokeh.driving import count
 from bokeh.layouts import column, row
-
-from observer import Observer, Observable
 
 logging.basicConfig(level=logging.INFO)
 
 DATA_URL = os.getenv('DATA_URL', '127.0.0.1')
 DATA_PORT = os.getenv('DATA_PORT', '8000')
 FC_URL = os.getenv('FC_URL', '127.0.0.1')
-FC_PORT = os.getenv('FC_PORT', '8300')
+FC_PORT = os.getenv('FC_PORT', '8200')
 
 
 def _get_logdata(monitor_name, start_date_utc=None, start_date_utc_gt=None):
@@ -165,7 +162,7 @@ def update(i):
     new_raw_data_df['color'] = [class_colors.colors.get(class_name) for class_name in
                                 new_raw_data_df['class_name'].values]
 
-    display_data.add_data_point(new_raw_data_df) #.to_dict(orient='list'))
+    display_data.add_data_point(new_raw_data_df)  # .to_dict(orient='list'))
 
 
 class MonitorConfig:
@@ -215,14 +212,18 @@ class ForecastGenerator:
         self.hours_in_prediction = arg_dict.get('hours_in_prediction', None)
         self.source_data_from_date = arg_dict.get('fc_source_data_from_date', None)
 
+    def retrain_all(self):
+        url = f'http://{FC_URL}:{FC_PORT}/retrain_all?monitor_name={self.monitor_name}'
+
     def _get_fcdata(self, interval=None, hours_in_training=None, hours_in_prediction=None,
                     source_data_from_date=None):
         """Return a dictionary of forecasted values starting with the most recent observation"""
         url_params = {'interval': interval,
                       'hours_in_training': hours_in_training,
                       'hours_in_prediction': hours_in_prediction,
-                      'source_data_from_date': source_data_from_date}
-        url = f'http://{FC_URL}:{FC_PORT}/get_forecast?monitor_name={self.monitor_name}'
+                      # 'source_data_from_date': source_data_from_date
+                      }
+        url = f'http://{FC_URL}:{FC_PORT}/predict?monitor_name={self.monitor_name}'
 
         for p, v in url_params.items():
             if v is not None:
@@ -235,23 +236,46 @@ class ForecastGenerator:
             print(f"URL ERROR {response.status_code}")
             return []
 
+    def get_models(self):
+        url = f'http://{FC_URL}:{FC_PORT}/get_available_models?monitor_name={self.monitor_name}'
+        response = requests.get(url)
+        if response.status_code == 200:
+            return json.loads(response.text)
+        else:
+            print(f"URL ERROR {response.status_code}")
+            return {}
+
+    def get_model(self, filename):
+        url = f'http://{FC_URL}:{FC_PORT}/get_model?filename={filename}'
+        response = requests.get(url)
+        if response.status_code == 200:
+            return json.loads(response.text)
+        else:
+            print(f"URL ERROR {response.status_code}")
+            return {}
+
     def get_fc(self, interval=None,
                hours_in_training=None,
-               hours_in_prediction=None,
-               source_data_from_date=None):
+               hours_in_prediction=None):
         if interval is None:
             interval = self.interval
         if hours_in_training is None:
             hours_in_training = self.hours_in_training
         if hours_in_prediction is None:
             hours_in_prediction = self.hours_in_prediction
-        if source_data_from_date is None:
-            source_data_from_date = self.source_data_from_date
+        # if source_data_from_date is None:
+        #     source_data_from_date = self.source_data_from_date
 
-        rv_df = pd.DataFrame(self._get_fcdata(interval=interval,
-                                              hours_in_training=hours_in_training,
-                                              hours_in_prediction=hours_in_prediction,
-                                              source_data_from_date=source_data_from_date))  # data is in monitor's timezone
+        preds = self._get_fcdata(interval=interval,
+                                 hours_in_training=hours_in_training,
+                                 hours_in_prediction=hours_in_prediction,
+                                 # source_data_from_date=source_data_from_date
+                                 )
+
+        if preds is None:
+            return None
+
+        rv_df = pd.DataFrame(preds)  # data is in monitor's timezone
 
         # FC data is retrieved in monitor's timezone - set data type to Timestamp and add a UTC timestamp column
         rv_df['time_stamp'] = pd.to_datetime(rv_df['time_stamp'], utc=False)
@@ -261,13 +285,11 @@ class ForecastGenerator:
         return rv_df
 
 
-class DisplayData(Observer, Observable):
+class DisplayData:
     """ Holds currently displayed data sources """
 
     def __init__(self, monitor: MonitorConfig, fc: ForecastGenerator,
                  colors: ClassColors, arg_dict: dict):
-        Observer.__init__(self)
-        Observable.__init__(self)
 
         self.monitor_name = monitor.name
         self.time_zone = monitor.time_zone
@@ -290,8 +312,8 @@ class DisplayData(Observer, Observable):
         # The user can still use a slider to extend the range
         start_display = arg_dict.get('start_date', self.full_act_df['time_stamp'].min().isoformat())
         # If time was provided with a time zone indicator at the end, remove it
-        # while start_display[-1].isalpha():
-        #     start_display = start_display[:-1]
+        while start_display[-1].isalpha():
+            start_display = start_display[:-1]
         self.start_display_range: pd.Timestamp = pd.Timestamp(
             datetime.fromisoformat(start_display).replace(tzinfo=None))
 
@@ -302,7 +324,7 @@ class DisplayData(Observer, Observable):
         # Generate a forecast - this is based on the most recently observed values by the monitor
         self.fc_generator = fc
         self.fc_args = {}
-        fc_keys = ['hours_in_training', 'hours_in_prediction', 'interval', 'source_data_from_date']
+        fc_keys = ['hours_in_training', 'hours_in_prediction', 'interval']
         for k, v in arg_dict.items():
             if k in fc_keys:
                 self.fc_args.update({k: v})
@@ -320,15 +342,13 @@ class DisplayData(Observer, Observable):
 
         self.update_sources()
 
-    def update(self):
-        pass
-
     def add_data_point(self, points_df: pd.DataFrame):
 
-        display_data.source_act_scatter.stream(points_df.to_dict(orient='list'), rollover=None)  # append new items to source
+        # append new items to source
+        display_data.source_act_scatter.stream(points_df.to_dict(orient='list'), rollover=None)
 
         # UPDATE THE MASTER DATA_DF
-        self.full_act_df = self.full_act_df.append(points_df)
+        self.full_act_df = self.full_act_df.append(points_df, sort=False)
 
         # UPDATE SOURCE_ACT_LINE DATA
         self.set_source_act_scatter()
@@ -364,7 +384,7 @@ class DisplayData(Observer, Observable):
         _fc_to_append_df = self.full_fc_df[(self.full_fc_df.time_stamp > max(_source_line_df.time_stamp)) & (
                 self.full_fc_df.time_stamp < e_time)]  # fc points beyond the actual data
 
-        _source_line_df = _source_line_df.append(_fc_to_append_df, ignore_index=True)
+        _source_line_df = _source_line_df.append(_fc_to_append_df, ignore_index=True, sort=False)
 
         # pivot the data to make subsequent data handling easier
         _source_line_df = _source_line_df.pivot_table(index='time_stamp', columns='class_name').fillna(0)
@@ -402,7 +422,7 @@ class DisplayData(Observer, Observable):
         _fc_line_df = self.full_fc_df[
             (self.full_fc_df.class_name.isin(self.displayed_classes)) & (
                     self.full_fc_df.time_stamp >= self.start_display_range) & (
-                        self.full_fc_df.time_stamp <= self.end_display_range)]
+                    self.full_fc_df.time_stamp <= self.end_display_range)]
         _fc_line_df = _fc_line_df.pivot_table(index='time_stamp', columns='class_name').fillna(0)
 
         if len(_fc_line_df) == 0:
@@ -418,8 +438,17 @@ class DisplayData(Observer, Observable):
 
         self.source_fc_line.data = data
 
+    def change_fc_model(self, filename):
+        m = list(self.fc_generator.get_model(filename).values())[0]
+        self.fc_args = {'interval': m['interval'],
+                        'hours_in_training': m['hours_in_training'],
+                        'hours_in_prediction': m['hours_in_prediction']}
+        self.update_fc_and_redraw()
+
     def update_fc(self):
-        self.full_fc_df = self.fc_generator.get_fc(**self.fc_args)
+        _fc_df = self.fc_generator.get_fc(**self.fc_args)
+        self.full_fc_df = _fc_df
+        self.end_available_range = self.end_display_range = self.full_fc_df.time_stamp.max()
 
     def update_fc_and_redraw(self):
         self.update_fc()
@@ -432,43 +461,49 @@ class DisplayData(Observer, Observable):
         self.update_sources()
 
 
-class Widgets(Observer, Observable):
+class Widgets:
     """ Defines and manages widgets used to control charted data """
 
     def __init__(self, data: DisplayData):
-        Observer.__init__(self)
-        Observable.__init__(self)
-
-        # create mutually observable relationship between Widgets and DisplayData
-        self.register(data)
-        data.register(self)
-
         self.data = data
 
         self.date_range_slider = DateRangeSlider(
             value=(data.start_display_range, data.end_display_range),
             start=data.start_available_range, end=data.end_available_range,
             step=6,
-            height_policy="min",
+            # height_policy="min",
             margin=(0, 0, 0, 0),
             show_value=True,
-            width_policy="max")
+            width=200, height=25,
+            sizing_mode='fixed')
         self.date_range_slider.on_change("value_throttled", self._change_date)
 
         self.select_object = Select(value="show/hide..",
-                                    width_policy='fit',
+                                    width=200, height=25,
+                                    sizing_mode='fixed',
                                     options=self.get_select_options(),
-                                    margin=(10, 0, 0, 0))
+                                    margin=(8, 0, 0, 0))
         self.select_object.on_change("value", self.toggle_object)
 
-        self.button_newfc = Button(label="Refresh FC",
-                                   button_type='primary',
-                                   width_policy='min',
-                                   margin=(10, 0, 0, 0))
-        self.button_newfc.on_click(self.data.update_fc_and_redraw)
+        models = self.data.fc_generator.get_models()
+        menu = [(f"IntMins:{p['interval']:>3} | Train:{p['hours_in_training']:>4} | Pred:{p['hours_in_prediction']:>3} | {round(float(p['score']),2)}", k) for k, p in models.items()]
+        self.dropdown_selfc = Dropdown(label="Select FC Model",
+                                       button_type='primary',
+                                       menu=menu,
+                                       width=200, height=30,
+                                       sizing_mode='fixed',
+                                       margin=(8, 0, 0, 0))
+        self.dropdown_selfc.on_event("menu_item_click",
+                                     lambda e: self.data.change_fc_model(e.item),
+                                     lambda e: self._update_slider_dates)
 
     def get_select_options(self):
         return list(["show/hide.."]) + sorted(list(self.data.available_classes))
+
+    def _update_slider_dates(self):
+        self.date_range_slider.value = (self.data.start_display_range, self.data.end_display_range)
+        self.date_range_slider.start = self.data.start_available_range
+        self.date_range_slider.end = self.data.end_available_range
 
     def _change_date(self, attr, old, new):
         # Incoming new value is a tuple of time in epoch format of the video-local timezone
@@ -489,27 +524,27 @@ class Widgets(Observer, Observable):
         # redraw the sources with the new values in displayed_objects
         self.data.update_sources()
 
-    def update(self, data: dict):
-        print("I am the WidgetClass and I am notified:")
-        print(data)
-        for k, v in data.items():
-            if k == 'start_display':
-                self.date_range_slider.value[0] = v
-            if k == 'end_display':
-                self.date_range_slider.value[1] = v
-            if k == 'start_range':
-                self.date_range_slider.start = v
-            if k == 'end_range':
-                self.date_range_slider.end = v
-            if k == 'available_classes':
-                self.select_object.options = list(["show/hide.."]) + list(v)
+    # def update(self, data: dict):
+    #     print("I am the WidgetClass and I am notified:")
+    #     print(data)
+    #     for k, v in data.items():
+    #         if k == 'start_display':
+    #             self.date_range_slider.value[0] = v
+    #         if k == 'end_display':
+    #             self.date_range_slider.value[1] = v
+    #         if k == 'start_range':
+    #             self.date_range_slider.start = v
+    #         if k == 'end_range':
+    #             self.date_range_slider.end = v
+    #         if k == 'available_classes':
+    #             self.select_object.options = list(["show/hide.."]) + list(v)
 
 
 # PARSE THE URL ARGUMENTS
 args = curdoc().session_context.request.arguments
 args = {k: v[0].decode() for k, v in args.items()}  # convert from binary lists
 
-# Create componets of chart
+# Create components of chart
 monitor_config: MonitorConfig = MonitorConfig(arg_dict=args)
 fc_generator: ForecastGenerator = ForecastGenerator(monitor=monitor_config, arg_dict=args)
 class_colors = ClassColors(monitor=monitor_config)
@@ -518,10 +553,11 @@ display_data = DisplayData(monitor=monitor_config,
                            colors=class_colors, arg_dict=args)
 widgets = Widgets(display_data)
 
-# if monitor_config.name:
+# build page
 curdoc().add_root(
     column(row(widgets.date_range_slider, Spacer(width=15), widgets.select_object, Spacer(width=15),
-               widgets.button_newfc), get_chart()))
+               widgets.dropdown_selfc), get_chart()))
 curdoc().add_periodic_callback(update, 30 * 1000)  # 30000 = 30seconds
 curdoc().add_periodic_callback(display_data.update_fc_and_redraw, 60 * 60 * 1000)  # 1 hour
+curdoc().add_periodic_callback(fc_generator.retrain_all, 24 * 60 * 60 * 1000)  # 1 x day
 curdoc().title = f"{monitor_config.name}"

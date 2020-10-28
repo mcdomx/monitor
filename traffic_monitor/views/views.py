@@ -1,19 +1,21 @@
 import cv2 as cv
 import base64
 import io
+import os
 import time
 from PIL import Image
 import numpy as np
 import logging
 
+from bokeh.embed import server_document, json_item
+
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
+from django.shortcuts import render
 
 from traffic_monitor.models.feed_factory import FeedFactory
 from traffic_monitor.websocket_channels import TestVideoChannel
 from traffic_monitor.websocket_channels_factory import ChannelFactory
-
-from django.shortcuts import render
 
 
 logger = logging.getLogger('view')
@@ -44,10 +46,32 @@ def _parse_args(request, *args):
     return rv
 
 
+def _get_chart_components(request):
+    """ Returns a script that will embed a bokeh chart from a bokeh server """
+    url = f"{os.getenv('CHART_HOST')}:{os.getenv('CHART_PORT')}/monitor_chart"
+    try:
+        kwargs = _parse_args(request)
+        # url = 'http://0.0.0.0:8100/monitor_chart?monitor_name=MyMonitor&start_date=2020-10-20&limit_start_days=10'
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': e.args})
+
+    script = server_document(url, arguments=kwargs)
+
+    return script
+
+
 def index_view(request):
     # kwargs = _parse_args(request, 'monitor_name')
     kwargs = _parse_args(request)
     monitor_name = kwargs.get('monitor_name')
+    kwargs.update({'CHART_HOST': os.getenv('CHART_HOST')})
+    kwargs.update({'CHART_PORT': os.getenv('CHART_PORT')})
+    kwargs.update({'FC_HOST': os.getenv('FC_HOST')})
+    kwargs.update({'FC_PORT': os.getenv('FC_PORT')})
+    kwargs.update({'CHART_SCRIPT': _get_chart_components(request)})
+
+    print(kwargs)
+
     if monitor_name is None:
         return render(request, 'traffic_monitor/selection_frame.html', kwargs)
     else:

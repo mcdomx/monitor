@@ -174,7 +174,8 @@ class ModelConfig:
         _df.insert(idx + 1, code_col_name, _df[cat_col_name].apply(lambda s: self.get_code(s)))
         return _df
 
-    def _add_time_features(self, _df: pd.DataFrame):
+    @staticmethod
+    def add_time_features(_df: pd.DataFrame):
         """ add time characteristics that allow grouping """
         _df['year'] = pd.Series(_df.time_stamp).apply(lambda s: s.year).values
         _df['month'] = pd.Series(_df.time_stamp).apply(lambda s: s.month).values
@@ -205,7 +206,7 @@ class ModelConfig:
         _df = self._get_logdata_df()
         _df = self._set_interval(_df, interval=self.interval)
         _df = self._add_categorical_column(_df, 'class_name', 'class_code')
-        _df = self._add_time_features(_df)
+        _df = self.add_time_features(_df)
         _df = self._add_history_columns(_df)
 
         self.full_df = _df
@@ -286,3 +287,17 @@ class ModelConfig:
         trained_model = args.get('trained_model')
 
         return config_args, model_args, trained_model
+
+    @staticmethod
+    def get_config_by_filename(filename: str):
+        filename = os.path.join(MODELS_DIR, filename)
+
+        if not os.path.isfile(filename + '.pkl'):
+            return None
+
+        with open(filename + '.pkl', 'rb') as pkl_file:
+            args = pickle.load(pkl_file)
+
+        config_args = args.get('config_args')
+
+        return ModelConfig(**config_args)

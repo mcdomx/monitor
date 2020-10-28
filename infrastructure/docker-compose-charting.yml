@@ -1,0 +1,41 @@
+version: "3.1"
+
+networks:
+  default:
+    external:
+      name: infrastructure_default
+
+services:
+
+  charting_service:
+    build: ../services/charting_service
+    environment:
+      NUM_PROCS: 4
+      BOKEH_PORT: 8100
+      DATA_URL: host.docker.internal
+      DATA_PORT: 8000
+      FC_URL: host.docker.internal
+      FC_PORT: 8200
+    ports:
+      - 8100:8100
+    depends_on:
+      - forecasting_service
+
+  forecasting_service:
+    build: ../services/forecasting_service
+    environment:
+      VERBOSITY: DEBUG
+      DB_NAME: monitor_db
+      DB_USER: monuser
+      DB_PASSWORD: password
+      DB_HOST: db
+      DB_PORT: 5432
+      DJANGO_SECRET_KEY: sghkslbro5inb
+    command: sh -c "python manage.py makemigrations; python manage.py migrate; python manage.py runserver 0.0.0.0:8200"
+    volumes:
+      - ../services/forecasting_service:/code
+    ports:
+      - 8200:8200
+
+
+

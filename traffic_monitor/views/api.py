@@ -3,6 +3,7 @@ import logging
 import pytz
 import datetime
 import csv
+import os
 import pandas as pd
 
 from django.utils.encoding import smart_str
@@ -635,40 +636,40 @@ def toggle_service(request):
     rv = MonitorServiceManager().toggle_service(**kwargs)
     return JsonResponse(rv, safe=False)
 
-def get_chart_embedded(request):
-    """
-    Return a script which can embed a Bokeh chart.
+# def get_chart_embedded(request):
+#     """
+#     Return a script which can embed a Bokeh chart.
+#
+#     API Call:
+#         /get_chart_embedded?
+#         monitor_name=<monitor name>
+#
+#     :param request:
+#     :return:
+#     """
+#     kwargs = _parse_args(request, 'monitor_name')
+#     monitor_config = MonitorServiceManager().get_monitor_configuration(kwargs)
+#     script = server_document(url=f"http://127.0.0.1:8100/monitor_chart?monitor_name={monitor_config.get('monitor_name')}")
+#
+#     return JsonResponse(script, safe=False)
 
-    API Call:
-        /get_chart_embedded?
-        monitor_name=<monitor name>
 
-    :param request:
-    :return:
-    """
-    kwargs = _parse_args(request, 'monitor_name')
-    monitor_config = MonitorServiceManager().get_monitor_configuration(kwargs)
-    script = server_document(url=f"http://127.0.0.1:8100/monitor_chart?monitor_name={monitor_config.get('monitor_name')}")
-
-    return JsonResponse(script, safe=False)
-
-
-def get_chart(request):
-    """
-    Return a JSON serialized Bokeh chart.
-
-    API Call:
-        /get_chart?
-        monitor_name=<monitor name>
-
-    :param request: HTTP request that expects a monitor_name argument.
-    :return: A JSON serialized Bokeh chart.
-    """
-    kwargs = _parse_args(request, 'monitor_name')
-    monitor_config = MonitorServiceManager().get_monitor_configuration(kwargs)
-    rv = chart_views.get_chart(monitor_config)
-
-    return JsonResponse(rv, safe=False)
+# def get_chart(request):
+#     """
+#     Return a JSON serialized Bokeh chart.
+#
+#     API Call:
+#         /get_chart?
+#         monitor_name=<monitor name>
+#
+#     :param request: HTTP request that expects a monitor_name argument.
+#     :return: A JSON serialized Bokeh chart.
+#     """
+#     kwargs = _parse_args(request, 'monitor_name')
+#     monitor_config = MonitorServiceManager().get_monitor_configuration(kwargs)
+#     rv = chart_views.get_chart(monitor_config)
+#
+#     return JsonResponse(rv, safe=False)
 
 
 def get_timezones(request):
@@ -832,5 +833,15 @@ def get_logdata_info(request):
     return JsonResponse(rv, safe=False)
 
 
+def get_chart_components(request):
+    """ Returns a script that will embed a bokeh chart from a bokeh server """
+    url = f"{os.getenv('CHART_HOST')}:{os.getenv('CHART_PORT')}"
+    try:
+        kwargs = _parse_args(request)
+        # url = 'http://0.0.0.0:8100/monitor_chart?monitor_name=MyMonitor&start_date=2020-10-20&limit_start_days=10'
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': e.args})
 
+    script = server_document(url, arguments=kwargs)
 
+    return JsonResponse(script, safe=False)

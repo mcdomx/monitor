@@ -54,11 +54,21 @@ class ModelInventory:
                          'source_data_from_date', 'score', 'active_model'])
 
         def add(self, filename: str, model_config: ModelConfig, trained_model: LinearGAM):
+            # remove item if it already exists
+            try:
+                ridx = self.all_df[self.all_df.file_name == filename].index.values[0]
+                self.all_df = self.all_df.drop(ridx)
+            except:
+                pass
+
             a = ActiveModel(filename=filename, model_config=model_config, trained_model=trained_model)
             self.all_df = self.all_df.append(a.get_series(), ignore_index=True)
 
+            return filename
+
         def get(self, monitor_name: str, interval: int, hours_in_prediction: int, hours_in_training: int,
                 source_data_from_date: str = None):
+            """ Returns best performing model based on filter criteria supplied """
             _df = self.all_df[self.all_df.monitor_name == monitor_name]
             if interval is not None:
                 _df = _df[_df.interval == interval]
@@ -72,9 +82,24 @@ class ModelInventory:
             # get the best scoring model
             _df = _df[_df.score == _df.score.max()]
 
+            if len(_df) == 0:
+                return None, None
+
             active_model = _df.active_model.iloc[0]
 
             return active_model.model_config, active_model.trained_model
+
+        def get_inventory_listing(self, monitor_name: str) -> dict:
+            _df = self.all_df[self.all_df.monitor_name == monitor_name]
+            _df = _df[['monitor_name', 'file_name', 'interval', 'hours_in_prediction', 'hours_in_training', 'source_data_from_date', 'score']]
+            _df.set_index(['file_name'], drop=True, inplace=True)
+            return _df.to_dict(orient='index')
+
+        def get_inventory_item(self, filename: str) -> dict:
+            _df = self.all_df[self.all_df.file_name == filename]
+            _df = _df[['monitor_name', 'file_name', 'interval', 'hours_in_prediction', 'hours_in_training', 'source_data_from_date', 'score']]
+            _df.set_index(['file_name'], drop=True, inplace=True)
+            return _df.to_dict(orient='index')
 
         def load_models(self):
             """ Load all saved model files into ActiveModels """

@@ -34,7 +34,6 @@ services:
       - .:/code
     ports:
       - "8300:8300"
-#    depends_on:
-#      - db
+
 
 

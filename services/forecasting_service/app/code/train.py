@@ -118,7 +118,9 @@ def get_best_model(m_config):
     return results_df[results_df.best_overall_score == results_df.best_overall_score.max()]['best_model'][0]
 
 
-def train_and_save(monitor_name, interval, hours_in_training, hours_in_prediction, string_predictor_columns,
+def train_and_save(monitor_name, interval,
+                   hours_in_training, hours_in_prediction,
+                   string_predictor_columns,
                    source_data_from_date: str = None):
     """ Train model """
 
@@ -136,6 +138,16 @@ def train_and_save(monitor_name, interval, hours_in_training, hours_in_predictio
     ModelInventory().add(filename=filename, model_config=m_config, trained_model=trained_model)
 
     return filename
+
+
+def retrain_by_filename(filename: str):
+    m_config = ModelConfig.get_config_by_filename(filename)
+    if m_config is None:
+        return
+    trained_model: LinearGAM = get_best_model(m_config)
+    filename = m_config.save(trained_model)
+    # update the inventory with the newly trained model
+    return ModelInventory().add(filename=filename, model_config=m_config, trained_model=trained_model)
 
 
 def setup_default_models(monitor_name):
@@ -164,6 +176,12 @@ def setup_default_models(monitor_name):
         c = ModelConfig(**m)
         if not c.is_saved():
             filenames.append(train_and_save(**m))
+
+
+def retrain_all(monitor_name):
+    models = ModelInventory().get_inventory_listing(monitor_name=monitor_name)
+    for fname in models:
+        retrain_by_filename(fname)
 
 
 # immediately ensure that at least one 'fresh' model is available

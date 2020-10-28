@@ -1,11 +1,11 @@
 import logging
 
-from django.shortcuts import render
+# from django.shortcuts import render
 from django.http import JsonResponse
 
-from ..models.models import TrafficMonitorFeed, TrafficMonitorLogentry
 from ..code.forecast import get_predictions
-from ..code.train import train_and_save
+from ..code.train import train_and_save, retrain_by_filename, retrain_all
+from ..code.model_inventory import ModelInventory
 
 
 logger = logging.getLogger()
@@ -110,52 +110,54 @@ def predict(request):
     else:
         kwargs.update({'hours_in_prediction': int(kwargs.get('hours_in_prediction'))})
 
-    return JsonResponse(get_predictions(**kwargs), safe=False)
+    preds = get_predictions(**kwargs)
+
+    return JsonResponse(preds, safe=False)
 
 
-def get_forecast(request):
-    """
-    Retrieve a forcast which is structured according to arguments provided:
-    'monitor_name': name of monitor to predict
-    'interval': default=60. number of minutes in each forecast interval
-    'hours_in_prediction': default=24. number of hours to create predictions for
-    'classes_to_predict': defaults to all available if no list of classes is provided.
-    'from_date': defaults to first date available.  This is the date where training records are started.
-        This option exists in the event that a large dataset is available and not all records are needed
-        for training.
-    :param request:
-    :return:
-    """
-
+def get_available_models(request) -> JsonResponse:
     try:
         kwargs = _parse_args(request, 'monitor_name')
     except Exception as e:
         logger.error(e)
         return JsonResponse({'error': e.args}, safe=False)
 
-    if kwargs.get('interval') is None:
-        kwargs.update({'interval': 60})
-    else:
-        kwargs.update({'interval': int(kwargs.get('interval'))})
+    return JsonResponse(ModelInventory().get_inventory_listing(kwargs.get('monitor_name')))
 
-    if kwargs.get('hours_in_training') is None:
-        kwargs.update({'hours_in_training': 24})
-    else:
-        kwargs.update({'hours_in_training': int(kwargs.get('hours_in_training'))})
 
-    if kwargs.get('hours_in_prediction') is None:
-        kwargs.update({'hours_in_prediction': 24})
-    else:
-        kwargs.update({'hours_in_prediction': int(kwargs.get('hours_in_prediction'))})
-
-    if kwargs.get('source_data_from_date') is None:
-        kwargs.update({'source_data_from_date': '2020-01-01'})
-
+def get_model_by_filename(request) -> JsonResponse:
     try:
-        fc_data = create_forecast(**kwargs)
+        kwargs = _parse_args(request, 'filename')
     except Exception as e:
         logger.error(e)
-        print(e.__traceback__)
-        return JsonResponse({'error': e.args, 'trace': e.__traceback__}, safe=False)
+        return JsonResponse({'error': e.args}, safe=False)
 
-    return JsonResponse(fc_data, safe=False)
+    return JsonResponse(ModelInventory().get_inventory_item(kwargs.get('filename')))
+
+
+def retrain(request) -> JsonResponse:
+    try:
+        kwargs = _parse_args(request, 'filename')
+    except Exception as e:
+        logger.error(e)
+        return JsonResponse({'error': e.args}, safe=False)
+
+    fname = retrain_by_filename(kwargs.get('filename'))
+    if fname is None:
+        rv = {'success': False, 'message': f"No file with name '{kwargs.get('filename')}' exists."}
+    else:
+        rv = ModelInventory().get_inventory_item(fname)
+
+    return JsonResponse({'success': True, 'message': rv}, safe=False)
+
+
+def update_all(request) -> JsonResponse:
+    try:
+        kwargs = _parse_args(request, 'monitor_name')
+    except Exception as e:
+        logger.error(e)
+        return JsonResponse({'error': e.args}, safe=False)
+
+    return JsonResponse({'success': True, 'message': retrain_all(**kwargs)}, safe=False)
+
+

@@ -51,17 +51,6 @@ services:
     depends_on:
       - zookeeper
 
-  charting_service:
-    build: ../services/charting_service
-    restart: always
-    environment:
-      NUM_PROCS: 4
-      BOKEH_PORT: 8100
-      DATA_URL: host.docker.internal
-      DATA_PORT: 8000
-    ports:
-      - 8100:8100
-
 #  web:
 #    build: .
 #    command: python manage.py runserver 0.0.0.0:8000

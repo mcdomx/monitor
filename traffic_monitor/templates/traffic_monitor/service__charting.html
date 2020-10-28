@@ -9,12 +9,30 @@
 
         function embed_chart(monitor_name) {
             {# set chart to 30 hours ago and limit looking backwards to 10 days #}
-            var d = new Date();
-            d.setHours(d.getHours() - 30);
-            var limit_start_days = 10
-            let url = 'http://127.0.0.1:8100/monitor_chart?monitor_name=' + monitor_name + '&start_date=' + d.toISOString() + '&limit_start_days=' + limit_start_days;
+            let d = new Date();
+            d.setHours(d.getHours() - 72);
+            let limit_start_days = 10
+            let url = 'http://{{ CHART_HOST }}:{{ CHART_PORT }}/monitor_chart?monitor_name=' + monitor_name + '&start_date=' + d.toISOString() + '&limit_start_days=' + limit_start_days;
             let target_div = document.getElementById('plot-area')
             target_div.setAttribute('src', url)
+        }
+
+        function embed_chartNEW(monitor_name) {
+            {# set chart to 30 hours ago and limit looking backwards to 10 days #}
+            let d = new Date();
+            d.setHours(d.getHours() - 72);
+            let limit_start_days = 10;
+
+            {#let temp = document.createElement('template');#}
+            {#temp.innerHTML = {{ CHART_SCRIPT }};#}
+            {#let script_elem = temp.content.firstChild;#}
+            {#let target_div = document.getElementById('plot-area');#}
+            {#target_div.appendChild(script_elem);#}
+            {#let s = '{{ CHART_SCRIPT | safe }}';#}
+            {#console.log(s);#}
+            {#Bokeh.embed.embed_item(s, 'plot-area');#}
+            {#target_div.setAttribute('src', url)#}
+
         }
 
         async function setup_charting_dropdown_menu(monitor_name) {
@@ -22,18 +40,37 @@
             let menulisting = document.getElementById('{{ section_id }}').getElementsByClassName('dropdown-menu')[0]
             menulisting.innerText = '';
 
-            let menu_header1 = document.createElement('p');
-            menu_header1.className = "dropdown-header";
-            menu_header1.innerText = "View:";
-            menulisting.appendChild(menu_header1);
+            {#let menu_header1 = document.createElement('p');#}
+            {#menu_header1.className = "dropdown-header";#}
+            {#menu_header1.innerText = "Use Forecasting Model:";#}
+            {#menulisting.appendChild(menu_header1);#}
+            {#let url = 'http://{{ FC_HOST }}:{{ FC_PORT }}/get_available_models?monitor_name=' + monitor_name#}
+            {#let models = await fetch(url).then(data => { return data.json() })#}
+            {#for (let m in models) {#}
+            {#    let elem = document.createElement('a');#}
+            {#    elem.className = "dropdown-item py-0";#}
+            {#    elem.setAttribute('role', "presentation");#}
+            {#    let interval = models[m]['interval'];#}
+            {#    let tr_hrs = models[m]['hours_in_training'];#}
+            {#    let pr_hrs = models[m]['hours_in_prediction'];#}
+            {#    let score = parseFloat(models[m]['score']).toFixed(2);#}
+            {#    elem.innerText = 'Train hrs:' + tr_hrs + ' Pred hrs:' + pr_hrs + ' score:' + score ;#}
+            {#    elem.href = 'http://{{ CHART_HOST }}:{{ CHART_PORT }}/monitor_chart?monitor_name=' + monitor_name + '&start_date=' + d.toISOString() + '&limit_start_days=30';#}
+            {#    menulisting.appendChild(elem);#}
+
+
+            let menu_header2 = document.createElement('p');
+            menu_header2.className = "dropdown-header";
+            menu_header2.innerText = "View:";
+            menulisting.appendChild(menu_header2);
 
             let elem = document.createElement('a');
             elem.className = "dropdown-item py-0";
             elem.setAttribute('role', "presentation");
             elem.innerText = "Full view in new tab..";
             let d = new Date();
-            d.setHours(d.getHours() - 30);
-            elem.href = 'http://127.0.0.1:8100/monitor_chart?monitor_name=MyMonitor&start_date=' + d.toISOString() + '&limit_start_days=0';
+            d.setHours(d.getHours() - 72);
+            elem.href = 'http://{{ CHART_HOST }}:{{ CHART_PORT }}/monitor_chart?monitor_name=' + monitor_name + '&start_date=' + d.toISOString() + '&limit_start_days=30';
             elem.target = "_blank"
             menulisting.appendChild(elem);
         }
@@ -47,6 +84,8 @@
     </script>
 
     <div class="card-body p-1" style="height: 360px;">
+
+{#        <div id="plot-area">{{ CHART_SCRIPT | safe }}</div>#}
         <iframe class= "ml-1" id="plot-area" src="" width="100%" height="100%" style="border:none;"></iframe>
     </div>
 
