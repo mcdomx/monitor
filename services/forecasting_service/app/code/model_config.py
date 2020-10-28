@@ -215,6 +215,10 @@ class ModelConfig:
         # get the most recent observation or the first observation on a provided date
         # provided as from_date (is isoformat YYYY-MM_DDTHH:MM)
         # on_date is expected to be in the monitor's timezone
+
+        # first, refresh the full set of data on which to base the forecast
+        self._set_full_df()
+
         if on_date == 'latest' or on_date is None:
             on_date = self.full_df.time_stamp.max()
         else:

@@ -19,6 +19,7 @@ import os
 import numpy as np
 import pandas as pd
 from time import sleep
+import subprocess
 
 from bokeh.io import curdoc
 from bokeh.models import HoverTool, DatetimeTickFormatter
@@ -448,7 +449,8 @@ class DisplayData:
     def update_fc(self):
         _fc_df = self.fc_generator.get_fc(**self.fc_args)
         self.full_fc_df = _fc_df
-        self.end_available_range = self.end_display_range = self.full_fc_df.time_stamp.max()
+        self.end_available_range = self.full_fc_df.time_stamp.max()
+        self.end_display_range = self.full_fc_df.time_stamp.max()
 
     def update_fc_and_redraw(self):
         self.update_fc()
@@ -493,12 +495,16 @@ class Widgets:
                                        width=200, height=30,
                                        sizing_mode='fixed',
                                        margin=(8, 0, 0, 0))
-        self.dropdown_selfc.on_event("menu_item_click",
-                                     lambda e: self.data.change_fc_model(e.item),
-                                     lambda e: self._update_slider_dates)
+        self.dropdown_selfc.on_event("menu_item_click", self._update_fc)
+                                     # lambda e: self.data.change_fc_model(e.item))#,
+                                     # lambda e: self._update_slider_dates)
 
     def get_select_options(self):
         return list(["show/hide.."]) + sorted(list(self.data.available_classes))
+
+    def _update_fc(self, e):
+        self.data.change_fc_model(e.item)
+        self._update_slider_dates()
 
     def _update_slider_dates(self):
         self.date_range_slider.value = (self.data.start_display_range, self.data.end_display_range)
@@ -524,20 +530,24 @@ class Widgets:
         # redraw the sources with the new values in displayed_objects
         self.data.update_sources()
 
-    # def update(self, data: dict):
-    #     print("I am the WidgetClass and I am notified:")
-    #     print(data)
-    #     for k, v in data.items():
-    #         if k == 'start_display':
-    #             self.date_range_slider.value[0] = v
-    #         if k == 'end_display':
-    #             self.date_range_slider.value[1] = v
-    #         if k == 'start_range':
-    #             self.date_range_slider.start = v
-    #         if k == 'end_range':
-    #             self.date_range_slider.end = v
-    #         if k == 'available_classes':
-    #             self.select_object.options = list(["show/hide.."]) + list(v)
+
+CB_ID = None
+
+
+def retrain_daily():
+    """ Sets a callback that will retrain all models at midnight local time """
+    global CB_ID
+    tinfo = requests.get("https://ipapi.co/json/").json()
+    if tinfo.get('timezone', None) is None:
+        tz = tinfo['timezone']
+        local_time = datetime.now(tz=pytz.timezone(tz.decode()))
+        tmrw = (local_time + timedelta(days=1)).date()
+        midnight = datetime(year=tmrw.year, month=tmrw.month, day=tmrw.day).replace(tzinfo=pytz.timezone(tz.decode()))
+        secs_to_midnight = midnight - local_time
+        if CB_ID is not None:
+            curdoc().remove_timeout_callback(CB_ID)
+            fc_generator.retrain_all()
+        CB_ID = curdoc().add_timeout_callback(retrain_daily, secs_to_midnight * 1000)
 
 
 # PARSE THE URL ARGUMENTS
@@ -558,6 +568,7 @@ curdoc().add_root(
     column(row(widgets.date_range_slider, Spacer(width=15), widgets.select_object, Spacer(width=15),
                widgets.dropdown_selfc), get_chart()))
 curdoc().add_periodic_callback(update, 30 * 1000)  # 30000 = 30seconds
-curdoc().add_periodic_callback(display_data.update_fc_and_redraw, 60 * 60 * 1000)  # 1 hour
-curdoc().add_periodic_callback(fc_generator.retrain_all, 24 * 60 * 60 * 1000)  # 1 x day
+curdoc().add_periodic_callback(display_data.update_fc_and_redraw, 60 * 60 * 24 * 1000)  # 1x daily
+# curdoc().add_periodic_callback(fc_generator.retrain_all, 24 * 60 * 60 * 1000)  # 1 x day
+retrain_daily()  # setup callback to retrain all models at midnight each day
 curdoc().title = f"{monitor_config.name}"
