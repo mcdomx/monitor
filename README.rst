@@ -1,11 +1,13 @@
 Traffic Monitor
 ===============
 
-Project documentaton is available in a navigable format with API reference details at the project's Git Project Page: http://mcdomx.github.io/monitor/.
+Project documentation is available in a navigable format with API reference details at the project's Git Project Page: http://mcdomx.github.io/monitor/.
 
 The Traffic Monitor application will detect objects in a video feed and log, report and chart instances of objects that are recognized.  A variety of objects can be selected for tracking as well as the source of the video stream.
 
 Although the application has been designed to accommodate custom object detection algorithms, a single OpenCV implementation of object detection is used with the default dataset of trained COCO objects.
+
+The application will forecast rates of detection based on historical data tracked in the application's database.  Models are retrained daily and the model used to present forecasts can be changed by the user.
 
 .. figure:: images/all_services.png
   :figwidth: 600
@@ -91,7 +93,7 @@ Chart Tile
   :figwidth: 300
   :alt: Chart
 
-  **Chart**: At each log interval the chart is updated.  The popup menu can be used to open a new tab with a larger chart and larger time range.  The range of dates displayed can be adjusted with the slider and the charted objects can be toggled with the drop down menu.
+  **Chart**: At each log interval the chart is updated.  The popup menu can be used to open a new tab with a larger chart and larger time range.  The range of dates displayed can be adjusted with the slider and the charted objects can be toggled with the drop down menu.  Forecasts can be made using trained models available in the drop down button.
 
 Logging Tile
 ^^^^^^^^^^^^
@@ -216,18 +218,23 @@ The variables defined in the ``.env`` file will be included in the environment a
     local_variable_name = os.getenv("<env_varibale_name>", "<default_if_not_found")
 
 
-Database, Messaging and Charting Services
+Database, Messaging, Charting and Forecasting Services
 -----------------------------------------
 
 The application relies on a Postgres database as well as Kafka for messaging. Postgres is used as the database because the default SQLite database used by Django does not allow concurrent read/write requests which can happen in this application.
 
 Charting is supported in a docker container that runs a Bokeh server.  The web front-end is designed to communicate with the REST-based urls that return an interactive chart of the monitor's data.  Chart data will dynamically be updated while the detector is running.
 
+Forecasting is also a Dockerized application that runs along with the database and the charting service.  Values for forecasting are retrieved from the database and the forecasted data is retrieved by the charting service to plot the forecasts.
+
 All of these services are configured to run in docker containers in this application.  To start the Docker containers, run the following from the project’s ``infrastructure`` directory:
 
 ::
 
     docker-compose up
+    docker-compose -f docker-compose-charting.yml up
+
+The first compose file will start the database and communications servives.  The second file will launch the charting and forecasting services.
 
 Any data stored in these services will persist locally and will be available the next time that you start the containers from the same machine.
 
@@ -275,7 +282,7 @@ Changes to the Postgres or Kafka services can be made by updating the docker-com
 
 Start Application
 -----------------
-Once the docker containers running Zookepper, Kafka and Postgres are running, the application can be started via:
+Although the supporting services are dockerized, the application that combines the services is not (yet).  After starting the service containers using their docker-compose files, the main Django  application can be started:
 
 ::
 

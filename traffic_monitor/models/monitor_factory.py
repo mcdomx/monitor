@@ -1,6 +1,7 @@
 import logging
 import json
 import datetime
+import os
 
 from confluent_kafka import Producer
 from django.db.models import Min, Max, Count
@@ -13,8 +14,13 @@ from traffic_monitor.websocket_channels_factory import ChannelFactory
 
 logger = logging.getLogger('monitor_factory')
 
+KAFKA_HOST = os.getenv('KAFKA_HOST', '0.0.0.0')
+KAFKA_PORT = os.getenv('KAFKA_PORT', 9092)
+KAFKA_GROUPID = os.getenv('KAFKA_GROUPID', 'monitorgroup')
+
 
 class MonitorFactory:
+    global KAFKA_HOST, KAFKA_PORT
     singleton = None
 
     def __new__(cls):
@@ -24,8 +30,8 @@ class MonitorFactory:
 
     class _Singleton:
         def __init__(self):
-            self.producer = Producer({'bootstrap.servers': '127.0.0.1:9092',
-                                      'group.id': 'monitorgroup'})
+            self.producer = Producer({'bootstrap.servers': f'{KAFKA_HOST}:{KAFKA_PORT}',
+                                      'group.id': KAFKA_GROUPID})
 
         @staticmethod
         def create_feed(cam: str, time_zone: str, description: str) -> dict:

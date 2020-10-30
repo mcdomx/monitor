@@ -2,17 +2,20 @@ FROM python:3.7
 ENV VERBOSITY=DEBUG
 ENV PYTHONUNBUFFERED=1
 
+#RUN mkdir /code
+#WORKDIR /code
+#COPY requirements.txt /code/
+#RUN pip install -r requirements.txt
+#
+#COPY . /code/
 
-#ENV DB_NAME=monitor_db
-#ENV DB_USER=monuser
-#ENV DB_PASSWORD=password
-#ENV DB_HOST=0.0.0.0
-#ENV DB_PORT=5432
-#ENV DJANGO_SECRET_KEY="=bb+h=u9v)z-&3rqlzfet8$7&ybq46\$t1=33-\$_xm0)u1b+(in"
-
-RUN mkdir /code
-WORKDIR /code
-COPY requirements.txt /code/
+RUN mkdir /forecasting_service
+WORKDIR /forecasting_service
+COPY requirements.txt /forecasting_service
 RUN pip install -r requirements.txt
 
-COPY . /code/
+COPY manage.py /forecasting_service/
+COPY app /forecasting_service/app/
+COPY forecasting_service /forecasting_service/forecasting_service/
+
+#COPY . /code/

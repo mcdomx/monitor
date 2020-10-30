@@ -7,8 +7,8 @@ services:
     environment:
       NUM_PROCS: 4
       BOKEH_PORT: 8200
-      DATA_URL: 'host.docker.internal'
-      DATA_PORT: 8000
+      APP_URL: 'host.docker.internal'
+      APP_PORT: 8000
       FC_URL: 'host.docker.internal'
       FC_PORT: 8300
     ports:

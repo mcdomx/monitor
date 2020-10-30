@@ -10,11 +10,11 @@ services:
     container_name: monitor_db
     restart: always
     environment:
-      POSTGRES_DB: monitor_db
-      POSTGRES_USER: monuser
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - 5432:5432
+      - ${DB_PORT}:${DB_PORT}
     volumes:
       - monitor_data:/var/lib/postgresql/data  # using this line with volumes(above) creates a docker-internal volume if it doesn't already exist
 
@@ -37,9 +37,10 @@ services:
     hostname: kafka
     restart: always
     ports:
-      - 9092:9092
+      - ${KAFKA_PORT}:${KAFKA_PORT}
     environment:
       KAFKA_ADVERTISED_LISTENERS: LISTENER_DOCKER_INTERNAL://kafka:19092,LISTENER_DOCKER_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092
+#      KAFKA_ADVERTISED_LISTENERS: LISTENER_DOCKER_INTERNAL://kafka:19092,LISTENER_DOCKER_EXTERNAL://${DOCKER_HOST_IP:-host.docker.internal}:${KAFKA_PORT}
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -50,6 +51,22 @@ services:
       - ~/monitor/kafka/data:/var/lib/kafka/data
     depends_on:
       - zookeeper
+
+#  monitor_application:
+#    build: ..
+#    restart: on-failure
+#    environment:
+#      VERBOSITY: DEBUG
+#      DB_NAME: ${DB_NAME}
+#      DB_USER: ${DB_USER}
+#      DB_PASSWORD: ${DB_PASSWORD}
+#      DB_HOST: db
+#      DB_PORT: ${DB_PORT}
+#      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+#    command: sh -c "python manage.py makemigrations; python manage.py migrate; python manage.py runserver ${APP_HOST}:${APP_PORT}"
+#    ports:
+#      - ${APP_PORT}:${APP_PORT}
+
 
 #  web:
 #    build: .

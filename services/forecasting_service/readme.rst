@@ -4,9 +4,13 @@ FORECASTING SERVICE
 This application will read actual data from the database and generate
 a forecast for traffic rates in the future.
 
-The application is intended to be run as an individual docker container
+The application can be run as an individual docker container
 and can be launched using the docker-compose file included in the project's
 root directory.
+
+This service is designed to work with the charting service to provide plots with forecasted values.
+
+This service provides an API accessible via URL calls that can train new models, get a list of available models, or run predictions based on existing models.  Calls to predict values are flexible so that the service picks the best-scoring model to predict based on the model selection parameters provided.
 
 This service will use the postgres database Docker container used in the
 monitor application. The docker-compose file will achieve this by
@@ -18,6 +22,6 @@ provide ORM references to the application's database which are read-only.
 https://docs.djangoproject.com/en/3.1/howto/legacy-databases/
 To generate the models.py file, call ``python manage.py inspectdb > models.py``
 from the application that is already using the database.  The resulting models.py
-file will include definitions for all of the database's tables.
+file will include definitions for all of the database's tables and can be used in this forecasting application.
 
 

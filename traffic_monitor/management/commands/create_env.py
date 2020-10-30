@@ -59,6 +59,11 @@ class Command(BaseCommand):
         django_secret_key = django_secret_key.replace("'", "").replace("\"", "")
         f.write(f"export DJANGO_SECRET_KEY = '{django_secret_key}'\n")
 
+        f.write(f"export CHART_HOST=0.0.0.0\n\n")
+        f.write(f"export CHART_PORT=8100\n\n")
+        f.write(f"export FC_HOST=0.0.0.0\n\n")
+        f.write(f"export FC_PORT=8200\n\n")
+
         f.close()
 
 

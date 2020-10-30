@@ -7,7 +7,6 @@ time interval and save the entries to database.
 import logging
 import json
 import datetime
-import pytz
 from abc import ABC
 
 from django.core.serializers.json import DjangoJSONEncoder

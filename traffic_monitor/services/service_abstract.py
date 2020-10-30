@@ -1,12 +1,16 @@
 import threading
 import logging
 import json
+import os
 from abc import ABCMeta, abstractmethod
 
 from confluent_kafka import Consumer, TopicPartition, OFFSET_END
 
 logger = logging.getLogger('service')
 
+KAFKA_HOST = os.getenv('KAFKA_HOST', '0.0.0.0')
+KAFKA_PORT = os.getenv('KAFKA_PORT', 9092)
+KAFKA_GROUPID = os.getenv('KAFKA_GROUPID', 'monitorgroup')
 
 class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
     """
@@ -29,6 +33,7 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
         :param monitor_config: The monitor's configuration dictionary which is retrieved via MonitorFactory().get_monitor_configuration(<monitor_name>).
         :param output_data_topic: If the implementation of the abstract class produces data, this is the topic name that will be used.
         """
+        global KAFKA_HOST, KAFKA_PORT, KAFKA_GROUPID
         threading.Thread.__init__(self)
         self.monitor_config = monitor_config
         self.output_data_topic = output_data_topic
@@ -38,8 +43,8 @@ class ServiceAbstract(threading.Thread, metaclass=ABCMeta):
 
         # Kafka settings
         self.consumer = Consumer({
-            'bootstrap.servers': '127.0.0.1:9092',
-            'group.id': 'monitorgroup',
+            'bootstrap.servers': f'{KAFKA_HOST}:{KAFKA_PORT}',
+            'group.id': KAFKA_GROUPID,
             'auto.offset.reset': 'earliest'
         })
         self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self._on_revoke)

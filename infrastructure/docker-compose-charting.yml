@@ -6,36 +6,42 @@ networks:
       name: infrastructure_default
 
 services:
+  forecasting_service:
+    build: ../services/forecasting_service
+    restart: on-failure
+    hostname: forecasting_service
+    environment:
+      VERBOSITY: DEBUG
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: db
+      DB_PORT: ${DB_PORT}
+      DJANGO_SECRET_KEY: sghkslbro5inb
+    command: sh -c "python manage.py makemigrations; python manage.py migrate; python manage.py runserver ${FC_HOST}:${FC_PORT}"
+#    volumes:
+#      - ../services/forecasting_service:/code
+    ports:
+      - ${FC_PORT}:${FC_PORT}
 
   charting_service:
     build: ../services/charting_service
+    restart: on-failure
+    hostname: charting_service
     environment:
       NUM_PROCS: 4
-      BOKEH_PORT: 8100
-      DATA_URL: host.docker.internal
-      DATA_PORT: 8000
-      FC_URL: host.docker.internal
-      FC_PORT: 8200
+      BOKEH_PORT: ${CHART_PORT}
+      APP_HOST: host.docker.internal #monitor_application #127.0.0.1 #${APP_HOST}
+      APP_PORT: ${APP_PORT}
+      FC_HOST: host.docker.internal
+#      FC_HOST: ${FC_HOST}
+      FC_PORT: ${FC_PORT}
     ports:
-      - 8100:8100
+      - ${CHART_PORT}:${CHART_PORT}
     depends_on:
       - forecasting_service
 
-  forecasting_service:
-    build: ../services/forecasting_service
-    environment:
-      VERBOSITY: DEBUG
-      DB_NAME: monitor_db
-      DB_USER: monuser
-      DB_PASSWORD: password
-      DB_HOST: db
-      DB_PORT: 5432
-      DJANGO_SECRET_KEY: sghkslbro5inb
-    command: sh -c "python manage.py makemigrations; python manage.py migrate; python manage.py runserver 0.0.0.0:8200"
-    volumes:
-      - ../services/forecasting_service:/code
-    ports:
-      - 8200:8200
+
 
 
 

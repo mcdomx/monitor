@@ -19,7 +19,6 @@ import os
 import numpy as np
 import pandas as pd
 from time import sleep
-import subprocess
 
 from bokeh.io import curdoc
 from bokeh.models import HoverTool, DatetimeTickFormatter
@@ -32,9 +31,9 @@ from bokeh.layouts import column, row
 
 logging.basicConfig(level=logging.INFO)
 
-DATA_URL = os.getenv('DATA_URL', '127.0.0.1')
-DATA_PORT = os.getenv('DATA_PORT', '8000')
-FC_URL = os.getenv('FC_URL', '127.0.0.1')
+APP_HOST = os.getenv('APP_HOST', '127.0.0.1')
+APP_PORT = os.getenv('APP_PORT', '8000')
+FC_HOST = os.getenv('FC_HOST', '127.0.0.1')
 FC_PORT = os.getenv('FC_PORT', '8200')
 
 
@@ -47,7 +46,7 @@ def _get_logdata(monitor_name, start_date_utc=None, start_date_utc_gt=None):
     if start_date_utc is None:
         start_date_utc = '1970-01-01T00:00:00.000000'
     response = requests.get(
-        f'http://{DATA_URL}:{DATA_PORT}/get_logdata_bokeh?monitor_name={monitor_name}&{start_field}={start_date_utc}')
+        f'http://{APP_HOST}:{APP_PORT}/get_logdata_bokeh?monitor_name={monitor_name}&{start_field}={start_date_utc}')
     if response.status_code == 200:
         return json.loads(response.text)
     else:
@@ -179,7 +178,7 @@ class MonitorConfig:
         self.time_zone = tz
 
     def _get_config(self):
-        response = requests.get(f'http://{DATA_URL}:{DATA_PORT}/get_monitor?monitor_name={self.name}')
+        response = requests.get(f'http://{APP_HOST}:{APP_PORT}/get_monitor?monitor_name={self.name}')
         if response.status_code == 200:
             return json.loads(response.text)
         else:
@@ -195,7 +194,7 @@ class ClassColors:
 
     def _get_colors(self):
         colors = json.loads(requests.get(
-            f'http://{DATA_URL}:{DATA_PORT}/get_monitor?monitor_name={self.monitor_name}&field=class_colors').text)[
+            f'http://{APP_HOST}:{APP_PORT}/get_monitor?monitor_name={self.monitor_name}&field=class_colors').text)[
             'class_colors']
         colors = {k: RGB(*c) for k, c in colors.items()}
 
@@ -214,7 +213,7 @@ class ForecastGenerator:
         self.source_data_from_date = arg_dict.get('fc_source_data_from_date', None)
 
     def retrain_all(self):
-        url = f'http://{FC_URL}:{FC_PORT}/retrain_all?monitor_name={self.monitor_name}'
+        url = f'http://{FC_HOST}:{FC_PORT}/retrain_all?monitor_name={self.monitor_name}'
 
     def _get_fcdata(self, interval=None, hours_in_training=None, hours_in_prediction=None,
                     source_data_from_date=None):
@@ -224,7 +223,7 @@ class ForecastGenerator:
                       'hours_in_prediction': hours_in_prediction,
                       # 'source_data_from_date': source_data_from_date
                       }
-        url = f'http://{FC_URL}:{FC_PORT}/predict?monitor_name={self.monitor_name}'
+        url = f'http://{FC_HOST}:{FC_PORT}/predict?monitor_name={self.monitor_name}'
 
         for p, v in url_params.items():
             if v is not None:
@@ -238,7 +237,7 @@ class ForecastGenerator:
             return []
 
     def get_models(self):
-        url = f'http://{FC_URL}:{FC_PORT}/get_available_models?monitor_name={self.monitor_name}'
+        url = f'http://{FC_HOST}:{FC_PORT}/get_available_models?monitor_name={self.monitor_name}'
         response = requests.get(url)
         if response.status_code == 200:
             return json.loads(response.text)
@@ -247,7 +246,7 @@ class ForecastGenerator:
             return {}
 
     def get_model(self, filename):
-        url = f'http://{FC_URL}:{FC_PORT}/get_model?filename={filename}'
+        url = f'http://{FC_HOST}:{FC_PORT}/get_model?filename={filename}'
         response = requests.get(url)
         if response.status_code == 200:
             return json.loads(response.text)
@@ -538,12 +537,13 @@ def retrain_daily():
     """ Sets a callback that will retrain all models at midnight local time """
     global CB_ID
     tinfo = requests.get("https://ipapi.co/json/").json()
-    if tinfo.get('timezone', None) is None:
+    logging.info(tinfo)
+    if tinfo.get('timezone', None) is not None:
         tz = tinfo['timezone']
-        local_time = datetime.now(tz=pytz.timezone(tz.decode()))
+        local_time = datetime.now(tz=pytz.timezone(tz))
         tmrw = (local_time + timedelta(days=1)).date()
-        midnight = datetime(year=tmrw.year, month=tmrw.month, day=tmrw.day).replace(tzinfo=pytz.timezone(tz.decode()))
-        secs_to_midnight = midnight - local_time
+        midnight = datetime(year=tmrw.year, month=tmrw.month, day=tmrw.day).replace(tzinfo=pytz.timezone(tz))
+        secs_to_midnight = (midnight - local_time).seconds
         if CB_ID is not None:
             curdoc().remove_timeout_callback(CB_ID)
             fc_generator.retrain_all()

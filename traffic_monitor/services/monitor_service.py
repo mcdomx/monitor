@@ -9,7 +9,7 @@ import logging
 import threading
 import json
 import time
-import numpy as np
+import os
 
 from confluent_kafka.admin import AdminClient, NewTopic, KafkaException
 from confluent_kafka import Consumer, TopicPartition, OFFSET_END, Producer
@@ -31,6 +31,10 @@ SERVICES = {
     'notifications_on': NotificationService,
     # 'charting_on': ChartService,
 }
+
+KAFKA_HOST = os.getenv('KAFKA_HOST', '0.0.0.0')
+KAFKA_PORT = os.getenv('KAFKA_PORT', 9092)
+KAFKA_GROUPID = os.getenv('KAFKA_GROUPID', 'monitorgroup')
 
 
 class MonitorService(threading.Thread):
@@ -92,8 +96,8 @@ class MonitorService(threading.Thread):
         # This topic is used by the sub-services of this monitor
         # to communicate with each other.
         # https://github.com/confluentinc/confluent-kafka-python
-        a = AdminClient({'bootstrap.servers': '127.0.0.1:9092',
-                         'group.id': 'monitorgroup'})
+        a = AdminClient({'bootstrap.servers': f'{KAFKA_HOST}:{KAFKA_PORT}',
+                         'group.id': KAFKA_GROUPID})
         topic = NewTopic(self.monitor_name, num_partitions=3, replication_factor=1)
 
         # Call create_topics to asynchronously create topics. {topic,future} is returned.
@@ -111,8 +115,8 @@ class MonitorService(threading.Thread):
 
         # Kafka settings
         self.consumer = Consumer({
-            'bootstrap.servers': '127.0.0.1:9092',
-            'group.id': 'monitorgroup',
+            'bootstrap.servers': f'{KAFKA_HOST}:{KAFKA_PORT}',
+            'group.id': {KAFKA_GROUPID},
             'auto.offset.reset': 'earliest'
         })
         self.consumer.subscribe(topics=[self.monitor_config.get('monitor_name')], on_revoke=self._on_revoke)

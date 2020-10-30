@@ -24,6 +24,7 @@ import json
 import time
 import requests
 import threading
+import os
 
 import numpy as np
 from PIL import Image
@@ -39,6 +40,11 @@ from traffic_monitor.websocket_channels import VideoChannel
 from traffic_monitor.websocket_channels_factory import ChannelFactory
 
 BUFFER_SIZE = 512
+KAFKA_HOST = os.getenv('KAFKA_HOST', '0.0.0.0')
+KAFKA_PORT = os.getenv('KAFKA_PORT', 9092)
+KAFKA_GROUPID = os.getenv('KAFKA_GROUPID', 'monitorgroup')
+APP_HOST = os.getenv('APP_HOST', '0.0.0.0')
+APP_PORT = os.getenv('APP_PORT', 8000)
 
 logger = logging.getLogger('videodetection_service')
 
@@ -57,19 +63,20 @@ class VideoDetectionService(ServiceAbstract, ABC):
     this class so composition is used instead.
 
     """
-
     def __init__(self,
                  monitor_config: dict,
                  output_data_topic: str,  # Kafka topic to produce data to
                  ):
         """ Requires existing monitor.  1:1 relationship with a monitor but this is not
         enforced when creating the Monitor Service. """
+        global KAFKA_HOST, KAFKA_PORT, KAFKA_GROUPID
+
         ServiceAbstract.__init__(self, monitor_config=monitor_config, output_data_topic=output_data_topic)
         self.monitor_name: str = monitor_config.get('monitor_name')
         self.name = f"VideoDetectionService-{self.monitor_name}"
         self.channel_url = f"/ws/traffic_monitor/video/{monitor_config.get('monitor_name')}/"  # websocket channel address
-        self.producer = Producer({'bootstrap.servers': '127.0.0.1:9092',
-                                  'group.id': 'monitorgroup'})
+        self.producer = Producer({'bootstrap.servers': f'{KAFKA_HOST}:{KAFKA_PORT}',
+                                  'group.id': KAFKA_GROUPID})
         self.raw_queue: queue.Queue = queue.Queue(maxsize=50)
         self.detector_ready = False
         self.detector: DetectorAbstract = DetectorFactory().get_detector(monitor_config=self.monitor_config)
@@ -184,7 +191,7 @@ class VideoDetectionService(ServiceAbstract, ABC):
     def _reset_stream(self) -> cv.VideoCapture:
         logger.error(f"CV Video Capture Failed to read image. Resetting stream.")
         response = requests.get(
-            'http://127.0.0.1:8000/get_monitor?monitor_name=MyMonitor&field=feed_url')
+            f'http://{APP_HOST}:{APP_PORT}/get_monitor?monitor_name=MyMonitor&field=feed_url')
         if response.status_code == 200:
             feed_url = json.loads(response.text)['feed_url']
             self.monitor_config['feed_url'] = feed_url
