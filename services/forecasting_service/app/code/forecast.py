@@ -7,7 +7,7 @@ def string_predictions(m_config: ModelConfig, trained_model, from_date=None):
     print("STRING PREDICTIONS")
     print("MODEL CONFIG:")
     print(m_config)
-    trained_model.summary()
+    # trained_model.summary()
 
     n_train_intervals = m_config.hours_in_training * int(60 / m_config.interval)
     n_pred_intervals = m_config.hours_in_prediction * int(60 / m_config.interval)
@@ -48,6 +48,7 @@ def get_predictions(monitor_name: str,
                     hours_in_prediction: int = None,
                     hours_in_training: int = None):
     """ Uses the best performing model based on the parameters given """
+    """ time_stamp is tz-aware in UTC"""
 
     m_config, trained_model = ModelInventory().get(monitor_name=monitor_name,
                                                    interval=interval,

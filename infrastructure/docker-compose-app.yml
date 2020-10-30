@@ -20,7 +20,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_HOST: db
       DB_PORT: ${DB_PORT}
-      APP_HOST: ${APP_HOST} #monitor_application
+      APP_HOST: ${APP_HOST} #monitor_application #host.docker.internal
       APP_PORT: ${APP_PORT}
       CHART_HOST: charting_service #${CHART_HOST}
       CHART_PORT: ${CHART_PORT}

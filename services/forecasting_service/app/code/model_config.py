@@ -91,6 +91,10 @@ class ModelConfig:
             raise Exception(
                 f"No records returned: monitor:{self.monitor_name} from_date:{self.from_date_utc if from_date is None else from_date} categories:{self.categories}")
 
+        # save the UTC times
+        _df.insert(1, 'time_stamp_utc', _df['time_stamp'])
+        # _df['time_stamp_utc'] = _df['time_stamp'].dt
+
         # convert time to monitor's timezone
         _df['time_stamp'] = _df['time_stamp'].dt.tz_convert(pytz.timezone(self.time_zone))
         return _df
@@ -136,7 +140,8 @@ class ModelConfig:
         _df.rename(columns={'count': 'rate'}, inplace=True)
 
         # make columns categorical and remove multi_index
-        _df = _df.pivot_table(index=['time_stamp'], columns='class_name', values='rate', fill_value=0)
+        # _df = _df.pivot_table(index=['time_stamp'], columns='class_name', values='rate', fill_value=0)
+        _df = _df.pivot_table(index=['time_stamp_utc'], columns='class_name', values='rate', fill_value=0)
 
         _df.columns = _df.columns.get_level_values(0).values
         _df['year'] = pd.Series(_df.index).apply(lambda s: s.year).values
@@ -146,8 +151,9 @@ class ModelConfig:
         _df['interval'] = pd.Series(_df.index).apply(lambda s: int(s.minute / interval) * interval).values
 
         _df = _df.groupby(['year', 'month', 'day', 'hour', 'interval']).mean()
-        # reconfigure index to a timestamp
-        _df.set_index(pd.Series(list(_df.index)).apply(lambda s: datetime.datetime(*s)), inplace=True)
+
+        # reconfigure index to a timestamp in UTC
+        _df.set_index(pd.Series(list(_df.index)).apply(lambda s: datetime.datetime(*s, tzinfo=pytz.UTC)), inplace=True)
 
         # complete interval sequence
         start_time = _df.index.min()
@@ -167,7 +173,9 @@ class ModelConfig:
 
         _df = _df.melt(ignore_index=False, var_name='class_name', value_name='rate')
 
-        return _df.reset_index().rename(columns={'index': 'time_stamp'})
+        _df = _df.reset_index().rename(columns={'index': 'time_stamp'})
+
+        return _df
 
     def _add_categorical_column(self, _df, cat_col_name, code_col_name):
         idx = int(np.where(_df.columns == cat_col_name)[0][0])
@@ -209,7 +217,7 @@ class ModelConfig:
         _df = self.add_time_features(_df)
         _df = self._add_history_columns(_df)
 
-        self.full_df = _df
+        self.full_df = _df # times are tz aware in UTC
 
     def get_seed_observation(self, on_date='latest'):
         # get the most recent observation or the first observation on a provided date
@@ -228,7 +236,7 @@ class ModelConfig:
         _df = self.full_df[self.full_df.time_stamp == on_date]
         time_zero = _df['rate'].values
 
-        # only keep the class_code and time columns
+        # only keep the predictor columns
         _df = _df.reset_index(drop=True)[self.predictor_columns]
         _df["0"] = time_zero
 

@@ -31,7 +31,7 @@ services:
     environment:
       NUM_PROCS: 4
       BOKEH_PORT: ${CHART_PORT}
-      APP_HOST: host.docker.internal #monitor_application #127.0.0.1 #${APP_HOST}
+      APP_HOST: host.docker.internal #host.docker.internal #monitor_application #127.0.0.1 #${APP_HOST}
       APP_PORT: ${APP_PORT}
       FC_HOST: host.docker.internal
 #      FC_HOST: ${FC_HOST}
@@ -40,6 +40,15 @@ services:
       - ${CHART_PORT}:${CHART_PORT}
     depends_on:
       - forecasting_service
+
+# To run these 'manually' for development and debugging, start each service in
+# separate terminal windows:
+
+# Forecasting Service:
+# python manage.py runserver 0.0.0.0:8200
+
+# Charting Service:
+# bokeh serve --port 8100 --allow-websocket-origin="*" --disable-index --disable-index-redirect --num-procs=4 --log-level=info ./monitor_chart.py
 
 
 

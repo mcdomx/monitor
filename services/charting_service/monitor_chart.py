@@ -272,15 +272,14 @@ class ForecastGenerator:
                                  # source_data_from_date=source_data_from_date
                                  )
 
-        if preds is None:
+        if len(preds) == 0:
             return None
 
-        rv_df = pd.DataFrame(preds)  # data is in monitor's timezone
+        rv_df = pd.DataFrame(preds)  # in UTC timezone
 
-        # FC data is retrieved in monitor's timezone - set data type to Timestamp and add a UTC timestamp column
-        rv_df['time_stamp'] = pd.to_datetime(rv_df['time_stamp'], utc=False)
-        rv_df['time_stamp_utc'] = rv_df['time_stamp'].dt.tz_localize(tz=self.time_zone).dt.tz_convert(
-            tz=pytz.UTC)
+        # data is predicted in UTC - convert to tz-unaware times in monitor's local time
+        rv_df['time_stamp'] = [pd.Timestamp(t) for t in rv_df['time_stamp'].values]
+        rv_df['time_stamp'] = rv_df['time_stamp'].dt.tz_convert(tz=self.time_zone).dt.tz_localize(tz=None)
 
         return rv_df
 
@@ -530,12 +529,12 @@ class Widgets:
         self.data.update_sources()
 
 
-CB_ID = None
+# CB_ID = None
 
-
-def retrain_daily():
+@count()
+def retrain_daily(i):
     """ Sets a callback that will retrain all models at midnight local time """
-    global CB_ID
+    # global CB_ID
     tinfo = requests.get("https://ipapi.co/json/").json()
     logging.info(tinfo)
     if tinfo.get('timezone', None) is not None:
@@ -544,10 +543,11 @@ def retrain_daily():
         tmrw = (local_time + timedelta(days=1)).date()
         midnight = datetime(year=tmrw.year, month=tmrw.month, day=tmrw.day).replace(tzinfo=pytz.timezone(tz))
         secs_to_midnight = (midnight - local_time).seconds
-        if CB_ID is not None:
-            curdoc().remove_timeout_callback(CB_ID)
+        # if CB_ID is not None:
+        if i:
+            # curdoc().remove_timeout_callback(CB_ID)
             fc_generator.retrain_all()
-        CB_ID = curdoc().add_timeout_callback(retrain_daily, secs_to_midnight * 1000)
+        curdoc().add_timeout_callback(retrain_daily, secs_to_midnight * 1000)
 
 
 # PARSE THE URL ARGUMENTS
@@ -564,11 +564,13 @@ display_data = DisplayData(monitor=monitor_config,
 widgets = Widgets(display_data)
 
 # build page
-curdoc().add_root(
-    column(row(widgets.date_range_slider, Spacer(width=15), widgets.select_object, Spacer(width=15),
-               widgets.dropdown_selfc), get_chart()))
-curdoc().add_periodic_callback(update, 30 * 1000)  # 30000 = 30seconds
-curdoc().add_periodic_callback(display_data.update_fc_and_redraw, 60 * 60 * 24 * 1000)  # 1x daily
-# curdoc().add_periodic_callback(fc_generator.retrain_all, 24 * 60 * 60 * 1000)  # 1 x day
-retrain_daily()  # setup callback to retrain all models at midnight each day
-curdoc().title = f"{monitor_config.name}"
+try:
+    curdoc().add_root(
+        column(row(widgets.date_range_slider, Spacer(width=15), widgets.select_object, Spacer(width=15),
+                   widgets.dropdown_selfc), get_chart()))
+    curdoc().add_periodic_callback(update, 30 * 1000)  # 30000 = 30seconds
+    curdoc().add_periodic_callback(display_data.update_fc_and_redraw, 60 * 60 * 24 * 1000)  # 1x daily
+    retrain_daily()  # setup callback to retrain all models at midnight each day
+    curdoc().title = f"{monitor_config.name}"
+except:
+    exit(100)

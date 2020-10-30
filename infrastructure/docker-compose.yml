@@ -55,25 +55,25 @@ services:
 #  monitor_application:
 #    build: ..
 #    restart: on-failure
+#    hostname: monitor_application
 #    environment:
 #      VERBOSITY: DEBUG
+#      KAFKA_HOST: kafka #host.docker.internal
+#      KAFKA_PORT: 1${KAFKA_PORT}
+#      KAFKA_GROUPID: monitorgroup
 #      DB_NAME: ${DB_NAME}
 #      DB_USER: ${DB_USER}
 #      DB_PASSWORD: ${DB_PASSWORD}
 #      DB_HOST: db
 #      DB_PORT: ${DB_PORT}
+#      APP_HOST: ${APP_HOST} #monitor_application
+#      APP_PORT: ${APP_PORT}
+#      CHART_HOST: charting_service #${CHART_HOST}
+#      CHART_PORT: ${CHART_PORT}
 #      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
 #    command: sh -c "python manage.py makemigrations; python manage.py migrate; python manage.py runserver ${APP_HOST}:${APP_PORT}"
 #    ports:
 #      - ${APP_PORT}:${APP_PORT}
-
-
-#  web:
-#    build: .
-#    command: python manage.py runserver 0.0.0.0:8000
-#    volumes:
-#      - .:/code
-#    ports:
-#      - "8000:8000"
 #    depends_on:
 #      - db
+#      - kafka
