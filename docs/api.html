@@ -281,41 +281,9 @@ monitor_name=&lt;monitor name&gt;</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="views.api.get_chart">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_chart</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_chart" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a JSON serialized Bokeh chart.</p>
-<dl class="simple">
-<dt>API Call:</dt><dd><p>/get_chart?
-monitor_name=&lt;monitor name&gt;</p>
-</dd>
-</dl>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>request</strong> – HTTP request that expects a monitor_name argument.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A JSON serialized Bokeh chart.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="views.api.get_chart_embedded">
-<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_chart_embedded</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_chart_embedded" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a script which can embed a Bokeh chart.</p>
-<dl class="simple">
-<dt>API Call:</dt><dd><p>/get_chart_embedded?
-monitor_name=&lt;monitor name&gt;</p>
-</dd>
-</dl>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>request</strong> – </p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p></p>
-</dd>
-</dl>
+<dt id="views.api.get_chart_components">
+<code class="sig-prename descclassname">views.api.</code><code class="sig-name descname">get_chart_components</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">request</span></em><span class="sig-paren">)</span><a class="headerlink" href="#views.api.get_chart_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a script that will embed a bokeh chart from a bokeh server</p>
 </dd></dl>
 
 <dl class="py function">

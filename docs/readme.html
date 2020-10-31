@@ -105,7 +105,7 @@
 <li class="toctree-l1"><a class="reference internal" href="#getting-started">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#virtual-environment">Virtual Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#environment-setup">Environment Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#database-messaging-and-charting-services">Database, Messaging and Charting Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#database-messaging-charting-and-forecasting-services">Database, Messaging, Charting and Forecasting Services</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#initialize-database">Initialize Database</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#stopping-the-database-and-kafka-containers">Stopping the Database and Kafka Containers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#deleting-the-database">Deleting the Database</a></li>
@@ -181,9 +181,10 @@
             
   <div class="section" id="traffic-monitor">
 <span id="readme"></span><h1>Traffic Monitor<a class="headerlink" href="#traffic-monitor" title="Permalink to this headline">¶</a></h1>
-<p>Project documentaton is available in a navigable format with API reference details at the project’s Git Project Page: <a class="reference external" href="http://mcdomx.github.io/monitor/">http://mcdomx.github.io/monitor/</a>.</p>
+<p>Project documentation is available in a navigable format with API reference details at the project’s Git Project Page: <a class="reference external" href="http://mcdomx.github.io/monitor/">http://mcdomx.github.io/monitor/</a>.</p>
 <p>The Traffic Monitor application will detect objects in a video feed and log, report and chart instances of objects that are recognized.  A variety of objects can be selected for tracking as well as the source of the video stream.</p>
 <p>Although the application has been designed to accommodate custom object detection algorithms, a single OpenCV implementation of object detection is used with the default dataset of trained COCO objects.</p>
+<p>The application will forecast rates of detection based on historical data tracked in the application’s database.  Models are retrained daily and the model used to present forecasts can be changed by the user.</p>
 <div class="figure align-default" id="id1" style="width: 600px">
 <img alt="Monitor Home Screen" src="_images/all_services.png" />
 <p class="caption"><span class="caption-text"><strong>Monitor Home</strong>: Example home page of a running monitor.</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
@@ -252,7 +253,7 @@
 <h3>Chart Tile<a class="headerlink" href="#chart-tile" title="Permalink to this headline">¶</a></h3>
 <div class="figure align-default" id="id9" style="width: 300px">
 <img alt="Chart" src="_images/chart_service.png" />
-<p class="caption"><span class="caption-text"><strong>Chart</strong>: At each log interval the chart is updated.  The popup menu can be used to open a new tab with a larger chart and larger time range.  The range of dates displayed can be adjusted with the slider and the charted objects can be toggled with the drop down menu.</span><a class="headerlink" href="#id9" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text"><strong>Chart</strong>: At each log interval the chart is updated.  The popup menu can be used to open a new tab with a larger chart and larger time range.  The range of dates displayed can be adjusted with the slider and the charted objects can be toggled with the drop down menu.  Forecasts can be made using trained models available in the drop down button.</span><a class="headerlink" href="#id9" title="Permalink to this image">¶</a></p>
 </div>
 </div>
 <div class="section" id="logging-tile">
@@ -367,14 +368,17 @@
 </pre></div>
 </div>
 </div>
-<div class="section" id="database-messaging-and-charting-services">
-<h2>Database, Messaging and Charting Services<a class="headerlink" href="#database-messaging-and-charting-services" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="database-messaging-charting-and-forecasting-services">
+<h2>Database, Messaging, Charting and Forecasting Services<a class="headerlink" href="#database-messaging-charting-and-forecasting-services" title="Permalink to this headline">¶</a></h2>
 <p>The application relies on a Postgres database as well as Kafka for messaging. Postgres is used as the database because the default SQLite database used by Django does not allow concurrent read/write requests which can happen in this application.</p>
 <p>Charting is supported in a docker container that runs a Bokeh server.  The web front-end is designed to communicate with the REST-based urls that return an interactive chart of the monitor’s data.  Chart data will dynamically be updated while the detector is running.</p>
+<p>Forecasting is also a Dockerized application that runs along with the database and the charting service.  Values for forecasting are retrieved from the database and the forecasted data is retrieved by the charting service to plot the forecasts.</p>
 <p>All of these services are configured to run in docker containers in this application.  To start the Docker containers, run the following from the project’s <code class="docutils literal notranslate"><span class="pre">infrastructure</span></code> directory:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">up</span>
+<span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="o">-</span><span class="n">f</span> <span class="n">docker</span><span class="o">-</span><span class="n">compose</span><span class="o">-</span><span class="n">charting</span><span class="o">.</span><span class="n">yml</span> <span class="n">up</span>
 </pre></div>
 </div>
+<p>The first compose file will start the database and communications servives.  The second file will launch the charting and forecasting services.</p>
 <p>Any data stored in these services will persist locally and will be available the next time that you start the containers from the same machine.</p>
 <div class="section" id="initialize-database">
 <h3>Initialize Database<a class="headerlink" href="#initialize-database" title="Permalink to this headline">¶</a></h3>
@@ -420,7 +424,7 @@ the <code class="docutils literal notranslate"><span class="pre">infrastructure<
 </div>
 <div class="section" id="start-application">
 <h2>Start Application<a class="headerlink" href="#start-application" title="Permalink to this headline">¶</a></h2>
-<p>Once the docker containers running Zookepper, Kafka and Postgres are running, the application can be started via:</p>
+<p>Although the supporting services are dockerized, the application that combines the services is not (yet).  After starting the service containers using their docker-compose files, the main Django  application can be started:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">runserver</span>
 </pre></div>
 </div>
