@@ -25,9 +25,10 @@ from bokeh.models import HoverTool, DatetimeTickFormatter
 from bokeh.plotting import figure
 from pygam import LinearGAM, s
 from bokeh.colors import RGB
-from bokeh.models import ColumnDataSource, DateRangeSlider, Select, Button, Spacer, Dropdown
+from bokeh.models import ColumnDataSource, DateRangeSlider, Select, Spacer, Dropdown
 from bokeh.driving import count
 from bokeh.layouts import column, row
+from bokeh.server.views import ws
 
 logging.basicConfig(level=logging.INFO)
 
@@ -45,18 +46,22 @@ def _get_logdata(monitor_name, start_date_utc=None, start_date_utc_gt=None):
         start_date_utc = start_date_utc_gt
     if start_date_utc is None:
         start_date_utc = '1970-01-01T00:00:00.000000'
-    response = requests.get(
-        f'http://{APP_HOST}:{APP_PORT}/get_logdata_bokeh?monitor_name={monitor_name}&{start_field}={start_date_utc}')
-    if response.status_code == 200:
-        return json.loads(response.text)
-    else:
-        return {}
+    try:
+        response = requests.get(
+            f'http://{APP_HOST}:{APP_PORT}/get_logdata_bokeh?monitor_name={monitor_name}&{start_field}={start_date_utc}')
+        if response.status_code == 200:
+            return json.loads(response.text)
+        else:
+            return {}
+    except ConnectionRefusedError as e:
+        terminate(4)
+    except ConnectionError as e:
+        terminate(3)
 
 
 def get_chart():
     """
     Get a Bokeh chart that shows the trend of detected items recorded in the Log database.
-    :param monitor_config:
     :return:
     """
 
@@ -550,6 +555,16 @@ def retrain_daily(i):
         curdoc().add_timeout_callback(retrain_daily, secs_to_midnight * 1000)
 
 
+def terminate(code: int = 99):
+    codes = {0: "Normal termination",
+             1: "Websocket Closed",
+             2: "Connection Error",
+             3: "Connection Refused",
+             99: "Unknown Failure"}
+    logging.error(f"Application Terminated: {code}-{codes.get(code, 99)}")
+    exit(code)
+
+
 # PARSE THE URL ARGUMENTS
 args = curdoc().session_context.request.arguments
 args = {k: v[0].decode() for k, v in args.items()}  # convert from binary lists
@@ -563,8 +578,13 @@ display_data = DisplayData(monitor=monitor_config,
                            colors=class_colors, arg_dict=args)
 widgets = Widgets(display_data)
 
+
+# exit codes: 1-websocket closed, 2-curdoc loop failed, 3-connection error
+ws.WSHandler.on_close = lambda x: terminate(1)
+
 # build page
 try:
+
     curdoc().add_root(
         column(row(widgets.date_range_slider, Spacer(width=15), widgets.select_object, Spacer(width=15),
                    widgets.dropdown_selfc), get_chart()))
@@ -573,4 +593,4 @@ try:
     retrain_daily()  # setup callback to retrain all models at midnight each day
     curdoc().title = f"{monitor_config.name}"
 except:
-    exit(100)
+    terminate(2)
