@@ -3,9 +3,7 @@ import logging
 # from django.shortcuts import render
 from django.http import JsonResponse
 
-from ..code.forecast import get_predictions
-from ..code.train import train_and_save, retrain_by_filename, retrain_all
-from ..code.model_inventory import ModelInventory
+from ..code.model_inventory import ModelInventory, get_predictions
 
 
 logger = logging.getLogger()
@@ -76,7 +74,7 @@ def train(request):
 
     print(f"KWARGS: {kwargs}")
     try:
-        filename = train_and_save(**kwargs)
+        filename = ModelInventory().create_model(**kwargs)
     except Exception as e:
         logger.error(e)
         logger.error(e.__traceback__)
@@ -112,6 +110,9 @@ def predict(request):
 
     preds = get_predictions(**kwargs)
 
+    if preds is None:
+        preds = {"success": False, "message": f"No models setup with args: {kwargs}"}
+
     return JsonResponse(preds, safe=False)
 
 
@@ -142,7 +143,7 @@ def retrain(request) -> JsonResponse:
         logger.error(e)
         return JsonResponse({'error': e.args}, safe=False)
 
-    fname = retrain_by_filename(kwargs.get('filename'))
+    fname = ModelInventory().retrain_by_filename(kwargs.get('filename'))
     if fname is None:
         rv = {'success': False, 'message': f"No file with name '{kwargs.get('filename')}' exists."}
     else:
@@ -158,6 +159,6 @@ def update_all(request) -> JsonResponse:
         logger.error(e)
         return JsonResponse({'error': e.args}, safe=False)
 
-    return JsonResponse({'success': True, 'message': retrain_all(**kwargs)}, safe=False)
+    return JsonResponse({'success': True, 'message': ModelInventory().retrain_all(**kwargs)}, safe=False)
 
 
