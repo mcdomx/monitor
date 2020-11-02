@@ -103,6 +103,10 @@ class ModelInventory:
                 self.retrain_by_filename(filename)
 
         def get_inventory_listing(self, monitor_name: str) -> dict:
+            # If no models exist, create default model(s)
+            if len(self.get_inventory_listing(monitor_name)) == 0:
+                setup_default_models(monitor_name)
+
             _df = self.all_df[self.all_df.monitor_name == monitor_name]
             _df = _df[
                 ['monitor_name', 'model_type', 'file_name', 'interval', 'hours_in_prediction', 'hours_in_training',
@@ -231,5 +235,3 @@ def setup_default_models(monitor_name):
     #      'source_data_from_date': '2020-10-01'}
     # ModelInventory().create_model(**d)
 
-
-setup_default_models('MyMonitor')
