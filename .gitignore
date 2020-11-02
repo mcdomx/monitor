@@ -1,6 +1,7 @@
 .idea/
 Pipfile.lock
 migrations/*.py
+*.pkl
 
 # weight files
 *.weights
