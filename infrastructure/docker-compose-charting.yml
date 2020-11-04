@@ -31,7 +31,7 @@ services:
     environment:
       NUM_PROCS: 4
       BOKEH_PORT: ${CHART_PORT}
-      APP_HOST: host.docker.internal # ${APP_HOST}(when running app standalone) #host.docker.internal(when running app as container) #monitor_application #127.0.0.1 #${APP_HOST}
+      APP_HOST: host.docker.internal # ${APP_HOST}(when running app standalone) #host.docker.internal(when running app as container)
       APP_PORT: ${APP_PORT}
       FC_HOST: host.docker.internal
 #      FC_HOST: ${FC_HOST}

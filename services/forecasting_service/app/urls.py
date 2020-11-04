@@ -11,4 +11,5 @@ urlpatterns = [
     re_path(r"get_model[\/|\?].*", api.get_model_by_filename, name="get_model_by_filename"),
     re_path(r"update[\/|\?].*", api.retrain, name="update"),
     re_path(r"update_all[\/|\?].*", api.update_all, name="update_all"),
+    re_path(r"delete[\/|\?].*", api.delete, name="delete"),
 ]

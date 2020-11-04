@@ -8,7 +8,7 @@
     <script type="text/javascript">
 
         function embed_chart(monitor_name) {
-            {# set chart to 30 hours ago and limit looking backwards to 10 days #}
+            // set chart to 30 hours ago and limit looking backwards to 10 days
             let d = new Date();
             d.setHours(d.getHours() - 72);
             let limit_start_days = 10
@@ -17,52 +17,24 @@
             target_div.setAttribute('src', url)
         }
 
-        function embed_chartNEW(monitor_name) {
-            {# set chart to 30 hours ago and limit looking backwards to 10 days #}
-            let d = new Date();
-            d.setHours(d.getHours() - 72);
-            let limit_start_days = 10;
-
-            {#let temp = document.createElement('template');#}
-            {#temp.innerHTML = {{ CHART_SCRIPT }};#}
-            {#let script_elem = temp.content.firstChild;#}
-            {#let target_div = document.getElementById('plot-area');#}
-            {#target_div.appendChild(script_elem);#}
-            {#let s = '{{ CHART_SCRIPT | safe }}';#}
-            {#console.log(s);#}
-            {#Bokeh.embed.embed_item(s, 'plot-area');#}
-            {#target_div.setAttribute('src', url)#}
-
+        async function get_model_inventory() {
+          url = 'http://{{ FC_HOST }}:{{ FC_PORT }}/get_available_models?monitor_name={{ monitor_name }}';
+          console.log(url);
+          return await fetch(url).then(data => {return data.json();})
+                                 .catch( function(error) {
+                                                           console.log("Could not get model inventory: get_model_inventory() failed. : " + error);
+                                                         });
         }
 
         async function setup_charting_dropdown_menu(monitor_name) {
-            {# Update the parent's 'dropdown-menu' tag with <a> links #}
+            // Update the parent's 'dropdown-menu' tag with <a> links
             let menulisting = document.getElementById('{{ section_id }}').getElementsByClassName('dropdown-menu')[0]
             menulisting.innerText = '';
 
-            {#let menu_header1 = document.createElement('p');#}
-            {#menu_header1.className = "dropdown-header";#}
-            {#menu_header1.innerText = "Use Forecasting Model:";#}
-            {#menulisting.appendChild(menu_header1);#}
-            {#let url = 'http://{{ FC_HOST }}:{{ FC_PORT }}/get_available_models?monitor_name=' + monitor_name#}
-            {#let models = await fetch(url).then(data => { return data.json() })#}
-            {#for (let m in models) {#}
-            {#    let elem = document.createElement('a');#}
-            {#    elem.className = "dropdown-item py-0";#}
-            {#    elem.setAttribute('role', "presentation");#}
-            {#    let interval = models[m]['interval'];#}
-            {#    let tr_hrs = models[m]['hours_in_training'];#}
-            {#    let pr_hrs = models[m]['hours_in_prediction'];#}
-            {#    let score = parseFloat(models[m]['score']).toFixed(2);#}
-            {#    elem.innerText = 'Train hrs:' + tr_hrs + ' Pred hrs:' + pr_hrs + ' score:' + score ;#}
-            {#    elem.href = 'http://{{ CHART_HOST }}:{{ CHART_PORT }}/monitor_chart?monitor_name=' + monitor_name + '&start_date=' + d.toISOString() + '&limit_start_days=30';#}
-            {#    menulisting.appendChild(elem);#}
-
-
-            let menu_header2 = document.createElement('p');
-            menu_header2.className = "dropdown-header";
-            menu_header2.innerText = "View:";
-            menulisting.appendChild(menu_header2);
+            let menu_header1 = document.createElement('p');
+            menu_header1.className = "dropdown-header";
+            menu_header1.innerText = "View:";
+            menulisting.appendChild(menu_header1);
 
             let elem = document.createElement('a');
             elem.className = "dropdown-item py-0";
@@ -73,9 +45,101 @@
             elem.href = 'http://{{ CHART_HOST }}:{{ CHART_PORT }}/monitor_chart?monitor_name=' + monitor_name + '&start_date=' + d.toISOString() + '&limit_start_days=30';
             elem.target = "_blank"
             menulisting.appendChild(elem);
+
+            let menu_header2 = document.createElement('p');
+            menu_header2.className = "dropdown-header";
+            menu_header2.innerText = "Model Management:";
+            menulisting.appendChild(menu_header2);
+
+            let elem2 = document.createElement('a');
+            elem2.className = "dropdown-item py-0";
+            elem2.setAttribute('role', "presentation");
+            elem2.href = '#';
+            elem2.onclick = () => {
+                $('#trainmodal').modal();
+            };
+            elem2.innerText = "New ...";
+            menulisting.appendChild(elem2);
+
+            let elem3 = document.createElement('a');
+            elem3.className = "dropdown-item py-0";
+            elem3.setAttribute('role', "presentation");
+            elem3.href = '#';
+            elem3.onclick = () => show_managemodal();
+            // () => {
+            //     $('#managemodal').modal();
+            // };
+            elem3.innerText = "Manage ...";
+            menulisting.appendChild(elem3);
+
         }
 
-        {#On load, setup the channel to get communications from the server #}
+        function train() {
+          let interval = document.getElementById('intervalSelect').value;
+          let hours_in_training = document.getElementById('hrsTrainSelect').value;
+          let hours_in_prediction = document.getElementById('hrsPredSelect').value;
+          let train_from_date = document.getElementById('train_from_date').value.trim();
+
+          let sel_predictors = []
+          const elems = document.getElementsByClassName('predictor');
+          for (let i = 0; i<elems.length; i++) {
+            if (elems[i].checked) {
+              sel_predictors.push(elems[i].dataset.pred)
+            }
+          }
+
+          let url = 'http://{{ FC_HOST }}:{{ FC_PORT }}/train?monitor_name={{ monitor_name }}&source_data_from_date=' + train_from_date + '&hours_in_training=' + hours_in_training + '&interval=' + interval + '&predictors=' + ''.concat(sel_predictors) + '&hours_in_prediction=' + hours_in_prediction
+          fetch(url).catch( err => { console.log(err) })
+
+        }
+
+        async function retrain(model_name) {
+          let url = 'http://{{ FC_HOST }}:{{ FC_PORT }}/update?filename=' + model_name;
+          let rv = await fetch(url).catch( err => { console.log(err) })
+          show_managemodal();
+        }
+
+        async function delete_model(model_name) {
+          let url = 'http://{{ FC_HOST }}:{{ FC_PORT }}/delete?filename=' + model_name;
+          let rv = await fetch(url).then(data => {return data.json();}).catch( err => { console.log(err) });
+          show_managemodal();
+        }
+
+
+        async function show_managemodal() {
+          // Get a current inventory listing
+          let inventory = await get_model_inventory();
+          let table_body = document.getElementById('model_table');
+          table_body.innerText = '';
+
+          // Populate the table before displaying
+          for (let k in inventory) {
+            let c1 = document.createElement("td");
+            c1.innerText = k;
+            let c2 = document.createElement("td");
+            c2.innerText = parseFloat(inventory[k]['score']).toFixed(4);
+            let c3 = document.createElement("td");
+            c3.innerText = inventory[k]['train_date'];
+            let c4 = document.createElement("td");
+            c4.innerHTML = '<button type="button" class="btn btn-success btn-sm mx-1" onclick="retrain(\'' + k + '\')">Retrain</button>';
+            let c5 = document.createElement("td");
+            c5.innerHTML = '<button type="button" class="btn btn-danger btn-sm mx-1" onclick="delete_model(\'' + k + '\')">Delete</button>';
+
+            let r = document.createElement('tr');
+            r.appendChild(c1);
+            r.appendChild(c2);
+            r.appendChild(c3);
+            r.appendChild(c4);
+            r.appendChild(c5);
+
+            table_body.append(r);
+
+          };
+
+          $('#managemodal').modal();
+        }
+
+        // On load, setup the channel to get communications from the server
         document.addEventListener('DOMContentLoaded', () => {
             setup_charting_dropdown_menu('{{ monitor_name }}');
             embed_chart('{{ monitor_name }}');
@@ -83,13 +147,162 @@
 
     </script>
 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        $(function() {
+                        $( "#train_from_date" ).datepicker({dateFormat: "yy-mm-dd"});
+                        $( "#anim" ).on( "change", function() {
+                          $( "#train_from_date" ).datepicker( "option", "showAnim", $( this ).val() );
+                        });
+                      }
+          );
+    </script>
+
+
+
     <div class="card-body p-1" style="height: 360px;">
 
-{#        <div id="plot-area">{{ CHART_SCRIPT | safe }}</div>#}
+        <!-- <div id="plot-area">{{ CHART_SCRIPT | safe }}</div> -->
         <iframe class= "ml-1" id="plot-area" src="" width="100%" height="100%" style="border:none;"></iframe>
     </div>
 
+    {#    TRAIN MODAL    #}
+    <div class="modal fade" id="trainmodal" tabindex="-1" role="dialog" aria-labelledby="trainmodal" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="trainmodaltitle">Create and Train New Modal ... </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                  <div class="row mx-2 my-3">
+                      <div class='' style="font-weight: bolder; width: 150px">Monitor Name: </div><div class="config_object monitor_name"></div>
+                  </div>
+
+                  <div class="input-group mx-2 my-3">
+                    <div class="input-group-prepend">
+                      <label class="input-group-text" style="width: 250px" for="intervalSelect">Interval</label>
+                    </div>
+                    <select class="custom-select" id="intervalSelect">
+                      <option selected>Minutes ...</option>
+                      <option value="15">15</option>
+                      <option value="30">30</option>
+                      <option value="60">60</option>
+                    </select>
+                  </div>
+
+                  <div class="input-group mx-2 my-3">
+                    <div class="input-group-prepend">
+                      <label class="input-group-text" style="width: 250px" for="hrsTrainSelect">Days in Training</label>
+                    </div>
+                    <select class="custom-select" id="hrsTrainSelect">
+                      <option selected>Days ...</option>
+                      <option value="24">1 day</option>
+                      <option value="48">2 days</option>
+                      <option value="72">3 days</option>
+                      <option value="96">4 days</option>
+                      <option value="120">5 days</option>
+                      <option value="144">6 days</option>
+                      <option value="168">7 days</option>
+                    </select>
+                  </div>
+
+                  <div class="input-group mx-2 my-3">
+                    <div class="input-group-prepend">
+                      <label class="input-group-text" style="width: 250px" for="hrsPredSelect">Days in Prediction</label>
+                    </div>
+                    <select class="custom-select" id="hrsPredSelect">
+                      <option selected>Days ...</option>
+                      <option value="24">1 day</option>
+                      <option value="48">2 days</option>
+                      <option value="72">3 days</option>
+                    </select>
+                  </div>
+
+                  <div class="row mx-2 my-3">
+                      <div class='' style="font-weight: bolder; width: 250px">Train with data starting:</div><input type="text" id="train_from_date" size="12" class="config_object earliest_log_date date">
+                  </div>
+
+                  <div class="row mx-2 my-3">
+                      <div class='' style="font-weight: bolder; width: 150px">Predictor Columns: </div>
+                      <div class="table-responsive">
+                          <table class="table table-striped">
+                              <thead>
+                                  <tr>
+                                      <th class="text-left">Predictor</th>
+                                      <th class="text-center">Select</th>
+                                  </tr>
+                              </thead>
+
+                              <tbody>
+                                <tr style="line-height: 4px">
+                                  <td >class_code</td>
+                                  <td class="text-center"><input type='checkbox' class='predictor' id='class_code' data-pred='class_code'></td>
+                                </tr>
+                                <tr style="line-height: 4px">
+                                  <td>weekday</td>
+                                  <td class="text-center"><input type='checkbox'  class='predictor' id='weekday' data-pred='weekday'></td>
+                                </tr>
+                                <tr style="line-height: 4px">
+                                  <td>hour</td>
+                                  <td class="text-center"><input type='checkbox'  class='predictor' id='hour' data-pred='hour'></td>
+                                </tr>
+                                <tr style="line-height: 4px">
+                                  <td>month</td>
+                                  <td class="text-center"><input type='checkbox'  class='predictor' id='month' data-pred='month'></td>
+                                </tr>
+                              </tbody>
+
+                          </table>
+                      </div>
+                  </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary btn-small" data-dismiss="modal" onclick=show_managemodal()>Manage...</button>
+                    <button type="button" class="btn btn-primary btn-small" data-dismiss="modal" onclick=train()>Train</button>
+                </div>
+        </div>
+     </div>
+   </div>
+
+   {#    MANAGE MODAL    #}
+   <div class="modal fade" id="managemodal" tabindex="-1" role="dialog" aria-labelledby="managemodal" aria-hidden="true">
+       <div class="modal-dialog modal-lg" role="document">
+           <div class="modal-content">
+               <div class="modal-header">
+                   <h5 class="modal-title" id="managemodaltitle">Model Management</h5>
+                   <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                       <span aria-hidden="true">&times;</span>
+                   </button>
+               </div>
+               <div class="modal-body">
+                 <div class="table-responsive">
+                     <table class="table table-striped">
+                         <thead>
+                             <tr>
+                                 <th class="text-left">Model</th>
+                                 <th class="text-center">Score</th>
+                                 <th class="text-center">Trained</th>
+                                 <th class="text-center"></th>
+                                 <th class="text-center"></th>
+                             </tr>
+                         </thead>
+
+                         <tbody id="model_table">
+                         </tbody>
+
+                     </table>
+                 </div>
+
+               </div>
+               <div class="modal-footer">
+                   <button type="button" class="btn btn-primary btn-small" data-dismiss="modal">Close</button>
+               </div>
+       </div>
+    </div>
+  </div>
+
 {% endblock content %}
-
-
-

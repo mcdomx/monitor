@@ -29,6 +29,7 @@ from bokeh.models import ColumnDataSource, DateRangeSlider, Select, Spacer, Drop
 from bokeh.driving import count
 from bokeh.layouts import column, row
 from bokeh.server.views import ws
+from bokeh.events import ButtonClick, MenuItemClick
 
 logging.basicConfig(level=logging.INFO)
 
@@ -494,13 +495,20 @@ class Widgets:
         menu = [(f"IntMins:{p['interval']:>3} | Train:{p['hours_in_training']:>4} | Pred:{p['hours_in_prediction']:>3} | {round(float(p['score']),2)}", k) for k, p in models.items()]
         self.dropdown_selfc = Dropdown(label="Select FC Model",
                                        button_type='primary',
-                                       menu=menu,
+                                       menu=[],
                                        width=200, height=30,
                                        sizing_mode='fixed',
                                        margin=(8, 0, 0, 0))
-        self.dropdown_selfc.on_event("menu_item_click", self._update_fc)
-                                     # lambda e: self.data.change_fc_model(e.item))#,
-                                     # lambda e: self._update_slider_dates)
+        self.dropdown_selfc.on_event(MenuItemClick, self._update_fc) #"menu_item_click"
+        self.update_dropdown_menu()
+        self.dropdown_selfc.on_event(ButtonClick, self.update_dropdown_menu)
+
+    def update_dropdown_menu(self):
+        models = self.data.fc_generator.get_models()
+        menu = [(f"IntMins:{p['interval']:>3} | Train:{p['hours_in_training']:>4} | Pred:{p['hours_in_prediction']:>3} | {round(float(p['score']), 2)}",k) for k, p in models.items()]
+        print("Updating dropdown menu:")
+        print(menu)
+        self.dropdown_selfc.menu = menu
 
     def get_select_options(self):
         return list(["show/hide.."]) + sorted(list(self.data.available_classes))

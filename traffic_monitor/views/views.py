@@ -66,9 +66,9 @@ def index_view(request):
     monitor_name = kwargs.get('monitor_name')
     kwargs.update({'CHART_HOST': os.getenv('CHART_HOST')})
     kwargs.update({'CHART_PORT': os.getenv('CHART_PORT')})
-    # kwargs.update({'FC_HOST': os.getenv('FC_HOST')})
-    # kwargs.update({'FC_PORT': os.getenv('FC_PORT')})
-    kwargs.update({'CHART_SCRIPT': _get_chart_components(request)})
+    kwargs.update({'FC_HOST': os.getenv('FC_HOST')})
+    kwargs.update({'FC_PORT': os.getenv('FC_PORT')})
+    # kwargs.update({'CHART_SCRIPT': _get_chart_components(request)})
 
     print(kwargs)
 

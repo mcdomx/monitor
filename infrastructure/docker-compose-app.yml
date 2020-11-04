@@ -27,16 +27,7 @@ services:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
     command: sh -c "python manage.py makemigrations; python manage.py migrate; python manage.py runserver ${APP_HOST}:${APP_PORT}"
     ports:
-#      - ${APP_PORT}:${APP_PORT}
       - ${APP_PORT}:${APP_PORT}
 
-
-#  web:
-#    build: .
-#    command: python manage.py runserver 0.0.0.0:8000
-#    volumes:
-#      - .:/code
-#    ports:
-#      - "8000:8000"
-#    depends_on:
-#      - db
+# To run in development,
+# python manage.py runserver 0.0.0.0:8000

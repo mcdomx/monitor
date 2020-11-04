@@ -152,6 +152,17 @@ def retrain(request) -> JsonResponse:
     return JsonResponse({'success': True, 'message': rv}, safe=False)
 
 
+def delete(request) -> JsonResponse:
+    try:
+        kwargs = _parse_args(request, 'filename')
+    except Exception as e:
+        logger.error(e)
+        return JsonResponse({'error': e.args}, safe=False)
+    fname = ModelInventory().delete_model(kwargs.get('filename'))
+
+    return JsonResponse(fname, safe=False)
+
+
 def update_all(request) -> JsonResponse:
     try:
         kwargs = _parse_args(request, 'monitor_name')

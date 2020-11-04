@@ -43,6 +43,12 @@ class ModelInventory:
                            'model_config': mc})
             self.all_df = self.all_df.append(s, ignore_index=True)
 
+        def delete_model(self, filename):
+            fname = ModelConfig.delete(filename)
+            if fname is not None:
+                self.load_models()
+            return fname
+
         def create_model(self,
                          monitor_name: str,
                          interval: int,
@@ -103,9 +109,6 @@ class ModelInventory:
                 self.retrain_by_filename(filename)
 
         def get_inventory_listing(self, monitor_name: str) -> dict:
-            # If no models exist, create default model(s)
-            if len(self.get_inventory_listing(monitor_name)) == 0:
-                setup_default_models(monitor_name)
 
             _df = self.all_df[self.all_df.monitor_name == monitor_name]
             _df = _df[
@@ -162,14 +165,15 @@ def get_predictions(monitor_name: str,
 
     return pred_df
 
+# If no models exist, create default model(s)
 
 def setup_default_models(monitor_name):
     """ Trains and saves pre-determined default models that are ready for making predictions.
     Ensures that there is at lesat one model to use for forecasting. """
 
     # only load default models if the Inventory is empty
-    if len(ModelInventory().get_inventory_listing(monitor_name)) > 0:
-        return
+    # if len(ModelInventory().get_inventory_listing(monitor_name)) > 0:
+    #     return
 
     d = {'monitor_name': monitor_name,
          'interval': 60,

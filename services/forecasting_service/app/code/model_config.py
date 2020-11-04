@@ -166,6 +166,16 @@ class ModelConfig:
         return False
 
     @staticmethod
+    def delete(filename: str):
+        fname = os.path.join(MODELS_DIR, filename)
+        base, ext = os.path.splitext(fname)
+        if os.path.isfile(base + '.pkl'):
+            os.remove(base + '.pkl')
+            return fname
+        else:
+            return None
+
+    @staticmethod
     def load(filename: str):
         """ Load model configuration.  Auto loads new observations from database. """
         filename = os.path.join(MODELS_DIR, filename)
