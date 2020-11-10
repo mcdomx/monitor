@@ -52,28 +52,93 @@ services:
     depends_on:
       - zookeeper
 
-#  monitor_application:
-#    build: ..
-#    restart: on-failure
-#    hostname: monitor_application
-#    environment:
-#      VERBOSITY: DEBUG
-#      KAFKA_HOST: kafka #host.docker.internal
-#      KAFKA_PORT: 1${KAFKA_PORT}
-#      KAFKA_GROUPID: monitorgroup
-#      DB_NAME: ${DB_NAME}
-#      DB_USER: ${DB_USER}
-#      DB_PASSWORD: ${DB_PASSWORD}
-#      DB_HOST: db
-#      DB_PORT: ${DB_PORT}
-#      APP_HOST: ${APP_HOST} #monitor_application
-#      APP_PORT: ${APP_PORT}
-#      CHART_HOST: charting_service #${CHART_HOST}
-#      CHART_PORT: ${CHART_PORT}
-#      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
-#    command: sh -c "python manage.py makemigrations; python manage.py migrate; python manage.py runserver ${APP_HOST}:${APP_PORT}"
-#    ports:
-#      - ${APP_PORT}:${APP_PORT}
-#    depends_on:
-#      - db
-#      - kafka
+#networks:
+#  default:
+#    external:
+#      name: infrastructure_default
+
+#services:
+  forecasting_service:
+    build: ../services/forecasting_service
+    restart: on-failure
+    hostname: forecasting_service
+    environment:
+      VERBOSITY: DEBUG
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: db
+      DB_PORT: ${DB_PORT}
+      DJANGO_SECRET_KEY: sghkslbro5inb
+    command: sh -c "python manage.py makemigrations; python manage.py migrate; python manage.py runserver ${FC_HOST}:${FC_PORT}"
+#    volumes:
+#      - ../services/forecasting_service:/code
+    ports:
+      - ${FC_PORT}:${FC_PORT}
+    depends_on:
+      - db
+
+  charting_service:
+    build: ../services/charting_service
+    restart: on-failure
+    hostname: charting_service
+    environment:
+      NUM_PROCS: 4
+      BOKEH_PORT: ${CHART_PORT}
+      APP_HOST: host.docker.internal # ${APP_HOST}(when running app standalone) #host.docker.internal(when running app as container)
+      APP_PORT: ${APP_PORT}
+      FC_HOST: host.docker.internal
+      FC_PORT: ${FC_PORT}
+    ports:
+      - ${CHART_PORT}:${CHART_PORT}
+    depends_on:
+      - forecasting_service
+
+# To run these 'manually' for development and debugging, start each service in
+# separate terminal windows:
+
+# Forecasting Service:
+# python manage.py runserver 0.0.0.0:8200
+
+# Charting Service:
+# bokeh serve --port 8100 --allow-websocket-origin="*" --disable-index --disable-index-redirect --num-procs=4 --log-level=info ./monitor_chart.py
+
+
+#networks:
+#  default:
+#    external:
+#      name: infrastructure_default
+
+#services:
+  monitor_application:
+    build: ..
+    restart: on-failure
+    hostname: monitor_application
+    environment:
+      VERBOSITY: DEBUG
+      KAFKA_HOST: kafka #host.docker.internal
+      KAFKA_PORT: 1${KAFKA_PORT} #1${KAFKA_PORT} use the 1 when running in separate containers
+      KAFKA_GROUPID: monitorgroup
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: db
+      DB_PORT: ${DB_PORT}
+      APP_HOST: ${APP_HOST} #monitor_application #host.docker.internal
+      APP_PORT: ${APP_PORT}
+      CHART_HOST: ${CHART_HOST} #host.docker.internal(can't find) #charting_service(can't find) #${CHART_HOST}
+      CHART_PORT: ${CHART_PORT}
+      FC_HOST: ${FC_HOST}
+      FC_PORT: ${FC_PORT}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+    command: sh -c "python manage.py makemigrations; python manage.py migrate; python manage.py runserver ${APP_HOST}:${APP_PORT}"
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    depends_on:
+      - kafka
+      - db
+      - charting_service
+
+# To run in development,
+# python manage.py runserver 0.0.0.0:8000
+

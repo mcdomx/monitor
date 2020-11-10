@@ -79,6 +79,8 @@ def index_view(request):
     kwargs.update({'CHART_PORT': os.getenv('CHART_PORT')})
     kwargs.update({'FC_HOST': os.getenv('FC_HOST')})
     kwargs.update({'FC_PORT': os.getenv('FC_PORT')})
+    kwargs.update({'APP_HOST': os.getenv('APP_HOST')})
+    kwargs.update({'APP_PORT': os.getenv('APP_PORT')})
     kwargs.update({'CHART_SCRIPT': _get_chart_components(request)})
 
     print(kwargs)

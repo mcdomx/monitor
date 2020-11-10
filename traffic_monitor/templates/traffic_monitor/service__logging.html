@@ -14,9 +14,9 @@
 
             const socket = new WebSocket('ws://' + window.location.host + '/ws/traffic_monitor/log/' + monitor_name + '/')
 
-            let monitor_config = await get_monitor_config("{{ monitor_name }}")
-            let class_colors = monitor_config['class_colors']
-
+            let monitor_config = await get_monitor_config("{{ monitor_name }}");
+            let class_colors = monitor_config['class_colors'];
+            
             {# Clear anything already in the detections log #}
             let logtable = document.getElementById("log_output");
             logtable.innerHTML = ''
