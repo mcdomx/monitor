@@ -149,28 +149,6 @@ def get_chart():
     return fig
 
 
-@count()
-def update(i):
-    """ Called periodically by the server loop. """
-    # i = int representing the number of times this function has been called
-    # global SOURCE_ACT_SCATTER, SOURCE_ACT_LINE #, DATE_RANGE_SLIDER
-    new_raw_data = _get_logdata(monitor_config.name, start_date_utc_gt=display_data.last_posted_time_utc_iso)
-    if len(new_raw_data) < 1:
-        return
-    display_data.last_posted_time_utc_iso = new_raw_data['time_stamp'][-1]
-
-    # UPDATE SOURCE_ACT_SCATTER - add the scatter points for the new data
-    new_raw_data_df = pd.DataFrame(new_raw_data)
-    new_raw_data_df['time_stamp_utc'] = pd.to_datetime(new_raw_data_df['time_stamp'], utc=True)
-    new_raw_data_df['time_stamp'] = new_raw_data_df['time_stamp_utc'].dt.tz_convert(
-        tz=monitor_config.time_zone.zone).dt.tz_localize(
-        None)
-    new_raw_data_df['color'] = [class_colors.colors.get(class_name) for class_name in
-                                new_raw_data_df['class_name'].values]
-
-    display_data.add_data_point(new_raw_data_df)  # .to_dict(orient='list'))
-
-
 class MonitorConfig:
     def __init__(self, arg_dict: dict):
         self.name = arg_dict.get('monitor_name', None)
@@ -218,16 +196,24 @@ class ForecastGenerator:
         self.hours_in_prediction = arg_dict.get('hours_in_prediction', None)
         self.source_data_from_date = arg_dict.get('fc_source_data_from_date', None)
 
+    def get_fc_name(self):
+        return f"FC: TrainHrs:{self.hours_in_training} PredHrs:{self.hours_in_prediction} Interval:{self.interval}"
+
     def retrain_all(self):
         url = f'http://{FC_HOST}:{FC_PORT}/retrain_all?monitor_name={self.monitor_name}'
+        response = requests.get(url)
+        if response.status_code == 200:
+            logging.info("All models retrained!")
+            return json.loads(response.text)
+        else:
+            logging.error(f"URL ERROR {response.status_code}: Models not retrained.")
+            return []
 
-    def _get_fcdata(self, interval=None, hours_in_training=None, hours_in_prediction=None,
-                    source_data_from_date=None):
+    def _get_fcdata(self, interval=None, hours_in_training=None, hours_in_prediction=None):
         """Return a dictionary of forecasted values starting with the most recent observation"""
         url_params = {'interval': interval,
                       'hours_in_training': hours_in_training,
                       'hours_in_prediction': hours_in_prediction,
-                      # 'source_data_from_date': source_data_from_date
                       }
         url = f'http://{FC_HOST}:{FC_PORT}/predict?monitor_name={self.monitor_name}'
 
@@ -469,46 +455,12 @@ class DisplayData:
 
 class Widgets:
     """ Defines and manages widgets used to control charted data """
-
-    def __init__(self, data: DisplayData):
-        self.data = data
-
-        self.date_range_slider = DateRangeSlider(
-            value=(data.start_display_range, data.end_display_range),
-            start=data.start_available_range, end=data.end_available_range,
-            step=6,
-            # height_policy="min",
-            margin=(0, 0, 0, 0),
-            show_value=True,
-            width=200, height=25,
-            sizing_mode='fixed')
-        self.date_range_slider.on_change("value_throttled", self._change_date)
-
-        self.select_object = Select(value="show/hide..",
-                                    width=200, height=25,
-                                    sizing_mode='fixed',
-                                    options=self.get_select_options(),
-                                    margin=(8, 0, 0, 0))
-        self.select_object.on_change("value", self.toggle_object)
-
-        models = self.data.fc_generator.get_models()
-        menu = [(f"IntMins:{p['interval']:>3} | Train:{p['hours_in_training']:>4} | Pred:{p['hours_in_prediction']:>3} | {round(float(p['score']),2)}", k) for k, p in models.items()]
-        self.dropdown_selfc = Dropdown(label="Select FC Model",
-                                       button_type='primary',
-                                       menu=[],
-                                       width=200, height=30,
-                                       sizing_mode='fixed',
-                                       margin=(8, 0, 0, 0))
-        self.dropdown_selfc.on_event(MenuItemClick, self._update_fc) #"menu_item_click"
-        self.update_dropdown_menu()
-        self.dropdown_selfc.on_event(ButtonClick, self.update_dropdown_menu)
-
     def update_dropdown_menu(self):
         models = self.data.fc_generator.get_models()
         menu = [(f"IntMins:{p['interval']:>3} | Train:{p['hours_in_training']:>4} | Pred:{p['hours_in_prediction']:>3} | {round(float(p['score']), 2)}",k) for k, p in models.items()]
-        print("Updating dropdown menu:")
-        print(menu)
-        self.dropdown_selfc.menu = menu
+
+        if self.dropdown_selfc.menu != menu:
+            self.dropdown_selfc.menu = menu
 
     def get_select_options(self):
         return list(["show/hide.."]) + sorted(list(self.data.available_classes))
@@ -541,8 +493,39 @@ class Widgets:
         # redraw the sources with the new values in displayed_objects
         self.data.update_sources()
 
+    def __init__(self, data: DisplayData):
+        self.data = data
 
-# CB_ID = None
+        self.date_range_slider = DateRangeSlider(
+            value=(data.start_display_range, data.end_display_range),
+            start=data.start_available_range, end=data.end_available_range,
+            step=6,
+            # height_policy="min",
+            margin=(0, 0, 0, 0),
+            show_value=True,
+            width=200, height=25,
+            sizing_mode='fixed')
+        self.date_range_slider.on_change("value_throttled", self._change_date)
+
+        self.select_object = Select(value="show/hide..",
+                                    width=200, height=25,
+                                    sizing_mode='fixed',
+                                    options=self.get_select_options(),
+                                    margin=(8, 0, 0, 0))
+        self.select_object.on_change("value", self.toggle_object)
+
+        models = self.data.fc_generator.get_models()
+        # menu = [(f"IntMins:{p['interval']:>3} | Train:{p['hours_in_training']:>4} | Pred:{p['hours_in_prediction']:>3} | {round(float(p['score']),2)}", k) for k, p in models.items()]
+        self.dropdown_selfc = Dropdown(label="Select FC Model",
+                                       button_type='primary',
+                                       menu=[],
+                                       width=200, height=30,
+                                       sizing_mode='fixed',
+                                       margin=(8, 0, 0, 0))
+        self.dropdown_selfc.on_event(MenuItemClick, self._update_fc) #"menu_item_click"
+        self.update_dropdown_menu()
+        self.dropdown_selfc.on_event(ButtonClick, self.update_dropdown_menu)
+
 
 @count()
 def retrain_daily(i):
@@ -577,6 +560,8 @@ def terminate(code: int = 99):
 args = curdoc().session_context.request.arguments
 args = {k: v[0].decode() for k, v in args.items()}  # convert from binary lists
 
+print(args)
+
 # Create components of chart
 monitor_config: MonitorConfig = MonitorConfig(arg_dict=args)
 fc_generator: ForecastGenerator = ForecastGenerator(monitor=monitor_config, arg_dict=args)
@@ -590,15 +575,46 @@ widgets = Widgets(display_data)
 # exit codes: 1-websocket closed, 2-curdoc loop failed, 3-connection error
 ws.WSHandler.on_close = lambda x: terminate(1)
 
+
+@count()
+def update(i):
+    """ Called periodically by the server loop. """
+    # i = int representing the number of times this function has been called
+    # global SOURCE_ACT_SCATTER, SOURCE_ACT_LINE #, DATE_RANGE_SLIDER
+    # update the available models in the dropdown menu
+    widgets.update_dropdown_menu()
+
+    # Check and see if there is new observation data to plot
+    new_raw_data = _get_logdata(monitor_config.name, start_date_utc_gt=display_data.last_posted_time_utc_iso)
+    if len(new_raw_data) < 1:
+        return
+    display_data.last_posted_time_utc_iso = new_raw_data['time_stamp'][-1]
+
+    # UPDATE SOURCE_ACT_SCATTER - add the scatter points for the new data
+    new_raw_data_df = pd.DataFrame(new_raw_data)
+    new_raw_data_df['time_stamp_utc'] = pd.to_datetime(new_raw_data_df['time_stamp'], utc=True)
+    new_raw_data_df['time_stamp'] = new_raw_data_df['time_stamp_utc'].dt.tz_convert(
+        tz=monitor_config.time_zone.zone).dt.tz_localize(
+        None)
+    new_raw_data_df['color'] = [class_colors.colors.get(class_name) for class_name in
+                                new_raw_data_df['class_name'].values]
+
+    display_data.add_data_point(new_raw_data_df)
+
+    # if the new data point is beyond the current forecast, get new forecast
+    if new_raw_data_df['time_stamp'].max() >= display_data.full_fc_df.time_stamp.max():
+        display_data.update_fc_and_redraw()
+
+
 # build page
 try:
-
     curdoc().add_root(
         column(row(widgets.date_range_slider, Spacer(width=15), widgets.select_object, Spacer(width=15),
                    widgets.dropdown_selfc), get_chart()))
     curdoc().add_periodic_callback(update, 30 * 1000)  # 30000 = 30seconds
-    curdoc().add_periodic_callback(display_data.update_fc_and_redraw, 60 * 60 * 24 * 1000)  # 1x daily
+    # curdoc().add_periodic_callback(widgets.update_dropdown_menu, 30 * 1000)
+    # curdoc().add_periodic_callback(display_data.update_fc_and_redraw, 60 * 60 * 24 * 1000)  # 1x daily
     retrain_daily()  # setup callback to retrain all models at midnight each day
-    curdoc().title = f"{monitor_config.name}"
+    curdoc().title = f"{monitor_config.name} // {display_data.fc_generator.get_fc_name()}"
 except:
     terminate(2)

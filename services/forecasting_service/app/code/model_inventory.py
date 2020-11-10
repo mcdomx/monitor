@@ -39,7 +39,7 @@ class ModelInventory:
                            'hours_in_training': mc.data_config.hours_in_training,
                            'score': mc.best_score,
                            'train_date': mc.train_date,
-                           'model_type': mc.modelclass.__name__,
+                           'model_type': LinearGAM.__name__,
                            'model_config': mc})
             self.all_df = self.all_df.append(s, ignore_index=True)
 
@@ -54,13 +54,11 @@ class ModelInventory:
                          interval: int,
                          hours_in_training: int,
                          hours_in_prediction: int,
-                         modelclass: LinearGAM = LinearGAM,
                          string_predictor_columns: list = None,
                          response_columns: list = None,
                          source_data_from_date: str = None,
                          param_search: dict = None):
-            mc = ModelConfig.create(modelclass=modelclass,
-                                    monitor_name=monitor_name,
+            mc = ModelConfig.create(monitor_name=monitor_name,
                                     interval=interval,
                                     hours_in_prediction=hours_in_prediction,
                                     hours_in_training=hours_in_training,
@@ -135,6 +133,7 @@ class ModelInventory:
             for file in os.listdir(MODELS_DIR):
                 f_name, f_ext = os.path.splitext(file)
                 if f_ext == '.pkl':
+                    print(f"loading: {f_name}")
                     mc = ModelConfig.load(f_name)
                     # if type(mc) == dict:
                     #     os.remove(os.path.join(MODELS_DIR, file))
@@ -143,6 +142,7 @@ class ModelInventory:
 
 
 def get_predictions(monitor_name: str,
+                    model_type: str = None,
                     interval: int = None,
                     hours_in_prediction: int = None,
                     hours_in_training: int = None):
@@ -165,8 +165,8 @@ def get_predictions(monitor_name: str,
 
     return pred_df
 
-# If no models exist, create default model(s)
 
+# If no models exist, create default model(s)
 def setup_default_models(monitor_name):
     """ Trains and saves pre-determined default models that are ready for making predictions.
     Ensures that there is at lesat one model to use for forecasting. """

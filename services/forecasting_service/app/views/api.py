@@ -1,4 +1,5 @@
 import logging
+from pygam import LinearGAM
 
 # from django.shortcuts import render
 from django.http import JsonResponse

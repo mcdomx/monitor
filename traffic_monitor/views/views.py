@@ -1,12 +1,14 @@
-import cv2 as cv
+
 import base64
 import io
 import os
 import time
-from PIL import Image
+import datetime
 import numpy as np
 import logging
 
+import cv2 as cv
+from PIL import Image
 from bokeh.embed import server_document, json_item
 
 from django.core.serializers.json import DjangoJSONEncoder
@@ -48,14 +50,23 @@ def _parse_args(request, *args):
 
 def _get_chart_components(request):
     """ Returns a script that will embed a bokeh chart from a bokeh server """
-    url = f"{os.getenv('CHART_HOST')}:{os.getenv('CHART_PORT')}/monitor_chart"
+    url = f"http://{os.getenv('CHART_HOST')}:{os.getenv('CHART_PORT')}/monitor_chart"  # including the http:// is critical
     try:
         kwargs = _parse_args(request)
         # url = 'http://0.0.0.0:8100/monitor_chart?monitor_name=MyMonitor&start_date=2020-10-20&limit_start_days=10'
+        if kwargs.get('start_date') is None:
+            # limit this to 3 days back
+            sd = datetime.datetime.now() - datetime.timedelta(days=3)
+            kwargs.update({'start_date': sd})
+
+        if kwargs.get('limit_start_days') is None:
+            # limit to 2 weeks back
+            kwargs.update({'limit_start_days': 14})
+
     except Exception as e:
         return JsonResponse({'success': False, 'message': e.args})
 
-    script = server_document(url, arguments=kwargs)
+    script = server_document(url, relative_urls=False, arguments=kwargs)
 
     return script
 
@@ -68,7 +79,7 @@ def index_view(request):
     kwargs.update({'CHART_PORT': os.getenv('CHART_PORT')})
     kwargs.update({'FC_HOST': os.getenv('FC_HOST')})
     kwargs.update({'FC_PORT': os.getenv('FC_PORT')})
-    # kwargs.update({'CHART_SCRIPT': _get_chart_components(request)})
+    kwargs.update({'CHART_SCRIPT': _get_chart_components(request)})
 
     print(kwargs)
 

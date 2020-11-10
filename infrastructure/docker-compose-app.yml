@@ -24,6 +24,8 @@ services:
       APP_PORT: ${APP_PORT}
       CHART_HOST: ${CHART_HOST} #host.docker.internal(can't find) #charting_service(can't find) #${CHART_HOST}
       CHART_PORT: ${CHART_PORT}
+      FC_HOST: ${FC_HOST}
+      FC_PORT: ${FC_PORT}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
     command: sh -c "python manage.py makemigrations; python manage.py migrate; python manage.py runserver ${APP_HOST}:${APP_PORT}"
     ports:

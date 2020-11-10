@@ -14,24 +14,24 @@ MODELS_DIR = 'app/trained_models'
 
 
 class ModelConfig:
-    def __init__(self, modelclass: LinearGAM,
-                 data_config: DataConfig,
+    def __init__(self, data_config: DataConfig,
                  param_search: dict = None):
         if param_search is None:
             param_search: dict = {'lam': [.0001, .001, .1, 10, 50, 100, 400, 800, 1200, 1600, 2000, 2500]}
-        self.modelclass: LinearGAM = modelclass
         self.data_config: DataConfig = data_config
         self.param_search: dict = param_search
         self.best_model = None
         self.best_score = 0
-        self.filename = f"{self.data_config.monitor_name}_{self.data_config.interval}_{self.data_config.hours_in_training}_{self.data_config.hours_in_prediction}_{self.modelclass.__name__}"
+        self.filename = f"{self.data_config.monitor_name}_{self.data_config.interval}_{self.data_config.hours_in_training}_{self.data_config.hours_in_prediction}_{LinearGAM.__name__}"
         self.train_date = None
+        self.description = f"Model: {LinearGAM.__name__} | TrHrs: {self.data_config.hours_in_training} | PredHrs: {self.data_config.hours_in_prediction} | Interval: {self.data_config.interval} | R2: {round(self.best_score, 3)}"
         self.set_best_model()
 
     def __str__(self):
-        print_params = {'Model': self.modelclass.__name__,
+        print_params = {'Model': LinearGAM.__name__,
                         'R2': self.best_score,
-                        'Train Date': self.train_date}
+                        'Train Date': self.train_date,
+                        'Description': self.description}
 
         rv = ''
         for k, v in print_params.items():
@@ -40,8 +40,7 @@ class ModelConfig:
         return rv
 
     @staticmethod
-    def create(modelclass: LinearGAM,
-               monitor_name: str,
+    def create(monitor_name: str,
                interval: int,
                hours_in_training: int,
                hours_in_prediction: int,
@@ -56,8 +55,7 @@ class ModelConfig:
                         string_predictor_columns=string_predictor_columns,
                         response_columns=response_columns,
                         source_data_from_date=source_data_from_date)
-        mc = ModelConfig(modelclass=modelclass,
-                         data_config=dc,
+        mc = ModelConfig(data_config=dc,
                          param_search=param_search)
         mc.save()
         return mc
@@ -72,7 +70,9 @@ class ModelConfig:
         pred_df = self.string_predictions(from_date)
         pred_df = pred_df[['time_stamp', 'class_name', 'rate']]
         pred_df.rename(columns={'rate': 'count'}, inplace=True)
-        return pred_df.to_dict(orient='list')
+        rv_dict = pred_df.to_dict(orient='list')
+        rv_dict.update({'description': self.description})
+        return rv_dict
 
     def set_best_model(self):
 
@@ -81,20 +81,23 @@ class ModelConfig:
         terms = None
         for i, c in enumerate(X.columns):
             if c.startswith('-') or c.startswith('+'):
-                if terms == None:
+                if terms is None:
                     terms = s(i)
                 else:
                     terms += s(i)
             else:
-                if terms == None:
+                if terms is None:
                     terms = f(i)
                 else:
                     terms += f(i)
 
-        best_model = self.modelclass(terms=terms).gridsearch(X.to_numpy(), y.to_numpy(),
-                                                             return_scores=False,
-                                                             keep_best=True, objective='auto',
-                                                             **self.param_search)
+        init_args = {'terms': terms}
+        gs_args = {'X': X.to_numpy(),
+                   'y': y.to_numpy(),
+                   'return_scores': False,
+                   'keep_best': True,
+                   **self.param_search}
+        best_model = LinearGAM(**init_args).gridsearch(**gs_args)
 
         self.best_score = r2_score(best_model.predict(X), y)
         self.train_date = datetime.datetime.now().date().isoformat()
